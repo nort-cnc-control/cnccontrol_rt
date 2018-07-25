@@ -14,8 +14,21 @@ typedef struct {
 	uint8_t abs_crd : 1;
 } cnc_position;
 
+typedef struct 
+{
+	void (*set_dir)(int i, int dir);
+	void (*make_step)(int i);
+	void (*line_started)(void);
+	void (*line_finished)(void);
+	int32_t steps_per_unit[3];
+} steppers_definition;
+
+void init_moves(steppers_definition definition);
+
 void move_line_to(int32_t x[3]);
+
 void find_begin(int rx, int ry, int rz);
+
 void set_speed(int32_t speed);
 
 // step of moving

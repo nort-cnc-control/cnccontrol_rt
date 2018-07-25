@@ -27,7 +27,7 @@ void shell_init(shell_cbs callbacks)
     pos = 0;
     outlen = 0;
     inlen = 0;
-    echo = 1;
+    echo = 0;
 }
 
 void shell_echo_enable(int enable_echo)

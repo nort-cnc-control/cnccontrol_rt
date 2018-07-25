@@ -1,16 +1,18 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "control.h"
-#include "gcodes.h"
-#include "err.h"
 #include "moves.h"
-#include "api.h"
+#include "control.h"
+
+#include <gcode/gcodes.h>
+#include <err.h>
+
+#include <shell/shell.h>
 
 #define MAX_CMDS 20
 
-#define ANSWER_OK(str)  print_answer(0, (str), sizeof((str)) - 1)
-#define ANSWER_ERR(err, str)  print_answer(err, (str), sizeof((str)) - 1)
+#define ANSWER_OK(str)  shell_print_answer(0, (str))
+#define ANSWER_ERR(err, str)  shell_print_answer(err, (str))
 
 int execute_g_command(const char *command)
 {
@@ -63,10 +65,10 @@ int execute_g_command(const char *command)
 			break;
 		}
 		case 20:
-			print_answer(0, NULL, 0);
+			shell_print_answer(0, NULL);
 			break;
 		case 21:
-			print_answer(0, NULL, 0);
+			shell_print_answer(0, NULL);
 			break;
 		case 28: {
 			int rx = 0, ry = 0, rz = 0;
@@ -93,19 +95,14 @@ int execute_g_command(const char *command)
 		}
 		case 90:
 			position.abs_crd = 1;
-			print_answer(0, NULL, 0);
+			shell_print_answer(0, NULL);
 			break;
 		case 91:
 			position.abs_crd = 0;
-			print_answer(0, NULL, 0);
+			shell_print_answer(0, NULL);
 			break;
 		default:
-			{
-				char buf[100];
-				int blen;
-				blen = snprintf(buf, 100, "unknown command number = G%i", (int)cmds[0].val_i);
-				print_answer(-1, buf, blen);
-			}
+ 			shell_print_answer(-1, "unknown command number");
 			return -E_INCORRECT;
 		}
 		break;
@@ -115,21 +112,17 @@ int execute_g_command(const char *command)
 			// END
 			return -E_OK;
 		case 999:
-			system_reset();
+//			system_reset();
 			break;
 		default:
-			{
-				char buf[100];
-				int blen;
-				blen = snprintf(buf, 100, "unknown command number = M%i", (int)cmds[0].val_i);
- 				print_answer(-1, buf, blen);
-			}
+ 			shell_print_answer(-1, "unknown command number");
 			return -E_INCORRECT;
 		}
 		break;
 	default:
- 		print_answer(-1, "unknown command", sizeof("unknown command") - 1);
+ 		shell_print_answer(-1, "unknown command");
 		return -E_INCORRECT;
 	}
 	return E_OK;
 }
+

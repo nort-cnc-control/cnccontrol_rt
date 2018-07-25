@@ -7,6 +7,8 @@ typedef struct {
 
 void shell_init(shell_cbs callbacks);
 
+void shell_echo_enable(int enable_echo);
+
 void shell_char_received(char c);
 
 void shell_char_transmitted(void);

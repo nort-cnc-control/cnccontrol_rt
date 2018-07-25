@@ -1,5 +1,4 @@
 #include "moves.h"
-#include "api.h"
 
 #define abs(a) ((a) > 0 ? (a) : (-(a))) 
 
@@ -12,6 +11,13 @@ static int maxi;
 static int steps;
 static int step;
 static int is_moving;
+
+static steppers_definition def;
+
+void init_moves(steppers_definition definition)
+{
+	def = definition;
+}
 
 static void bresenham_plan(void)
 {
@@ -32,7 +38,7 @@ static void bresenham_plan(void)
 
     for (i = 0; i < 3; i++)
     {
-        set_dir(i, dc[i] >= 0);
+        def.set_dir(i, dc[i] >= 0);
     }
     step = 0;
 }
@@ -41,37 +47,36 @@ void move_line_to(int32_t x[3])
 {
     int i;
     for (i = 0; i < 3; i++)
-        dc[i] = x[i] * steps_per_unit[i];
+        dc[i] = x[i] * def.steps_per_unit[i];
     
     bresenham_plan();
     is_moving = 1;
-    line_started();
+    def.line_started();
 }
 
 int32_t step_tick(void)
 {
-    int i;
-    if (step >= steps)
-        return -1;
+	int i;
+	if (step >= steps)
+		return -1;
 
-    make_step(maxi);
+	def.make_step(maxi);
 	for (i = 0; i < 3; i++) {
 		if (i == maxi)
-				continue;
+			continue;
 		err[i] += abs(dc[i]);
 		if (err[i] * 2 >= steps) {
 			err[i] -= steps;
-			make_step(i);
+			def.make_step(i);
 		}
 	}
 
-    step++;
-    if (step == steps)
-    {
-        line_finished();
-        return -1;
-    }
-    return 0x1000;
+	step++;
+	if (step == steps) {
+        	def.line_finished();
+        	return -1;
+    	}
+    	return 0x1000;
 }
 
 void set_speed(int32_t speed)
@@ -83,3 +88,4 @@ void find_begin(int rx, int ry, int rz)
 {
 
 }
+

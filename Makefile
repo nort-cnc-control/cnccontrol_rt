@@ -16,7 +16,7 @@ GDB             := $(PREFIX)-gdb
 INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
-CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS)
+CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
 LDFLAGS		+= -T stm32.ld $(LIBS) --static -nostartfiles
 
 
@@ -29,7 +29,10 @@ all:	main.bin
 	$(AS) -c $< -o $@
 
 SRC_OBJS = main.o \
-	   core/shell/shell.o
+	   core/shell/shell.o \
+	   core/gcode/gcodes.o \
+	   core/control/moves.o \
+	   core/control/control.o \
 
 main.elf: $(SRC_OBJS)
 	$(LD) $(LDFLAGS) $^ -lopencm3_stm32f1 -o $@
