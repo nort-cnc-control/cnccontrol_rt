@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <string.h>
-#include "control.h"
-#include "serial.h"
-#include "api.h"
+#include "shell.h"
 
 #define BUFLEN 256
 
@@ -21,9 +19,9 @@ volatile static struct
 
 volatile uint8_t echo;
 
-static serial_cbs cbs;
+static shell_cbs cbs;
 
-void serial_init(serial_cbs callbacks)
+void shell_init(shell_cbs callbacks)
 {
     cbs = callbacks;
     serial_flags.rdy = 1;
@@ -40,7 +38,7 @@ static void send_char(char c)
         cbs.transmit_char(c);
 }
 
-void serial_char_received(char c)
+void shell_char_received(char c)
 {
     if (c != '\n' && c != '\r')
     {
@@ -69,13 +67,13 @@ void serial_char_received(char c)
         inbuf[inlen] = 0;
         inlen = 0;
         if (echo)
-            serial_send_string("\r\n", 2);
+            shell_send_string("\r\n", 2);
         if (cbs.line_received)
             cbs.line_received(inbuf);
     }
 }
 
-void serial_char_transmitted(void)
+void shell_char_transmitted(void)
 {
     if (outbuf[pos] && pos < outlen)
     {
@@ -90,18 +88,18 @@ void serial_char_transmitted(void)
     }
 }
 
-void print_answer(int res, char *ans, int anslen)
+void shell_print_answer(int res, char *ans, int anslen)
 {
     if (res == 0)
-        serial_send_string("ok ", 3);
+        shell_send_string("ok ", 3);
     else
-        serial_send_string("ok ERROR:", 9);
+        shell_send_string("ok ERROR:", 9);
     if (ans)
-        serial_send_string(ans, anslen);
-    serial_send_string("\r\n", 2);
+        shell_send_string(ans, anslen);
+    shell_send_string("\r\n", 2);
 }
 
-void serial_send_string(char *str, int len)
+void shell_send_string(char *str, int len)
 {
     int i;
 
