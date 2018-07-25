@@ -11,7 +11,8 @@ void shell_char_received(char c);
 
 void shell_char_transmitted(void);
 
-void shell_send_string(char *str, int len);
+void shell_send_char(char c);
+void shell_send_string(const char *str);
 
-void shell_print_answer(int res, char *ans, int anslen);
+void shell_print_answer(int res, const char *ans);
 

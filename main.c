@@ -76,7 +76,7 @@ static void transmit_char(char data)
 
 static void shell_line_received(const char *cmd)
 {
-	shell_send_string("ok\n\r", -1);
+	shell_send_string("ok\n\r");
 }
 
 static void init_shell(void)
@@ -100,8 +100,9 @@ int main(void)
 	init_shell();
 	usart_setup(9600);
 
+	shell_send_string("Hello\r\n");
+
         while (1) {
-		usart1_isr();
         }
 
         return 0;

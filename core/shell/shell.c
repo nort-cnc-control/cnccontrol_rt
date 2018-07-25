@@ -14,7 +14,6 @@ volatile static int pos;
 volatile static struct
 {
     uint8_t rdy : 1;
-    uint8_t str : 1;
 } serial_flags;
 
 volatile uint8_t echo;
@@ -31,93 +30,89 @@ void shell_init(shell_cbs callbacks)
     echo = 1;
 }
 
-static void send_char(char c)
+void shell_echo_enable(int enable_echo)
 {
-    serial_flags.str = 0;
-    if (cbs.transmit_char)
-        cbs.transmit_char(c);
+	echo = enable_echo;
+}
+
+void shell_send_char(char c)
+{
+	if (outlen == BUFLEN)
+		return;
+	outbuf[outlen++] = c;
+	if (outlen == 1 && serial_flags.rdy == 1)
+	{
+		pos = 1;
+		serial_flags.rdy = 0;
+		cbs.transmit_char(outbuf[0]);
+	}
 }
 
 void shell_char_received(char c)
 {
-    if (c != '\n' && c != '\r')
-    {
-        if (c == '\b' || c == 0x7F)
-        {
-            if (inlen > 0)
-                inlen--;
-            if (echo)
-                send_char('\b');
-        }
-        else
-        {
-            if (echo)
-            {
-                if (inlen >= BUFLEN)
-                    send_char('^');
-                else
-                    send_char(c);
-            }
-            if ((inlen < BUFLEN - 1))
-                inbuf[inlen++] = c;
-        }
-    }
-    else
-    {
-        inbuf[inlen] = 0;
-        inlen = 0;
-        if (echo)
-            shell_send_string("\r\n", 2);
-        if (cbs.line_received)
-            cbs.line_received(inbuf);
-    }
+	switch (c)
+	{
+		case '\n':
+		case '\r':
+			inbuf[inlen] = 0;
+        		inlen = 0;
+        		if (echo)
+            			shell_send_string("\r\n");
+        		if (cbs.line_received)
+            			cbs.line_received(inbuf);
+			break;
+		case '\b':
+		case 0x7F:
+			if (inlen > 0)
+			{
+                		inlen--;
+            			if (echo)
+                			shell_send_char('\b');
+			}
+			break;
+		default:
+			if ((inlen < BUFLEN - 1)) {
+				inbuf[inlen++] = c;
+				if (echo)
+                    			shell_send_char(c);
+			} else {
+				if (echo)
+                    			shell_send_char('^');
+			}
+			break;
+	}
 }
 
 void shell_char_transmitted(void)
 {
-    if (outbuf[pos] && pos < outlen)
-    {
-        send_char(outbuf[pos]);
-        pos++;
-    }
-    else
-    {
-        outlen = 0;
-        pos = 0;
-        serial_flags.rdy = 1;
-    }
+	if (outbuf[pos] && pos < outlen) {
+		int p = pos;
+		pos++;
+        	cbs.transmit_char(outbuf[p]);
+    	}
+    	else {
+        	outlen = 0;
+        	pos = 0;
+        	serial_flags.rdy = 1;
+    	}
 }
 
-void shell_print_answer(int res, char *ans, int anslen)
+void shell_print_answer(int res, const char *ans)
 {
     if (res == 0)
-        shell_send_string("ok ", 3);
+        shell_send_string("ok ");
     else
-        shell_send_string("ok ERROR:", 9);
+        shell_send_string("ok ERROR:");
     if (ans)
-        shell_send_string(ans, anslen);
-    shell_send_string("\r\n", 2);
+        shell_send_string(ans);
+    shell_send_string("\r\n");
 }
 
-void shell_send_string(char *str, int len)
+void shell_send_string(const char *str)
 {
     int i;
 
-    if (len == 0)
-        return;
-    if (len < 0) {
-        const char *p = str;
-        len = 0;
-        while (*p != 0)
-            p++;
-        len = p - str;
-    }
-    for (i = 0; str[i] != 0 && i < len && outlen < BUFLEN; i++)
-        outbuf[outlen++] = str[i];
-    if (serial_flags.rdy == 1)
-    {
-        serial_flags.rdy = 0;
-        pos = 1;
-        send_char(outbuf[0]);
-    }
+    for (i = 0; str[i] != 0; i++)
+        shell_send_char(str[i]);
 }
+
