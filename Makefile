@@ -30,6 +30,7 @@ all:	main.bin
 
 SRC_OBJS = main.o \
 	   core/shell/shell.o \
+	   core/shell/print.o \
 	   core/gcode/gcodes.o \
 	   core/control/moves.o \
 	   core/control/control.o \

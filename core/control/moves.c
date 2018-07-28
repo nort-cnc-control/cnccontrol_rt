@@ -1,5 +1,7 @@
 #include <math/math.h>
 
+#include <shell/print.h>
+#include <shell/shell.h>
 #include "moves.h"
 
 #define abs(a) ((a) > 0 ? (a) : (-(a))) 
@@ -50,21 +52,23 @@ static void bresenham_plan(void)
 // len is measured in 0.01 mm
 // feed in mm / min
 // delay in usec
-static uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
+uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 {
+	uint32_t k = 100 * len / steps;
 	if (feed == 0)
 		feed = 1;
 
-	return 1000000UL * len * 60  / feed / 100 / steps;
+	//return 1000000 * len * 60  / (feed * 100 * steps);
+	return k * 60 * 100 / feed;
 }
 
 void move_line_to(int32_t x[3])
 {
 	uint32_t len = 0;
+	int32_t t;
     	int i;
     	for (i = 0; i < 3; i++)
     	{
-		len += x[i] * x[i];
 	    	dx[i] = x[i];
 		dc[i] = x[i] * def.steps_per_unit[i] / 100;
     	}
@@ -73,10 +77,20 @@ void move_line_to(int32_t x[3])
     	if (steps == 0)
 		return;
 
-	len = isqrt(len);
-	
+	len = abs(dx[maxi]);
+
 	step_delay = feed_to_delay(feed, len, steps);
-	
+
+/*	
+	shell_send_string("feed: ");
+	shell_print_dec(feed);
+	shell_send_string("\r\nsteps: ");
+	shell_print_dec(steps);
+	shell_send_string("\r\nlen: ");
+	shell_print_dec(len);
+	shell_send_string("\r\ndelay: ");
+	shell_print_dec(step_delay);
+	shell_send_string("\n\r");*/
 	is_moving = 1;
 	def.line_started();
 }
