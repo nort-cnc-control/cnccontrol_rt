@@ -47,11 +47,21 @@ static void bresenham_plan(void)
 	step = 0;
 }
 
+// len is measured in 0.01 mm
+// feed in mm / min
+// delay in usec
+static uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
+{
+	if (feed == 0)
+		feed = 1;
+
+	return 1000000UL * len * 60  / feed / 100 / steps;
+}
+
 void move_line_to(int32_t x[3])
 {
-	int len = 0;
+	uint32_t len = 0;
     	int i;
-	int32_t t;
     	for (i = 0; i < 3; i++)
     	{
 		len += x[i] * x[i];
@@ -64,17 +74,8 @@ void move_line_to(int32_t x[3])
 		return;
 
 	len = isqrt(len);
-
-	// len is measured in 0.01 mm
-	// feed in mm / min
-	// t in usec
-	if (feed == 0)
-		t = 1000000 * len * 60 / 100; // feed = 1
-	else
-		t = 1000000 * len * 60  / feed / 100;
-
 	
-	step_delay = t / steps;
+	step_delay = feed_to_delay(feed, len, steps);
 	
 	is_moving = 1;
 	def.line_started();
@@ -115,5 +116,10 @@ void set_speed(int32_t speed)
 void find_begin(int rx, int ry, int rz)
 {
 
+}
+
+cnc_endstops moves_get_endstops(void)
+{
+	return def.get_endstops();
 }
 

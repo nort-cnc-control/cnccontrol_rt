@@ -27,6 +27,7 @@ static void clock_setup(void)
 
         /* Enable GPIOA clock. */
         rcc_periph_clock_enable(RCC_GPIOA);
+        rcc_periph_clock_enable(RCC_GPIOB);
         rcc_periph_clock_enable(RCC_GPIOC);
 
         /* Enable clocks for GPIO port A (for GPIO_USART1_TX) and USART1. */
@@ -123,6 +124,13 @@ static void gpio_setup(void)
 	// Z - dir
         gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_OPENDRAIN, GPIO7);
+
+	// X - stop
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO12);
+	// Y - stop
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO13);
+	// Z - stop
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO14);
 }
 
 
@@ -243,6 +251,17 @@ static void line_finished(void)
 	moving = 0;
 }
 
+static cnc_endstops get_stops(void)
+{
+	cnc_endstops stops = {
+		.stop_x = !(gpio_get(GPIOB, GPIO12) >> 12),
+		.stop_y = !(gpio_get(GPIOB, GPIO13) >> 13),
+		.stop_z = !(gpio_get(GPIOB, GPIO14) >> 14)
+	};
+
+	return stops;
+}
+
 static void init_steppers(void)
 {
 	steppers_definition sd = {
@@ -253,8 +272,14 @@ static void init_steppers(void)
 		.steps_per_unit = {
 			STEPS_PER_MM,
 			STEPS_PER_MM,
-			STEPS_PER_MM,
+			STEPS_PER_MM
 		},
+		.accelerations = {
+			0,
+			0,
+			0
+		},
+		.get_endstops   = get_stops,
 	};
 
 	line_finished();

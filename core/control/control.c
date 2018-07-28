@@ -14,6 +14,18 @@
 #define ANSWER_OK(str)  shell_print_answer(0, (str))
 #define ANSWER_ERR(err, str)  shell_print_answer(err, (str))
 
+static void print_endstops(void)
+{
+	cnc_endstops stops = moves_get_endstops();
+	shell_send_string("X: ");
+	shell_send_char(stops.stop_x + '0');
+	shell_send_string(" Y: ");
+	shell_send_char(stops.stop_y + '0');
+	shell_send_string(" Z: ");
+	shell_send_char(stops.stop_z + '0');
+	shell_send_string("\r\n");
+}
+
 int execute_g_command(const char *command)
 {
 	cmd_t allcmds[MAX_CMDS];
@@ -111,6 +123,9 @@ int execute_g_command(const char *command)
 		case 99:
 			// END
 			return -E_OK;
+		case 119:
+			print_endstops();
+			break;
 		case 999:
 //			system_reset();
 			break;
