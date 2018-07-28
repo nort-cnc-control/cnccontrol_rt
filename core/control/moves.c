@@ -47,14 +47,14 @@ void move_line_to(int32_t x[3])
 {
     int i;
     for (i = 0; i < 3; i++)
-        dc[i] = x[i] * def.steps_per_unit[i];
+        dc[i] = x[i] * def.steps_per_unit[i] / 100;
     
     bresenham_plan();
     is_moving = 1;
     def.line_started();
 }
 
-int32_t step_tick(void)
+int step_tick(void)
 {
 	int i;
 	if (step >= steps)
@@ -76,7 +76,7 @@ int32_t step_tick(void)
         	def.line_finished();
         	return -1;
     	}
-    	return 0x1000;
+    	return 10;
 }
 
 void set_speed(int32_t speed)

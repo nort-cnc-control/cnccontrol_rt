@@ -32,7 +32,7 @@ void find_begin(int rx, int ry, int rz);
 void set_speed(int32_t speed);
 
 // step of moving
-int32_t step_tick(void);
+int step_tick(void);
 
 extern cnc_position position;
 extern int busy;

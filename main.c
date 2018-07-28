@@ -3,17 +3,21 @@
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
+#include <libopencm3/stm32/timer.h>
+
 #include <shell/shell.h>
 #include <control/control.h>
 #include <control/moves.h>
 
 #define FULL_STEPS 200
-#define MICRO_STEP 4
+#define MICRO_STEP 8
 
 #define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
 #define MM_PER_ROUND 4.0
 
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
+
+#define FCPU 72000000UL
 
 static void clock_setup(void)
 {
@@ -25,6 +29,9 @@ static void clock_setup(void)
 
         /* Enable clocks for GPIO port A (for GPIO_USART1_TX) and USART1. */
         rcc_periph_clock_enable(RCC_USART1);
+	
+	/* Enable TIM2 clock */
+	rcc_periph_clock_enable(RCC_TIM2);
 }
 
 static void usart_setup(int baudrate)
@@ -36,7 +43,7 @@ static void usart_setup(int baudrate)
                       GPIO_CNF_INPUT_FLOAT, GPIO_USART1_RX);
 
         /* Setup GPIO pin GPIO_USART1_TX. */
-        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
 
         /* Setup UART parameters. */
@@ -54,6 +61,26 @@ static void usart_setup(int baudrate)
         usart_enable(USART1);
 }
 
+void step_timer_setup(void)
+{
+	rcc_periph_reset_pulse(RST_TIM2);
+
+	timer_set_prescaler(TIM2, FCPU/10000 - 1);
+	timer_direction_up(TIM2);
+	timer_disable_preload(TIM2);
+	timer_update_on_overflow(TIM2);
+	timer_enable_update_event(TIM2);
+	timer_continuous_mode(TIM2);
+
+	timer_set_oc_fast_mode(TIM2, TIM_OC1);
+	timer_set_oc_value(TIM2, TIM_OC1, 1);
+
+	nvic_enable_irq(NVIC_TIM2_IRQ);
+	timer_enable_irq(TIM2, TIM_DIER_UIE);
+	timer_enable_irq(TIM2, TIM_DIER_CC1IE);
+}
+
+
 void usart1_isr(void)
 {
 	/* Check if we were called because of RXNE. */
@@ -64,8 +91,8 @@ void usart1_isr(void)
 	}
 
 	if (USART_SR(USART1) & USART_SR_TC) {
-		shell_char_transmitted();
 		USART_SR(USART1) &= ~USART_SR_TC;
+		shell_char_transmitted();
 	}
 }
 
@@ -73,18 +100,27 @@ void usart1_isr(void)
 static void gpio_setup(void)
 {
         /* Set GPIO (in GPIO port C) to 'output push-pull'. */
-        gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
+        gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
 	// X - step
-        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
 	// Y - step
-        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
 	// Z - step
-        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_OPENDRAIN, GPIO6);
+	// X - dir
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
+                      GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
+	// Y - dir
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
+                      GPIO_CNF_OUTPUT_OPENDRAIN, GPIO4);
+	// Z - dir
+        gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
+                      GPIO_CNF_OUTPUT_OPENDRAIN, GPIO7);
 }
 
 
@@ -110,11 +146,33 @@ static void init_shell(void)
 
 static volatile int moving;
 
-static volatile int step_x, step_y, step_z;
-
 static void set_dir(int i, int dir)
 {
-
+	if (dir) {
+		switch (i) {
+		case 0:
+			gpio_set(GPIOA, GPIO1);
+			break;
+		case 1:
+			gpio_set(GPIOA, GPIO4);
+			break;
+		case 2:
+			gpio_set(GPIOA, GPIO7);
+			break;
+		}
+	} else {
+		switch (i) {
+		case 0:
+			gpio_clear(GPIOA, GPIO1);
+			break;
+		case 1:
+			gpio_clear(GPIOA, GPIO4);
+			break;
+		case 2:
+			gpio_clear(GPIOA, GPIO7);
+			break;
+		}
+	}
 }
 
 static void make_step(int i)
@@ -122,27 +180,58 @@ static void make_step(int i)
 	switch (i)
 	{
 	case 0:
-		step_x = 1;
+		gpio_clear(GPIOA, GPIO0);
 		break;
 	case 1:
-		step_y = 1;
+		gpio_clear(GPIOA, GPIO3);
 		break;
 	case 2:
-		step_z = 1;
+		gpio_clear(GPIOA, GPIO6);
 		break;
+	}
+}
+
+static void end_step(void)
+{
+	gpio_set(GPIOA, GPIO0);
+	gpio_set(GPIOA, GPIO3);
+	gpio_set(GPIOA, GPIO6);
+}
+
+void tim2_isr(void)
+{
+	if (TIM_SR(TIM2) & TIM_SR_UIF) {
+		TIM_SR(TIM2) &= ~TIM_SR_UIF;
+
+		int delay = step_tick();
+
+		timer_set_period(TIM2, delay);
+	}
+	else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
+		TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
+		end_step();
 	}
 }
 
 static void line_started(void)
 {
+	gpio_clear(GPIOC, GPIO13);
+	
 	gpio_set(GPIOA, GPIO0);
 	gpio_set(GPIOA, GPIO3);
 	gpio_set(GPIOA, GPIO6);
 	moving = 1;
+
+	timer_set_period(TIM2, 1000);
+	timer_set_counter(TIM2, 0);	
+	timer_enable_counter(TIM2);
 }
 
 static void line_finished(void)
 {
+	timer_disable_counter(TIM2);
+	gpio_set(GPIOC, GPIO13);
+		
 	gpio_set(GPIOA, GPIO0);
 	gpio_set(GPIOA, GPIO3);
 	gpio_set(GPIOA, GPIO6);
@@ -178,20 +267,12 @@ int main(void)
         gpio_setup();
 	init_shell();
 	init_steppers();
+	step_timer_setup();
 	usart_setup(9600);
+	
+	gpio_set(GPIOC, GPIO13);
 
         while (1) {
-		// stepping loop
-		if (step_x)
-			gpio_clear(GPIOA, GPIO0);
-		if (step_y)
-			gpio_clear(GPIOA, GPIO3);
-		if (step_z)
-			gpio_clear(GPIOA, GPIO6);
-		step_x = step_y = step_z = 0;
-		for (c = 0; c < 100; c++)
-			__asm__("nop");
-		gpio_set(GPIOA, GPIO0);
 	}
 
         return 0;
