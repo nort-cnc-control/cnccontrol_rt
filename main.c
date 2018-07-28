@@ -18,6 +18,8 @@
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
 
 #define FCPU 72000000UL
+#define FTIMER 100000UL
+#define PSC ((FCPU) / (FTIMER) - 1)
 
 static void clock_setup(void)
 {
@@ -65,7 +67,7 @@ void step_timer_setup(void)
 {
 	rcc_periph_reset_pulse(RST_TIM2);
 
-	timer_set_prescaler(TIM2, FCPU/10000 - 1);
+	timer_set_prescaler(TIM2, PSC);
 	timer_direction_up(TIM2);
 	timer_disable_preload(TIM2);
 	timer_update_on_overflow(TIM2);
@@ -203,8 +205,11 @@ void tim2_isr(void)
 	if (TIM_SR(TIM2) & TIM_SR_UIF) {
 		TIM_SR(TIM2) &= ~TIM_SR_UIF;
 
-		int delay = step_tick();
+		int delay_us = step_tick();
+		int delay = delay_us * FTIMER / 1000000UL;
 
+		if (delay < 3)
+			delay = 3;
 		timer_set_period(TIM2, delay);
 	}
 	else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
