@@ -73,7 +73,7 @@ int execute_g_command(const char *command)
 					break;
 				}
 			}
-			move_line_to(x);
+			move_line_to(x, 0, 0);
 			break;
 		}
 		case 20:

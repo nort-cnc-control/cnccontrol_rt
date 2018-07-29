@@ -269,13 +269,15 @@ static void init_steppers(void)
 		.make_step      = make_step,
 		.line_started   = line_started,
 		.line_finished  = line_finished,
+		.get_endstops   = get_stops,
 		.steps_per_unit = {
 			STEPS_PER_MM,
 			STEPS_PER_MM,
 			STEPS_PER_MM
 		},
-		.acceleration = 1000,
-		.get_endstops   = get_stops,
+		.acceleration = 10000,
+		.feed_base = 5,
+		.feed_max = 1200,
 	};
 
 	line_finished();

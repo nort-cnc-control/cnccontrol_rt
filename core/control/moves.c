@@ -22,13 +22,15 @@ static int32_t dc[3], dx[3];
 static int32_t err[3];
 static int maxi;
 static int steps;
+static int steps_acc;
+static int steps_dec;
 static int step;
 static int step_delay;
 
 static const int feed_k = 1000;
 static int feed;
-static const int feed_base = 10;
 static int feed_next;
+static int feed_end;
 static int is_moving;
 
 static steppers_definition def;
@@ -75,7 +77,25 @@ uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 	return k * 60 * 100 / feed;
 }
 
-void move_line_to(int32_t x[3])
+static int32_t accelerate(int32_t feed, int32_t acc, int32_t delay)
+{
+	return feed + acc * delay / (1000000 / feed_k);
+}
+
+static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32_t steps)
+{
+	uint32_t s = 0;
+	uint32_t f = f0 * feed_k;
+	while (f < f1 * feed_k)
+	{
+		uint32_t delay = feed_to_delay(f / feed_k, len, steps);
+		f = accelerate(f, acc, delay);
+		s++;
+	}
+	return s;
+}
+
+void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 {
 	int32_t t;
     	int i;
@@ -91,10 +111,35 @@ void move_line_to(int32_t x[3])
 		return;
 
 	len = isqrt(len);
-	
-	feed_next = feed_base * feed_k;
-	state = STATE_ACC;
 
+	
+	if (feed1 < def.feed_base)
+		feed1 = def.feed_base;
+	if (feed0 < def.feed_base)
+		feed0 = def.feed_base;
+	feed_next = feed0 * feed_k;
+	feed_end = feed1 * feed_k;
+
+	steps_acc = acc_steps(feed0, feed, def.acceleration, len, steps);
+	steps_dec = acc_steps(feed1, feed, def.acceleration, len, steps);
+
+	if (steps_acc + steps_dec >= steps)
+	{
+		int32_t d = (steps_acc + steps_dec - steps)/2;
+		steps_acc -= d;
+		steps_dec -= d;
+		if (steps_acc + steps_dec < steps) {
+			steps_acc += (steps - steps_acc - steps_dec);
+		}
+	}
+	shell_print_dec(steps_acc);
+	shell_send_char(' ');	
+	shell_print_dec(steps - steps_acc - steps_dec);
+	shell_send_char(' ');
+	shell_print_dec(steps_dec);
+	shell_send_string("\r\n");
+
+	state = STATE_ACC;
 	is_moving = 1;
 	def.line_started();
 }
@@ -125,20 +170,42 @@ int step_tick(void)
     	}
 	
 	step_delay = feed_to_delay(feed_next / feed_k, len, steps);
-	if (state == STATE_ACC)
-		feed_next = feed_next + def.acceleration * step_delay / (1000000UL / feed_k);
-	if (feed_next > feed * feed_k)
+	switch (state)
 	{
-		feed_next = feed * feed_k;
-		state = STATE_GO;
+	case STATE_ACC:
+		if (step >= steps_acc) {
+			state = STATE_GO;
+		} else {
+			feed_next = accelerate(feed_next, def.acceleration, step_delay);
+		}
+		break;
+	case STATE_GO:
+		if (step >= steps - steps_dec) {
+			state = STATE_DEC;
+		}
+		break;
+	case STATE_DEC:
+		feed_next = accelerate(feed_next, -def.acceleration, step_delay);
+		if (feed_next < feed_end)
+		{
+			feed_next = feed_end;
+			state = STATE_STOP;
+		}
+		break;
+	case STATE_STOP:
+		break;
 	}
-
+	
     	return step_delay;
 }
 
 void set_speed(int32_t speed)
 {
 	feed = speed;
+	if (feed < def.feed_base)
+		feed = def.feed_base;
+	else if (feed > def.feed_max)
+		feed = def.feed_max;
 }
 
 void find_begin(int rx, int ry, int rz)
