@@ -132,12 +132,6 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 			steps_acc += (steps - steps_acc - steps_dec);
 		}
 	}
-	shell_print_dec(steps_acc);
-	shell_send_char(' ');	
-	shell_print_dec(steps - steps_acc - steps_dec);
-	shell_send_char(' ');
-	shell_print_dec(steps_dec);
-	shell_send_string("\r\n");
 
 	state = STATE_ACC;
 	is_moving = 1;
