@@ -126,6 +126,12 @@ int execute_g_command(const char *command)
 		case 119:
 			print_endstops();
 			break;
+		case 204:
+			if (cmds[1].type != 'T') {
+				shell_print_answer(-1, "expected: M204 Txx");
+			}
+			set_acceleration(cmds[1].val_i);
+			break;
 		case 999:
 //			system_reset();
 			break;

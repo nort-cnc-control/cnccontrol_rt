@@ -28,18 +28,19 @@ typedef struct
 	void (*line_finished)(void);
 	cnc_endstops (*get_endstops)(void);
 	int32_t steps_per_unit[3];
-	int32_t acceleration;
 	int32_t feed_base;
 	int32_t feed_max;
 } steppers_definition;
 
-void init_moves(steppers_definition definition);
+void init_moves(steppers_definition definition, int32_t acc);
 
 void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1);
 
 void find_begin(int rx, int ry, int rz);
 
 void set_speed(int32_t speed);
+
+void set_acceleration(int32_t acc);
 
 // step of moving
 int step_tick(void);

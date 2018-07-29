@@ -33,10 +33,12 @@ static int feed_next;
 static int feed_end;
 static int is_moving;
 
+static int32_t acceleration;
 static steppers_definition def;
 
-void init_moves(steppers_definition definition)
+void init_moves(steppers_definition definition, int32_t acc)
 {
+	acceleration = acc;
 	def = definition;
 }
 
@@ -120,8 +122,8 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 	feed_next = feed0 * feed_k;
 	feed_end = feed1 * feed_k;
 
-	steps_acc = acc_steps(feed0, feed, def.acceleration, len, steps);
-	steps_dec = acc_steps(feed1, feed, def.acceleration, len, steps);
+	steps_acc = acc_steps(feed0, feed, acceleration, len, steps);
+	steps_dec = acc_steps(feed1, feed, acceleration, len, steps);
 
 	if (steps_acc + steps_dec >= steps)
 	{
@@ -175,7 +177,7 @@ int step_tick(void)
 				state = STATE_DEC;
 			}
 		} else {
-			feed_next = accelerate(feed_next, def.acceleration, step_delay);
+			feed_next = accelerate(feed_next, acceleration, step_delay);
 		}
 		break;
 	case STATE_GO:
@@ -184,7 +186,7 @@ int step_tick(void)
 		}
 		break;
 	case STATE_DEC:
-		feed_next = accelerate(feed_next, -def.acceleration, step_delay);
+		feed_next = accelerate(feed_next, -acceleration, step_delay);
 		if (feed_next < feed_end)
 		{
 			feed_next = feed_end;
@@ -205,6 +207,11 @@ void set_speed(int32_t speed)
 		feed = def.feed_base;
 	else if (feed > def.feed_max)
 		feed = def.feed_max;
+}
+
+void set_acceleration(int32_t acc)
+{
+	acceleration = acc;
 }
 
 void find_begin(int rx, int ry, int rz)

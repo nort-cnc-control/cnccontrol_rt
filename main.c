@@ -275,13 +275,12 @@ static void init_steppers(void)
 			STEPS_PER_MM,
 			STEPS_PER_MM
 		},
-		.acceleration = 5000,
 		.feed_base = 5,
 		.feed_max = 1200,
 	};
 
 	line_finished();
-	init_moves(sd);
+	init_moves(sd, 5000);
 }
 
 int main(void)
