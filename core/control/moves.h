@@ -27,7 +27,7 @@ typedef struct
 	void (*line_started)(void);
 	void (*line_finished)(void);
 	int32_t steps_per_unit[3];
-	int32_t accelerations[3];
+	int32_t acceleration;
 	cnc_endstops (*get_endstops)(void);
 } steppers_definition;
 

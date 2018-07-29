@@ -274,11 +274,7 @@ static void init_steppers(void)
 			STEPS_PER_MM,
 			STEPS_PER_MM
 		},
-		.accelerations = {
-			0,
-			0,
-			0
-		},
+		.acceleration = 1000,
 		.get_endstops   = get_stops,
 	};
 

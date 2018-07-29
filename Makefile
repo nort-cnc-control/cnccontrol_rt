@@ -1,5 +1,5 @@
 DEFS            += -DSTM32F1
-FP_FLAGS        ?= -msoft-float
+FP_FLAGS        ?= -msoft-float -mfloat-abi=soft
 ARCH_FLAGS      = -mthumb -mcpu=cortex-m3 $(FP_FLAGS) -mfix-cortex-m3-ldrd
 
 PREFIX          ?= arm-none-eabi

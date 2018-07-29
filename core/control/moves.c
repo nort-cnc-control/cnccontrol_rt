@@ -6,16 +6,29 @@
 
 #define abs(a) ((a) > 0 ? (a) : (-(a))) 
 
+enum {
+	STATE_STOP = 0,
+	STATE_ACC,
+	STATE_GO,
+	STATE_DEC,
+} state;
+
 cnc_position position;
 int busy;
 
+uint32_t len;
 static int32_t dc[3], dx[3];
+
 static int32_t err[3];
 static int maxi;
 static int steps;
 static int step;
 static int step_delay;
+
+static const int feed_k = 1000;
 static int feed;
+static const int feed_base = 10;
+static int feed_next;
 static int is_moving;
 
 static steppers_definition def;
@@ -64,33 +77,24 @@ uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 
 void move_line_to(int32_t x[3])
 {
-	uint32_t len = 0;
 	int32_t t;
     	int i;
+	len = 0;
     	for (i = 0; i < 3; i++)
     	{
+		len += x[i]*x[i];
 	    	dx[i] = x[i];
 		dc[i] = x[i] * def.steps_per_unit[i] / 100;
     	}
-	
 	bresenham_plan();
     	if (steps == 0)
 		return;
 
-	len = abs(dx[maxi]);
+	len = isqrt(len);
+	
+	feed_next = feed_base * feed_k;
+	state = STATE_ACC;
 
-	step_delay = feed_to_delay(feed, len, steps);
-
-/*	
-	shell_send_string("feed: ");
-	shell_print_dec(feed);
-	shell_send_string("\r\nsteps: ");
-	shell_print_dec(steps);
-	shell_send_string("\r\nlen: ");
-	shell_print_dec(len);
-	shell_send_string("\r\ndelay: ");
-	shell_print_dec(step_delay);
-	shell_send_string("\n\r");*/
 	is_moving = 1;
 	def.line_started();
 }
@@ -119,6 +123,16 @@ int step_tick(void)
         	def.line_finished();
         	return -1;
     	}
+	
+	step_delay = feed_to_delay(feed_next / feed_k, len, steps);
+	if (state == STATE_ACC)
+		feed_next = feed_next + def.acceleration * step_delay / (1000000UL / feed_k);
+	if (feed_next > feed * feed_k)
+	{
+		feed_next = feed * feed_k;
+		state = STATE_GO;
+	}
+
     	return step_delay;
 }
 
