@@ -168,7 +168,12 @@ int step_tick(void)
 	{
 	case STATE_ACC:
 		if (step >= steps_acc) {
-			state = STATE_GO;
+			if (step < steps - steps_dec) {
+				state = STATE_GO;
+				feed_next = feed * feed_k;
+			} else {
+				state = STATE_DEC;
+			}
 		} else {
 			feed_next = accelerate(feed_next, def.acceleration, step_delay);
 		}

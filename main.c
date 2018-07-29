@@ -275,7 +275,7 @@ static void init_steppers(void)
 			STEPS_PER_MM,
 			STEPS_PER_MM
 		},
-		.acceleration = 10000,
+		.acceleration = 5000,
 		.feed_base = 5,
 		.feed_max = 1200,
 	};
