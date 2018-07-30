@@ -283,6 +283,21 @@ static void init_steppers(void)
 	init_moves(sd, 5000);
 }
 
+
+void hard_fault_handler(void)
+{
+	int i;
+	while (1)
+       	{
+		for (i = 0; i < 0x400000; i++)
+			__asm__("nop");
+		gpio_set(GPIOC, GPIO13);
+		for (i = 0; i < 0x400000; i++)
+			__asm__("nop");
+		gpio_clear(GPIOC, GPIO13);
+	}
+}
+
 int main(void)
 {
 	moving = 0;

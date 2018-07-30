@@ -16,25 +16,29 @@ enum {
 cnc_position position;
 int busy;
 
+static const int64_t feed_k = 1000;
+typedef int64_t fixed;
+#define FIXED_ENCODE(x) ((x) * feed_k)
+#define FIXED_DECODE(x) ((x) / feed_k)
+
 uint32_t len;
 static int32_t dc[3], dx[3];
 
 static int32_t err[3];
 static int maxi;
-static int steps;
-static int steps_acc;
-static int steps_dec;
-static int step;
-static int step_delay;
+static int32_t steps;
+static int32_t steps_acc;
+static int32_t steps_dec;
+static int32_t step;
 
-static const int feed_k = 1000;
 static int feed;
-static int feed_next;
-static int feed_end;
+static fixed feed_next;
+static fixed feed_end;
 static int is_moving;
 
 static int32_t acceleration;
 static steppers_definition def;
+
 
 void init_moves(steppers_definition definition, int32_t acc)
 {
@@ -69,7 +73,7 @@ static void bresenham_plan(void)
 // len is measured in 0.01 mm
 // feed in mm / min
 // delay in usec
-uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
+static uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 {
 	uint32_t k = 100 * len / steps;
 	if (feed == 0)
@@ -79,7 +83,7 @@ uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 	return k * 60 * 100 / feed;
 }
 
-static int32_t accelerate(int32_t feed, int32_t acc, int32_t delay)
+static fixed accelerate(fixed feed, int32_t acc, int32_t delay)
 {
 	return feed + acc * delay / (1000000 / feed_k);
 }
@@ -87,11 +91,12 @@ static int32_t accelerate(int32_t feed, int32_t acc, int32_t delay)
 static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32_t steps)
 {
 	uint32_t s = 0;
-	uint32_t f = f0 * feed_k;
-	while (f < f1 * feed_k)
+	fixed fe  = FIXED_ENCODE(f0);
+	fixed f1e = FIXED_ENCODE(f1);
+	while (fe < f1e)
 	{
-		uint32_t delay = feed_to_delay(f / feed_k, len, steps);
-		f = accelerate(f, acc, delay);
+		uint32_t delay = feed_to_delay(FIXED_DECODE(fe), len, steps);
+		fe = accelerate(fe, acc, delay);
 		s++;
 	}
 	return s;
@@ -99,7 +104,6 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 
 void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 {
-	int32_t t;
     	int i;
 	len = 0;
     	for (i = 0; i < 3; i++)
@@ -113,18 +117,22 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 		return;
 
 	len = isqrt(len);
-
 	
 	if (feed1 < def.feed_base)
 		feed1 = def.feed_base;
+	if (feed1 > def.feed_max)
+		feed1 = def.feed_max;
+
 	if (feed0 < def.feed_base)
 		feed0 = def.feed_base;
-	feed_next = feed0 * feed_k;
-	feed_end = feed1 * feed_k;
+	if (feed0 > def.feed_max)
+		feed0 = def.feed_max;
 
 	steps_acc = acc_steps(feed0, feed, acceleration, len, steps);
 	steps_dec = acc_steps(feed1, feed, acceleration, len, steps);
 
+	feed_next = FIXED_ENCODE(feed0);
+	feed_end  = FIXED_ENCODE(feed1);
 	if (steps_acc + steps_dec >= steps)
 	{
 		int32_t d = (steps_acc + steps_dec - steps)/2;
@@ -143,9 +151,11 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 int step_tick(void)
 {
 	int i;
+	int32_t step_delay;
 	if (step >= steps)
 		return -1;
 
+	/* Bresenham */
 	def.make_step(maxi);
 	for (i = 0; i < 3; i++) {
 		if (i == maxi)
@@ -165,14 +175,15 @@ int step_tick(void)
         	return -1;
     	}
 	
-	step_delay = feed_to_delay(feed_next / feed_k, len, steps);
+	/* Calculating delay */
+	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);
 	switch (state)
 	{
 	case STATE_ACC:
 		if (step >= steps_acc) {
 			if (step < steps - steps_dec) {
 				state = STATE_GO;
-				feed_next = feed * feed_k;
+				feed_next = FIXED_ENCODE(feed);
 			} else {
 				state = STATE_DEC;
 			}
