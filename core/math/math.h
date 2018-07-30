@@ -2,5 +2,5 @@
 
 #include <stdint.h>
 
-uint32_t isqrt(uint32_t x);
+uint64_t isqrt(uint64_t x);
 

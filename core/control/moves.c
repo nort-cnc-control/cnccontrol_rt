@@ -21,7 +21,7 @@ typedef int64_t fixed;
 #define FIXED_ENCODE(x) ((x) * feed_k)
 #define FIXED_DECODE(x) ((x) / feed_k)
 
-uint32_t len;
+uint64_t len;
 static int32_t dc[3], dx[3];
 
 static int32_t err[3];
@@ -117,7 +117,8 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 		return;
 
 	len = isqrt(len);
-	
+//	len = abs(dx[maxi]);
+
 	if (feed1 < def.feed_base)
 		feed1 = def.feed_base;
 	if (feed1 > def.feed_max)
