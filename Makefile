@@ -1,6 +1,6 @@
 DEFS            += -DSTM32F1
 FP_FLAGS        ?= -msoft-float -mfloat-abi=soft
-ARCH_FLAGS      = -mthumb -mcpu=cortex-m3 $(FP_FLAGS) -mfix-cortex-m3-ldrd
+ARCH_FLAGS      = -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd $(FP_FLAGS)
 
 PREFIX          ?= arm-none-eabi
 
@@ -17,7 +17,7 @@ INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
 CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
-LDFLAGS		+= -T stm32.ld $(LIBS) --static -nostartfiles
+LDFLAGS		+= -T stm32.ld $(LIBS) $(ARCH_FLAGS) --static -nostartfiles
 
 
 all:	main.bin
