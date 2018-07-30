@@ -10,11 +10,10 @@
 #include <control/moves.h>
 
 #define FULL_STEPS 200
-#define MICRO_STEP 8
-
-#define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
+#define MICRO_STEP 16
 #define MM_PER_ROUND 4.0
 
+#define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
 
 #define FCPU 72000000UL
