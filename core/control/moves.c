@@ -13,6 +13,7 @@ enum {
 	STATE_DEC,
 } state;
 
+cnc_endstops endstops;
 cnc_position position;
 int busy;
 
@@ -34,15 +35,14 @@ static int32_t step;
 static int feed;
 static fixed feed_next;
 static fixed feed_end;
-static int is_moving;
+static volatile int is_moving;
 
 static int32_t acceleration;
 static steppers_definition def;
 
 
-void init_moves(steppers_definition definition, int32_t acc)
+void init_moves(steppers_definition definition)
 {
-	acceleration = acc;
 	def = definition;
 }
 
@@ -112,12 +112,34 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 	    	dx[i] = x[i];
 		dc[i] = x[i] * def.steps_per_unit[i] / 100;
     	}
+
+	endstops = def.get_endstops();
+	if (endstops.stop_x && dx[0] < 0)
+	{
+		def.line_started();
+		def.line_finished();
+		return;
+	}
+	if (endstops.stop_y && dx[1] < 0)
+	{
+		def.line_started();
+		def.line_finished();
+		return;
+	}
+	if (endstops.stop_z && dx[2] < 0)
+	{
+		def.line_started();
+		def.line_finished();
+		return;
+	}
 	bresenham_plan();
     	if (steps == 0)
+	{
+		def.line_started();
+		def.line_finished();
 		return;
-
+	}
 	len = isqrt(len);
-//	len = abs(dx[maxi]);
 
 	if (feed1 < def.feed_base)
 		feed1 = def.feed_base;
@@ -151,10 +173,33 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 
 int step_tick(void)
 {
+	int ex;
 	int i;
 	int32_t step_delay;
 	if (step >= steps)
 		return -1;
+
+	cnc_endstops nes = def.get_endstops();
+
+	ex = 0;
+	/* check endstops */
+	if (dx[0] < 0 && nes.stop_x && !endstops.stop_x) {
+		ex = 1;
+	}
+	if (dx[1] < 0 && nes.stop_y && !endstops.stop_y) {
+		ex = 1;
+	}
+	if (dx[2] < 0 && nes.stop_z && !endstops.stop_z) {
+		ex = 1;
+	}
+
+	if (ex) {
+		is_moving = 0;
+		def.line_finished();
+		return -1;
+	}
+
+	endstops = nes;
 
 	/* Bresenham */
 	def.make_step(maxi);
@@ -172,10 +217,13 @@ int step_tick(void)
 	if (step == steps) {
 		for (i = 0; i < 3; i++)
 			position.pos[i] += dx[i];
+		is_moving = 0;
         	def.line_finished();
         	return -1;
     	}
+
 	
+
 	/* Calculating delay */
 	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);
 	switch (state)
@@ -226,10 +274,6 @@ void set_acceleration(int32_t acc)
 	acceleration = acc;
 }
 
-void find_begin(int rx, int ry, int rz)
-{
-
-}
 
 cnc_endstops moves_get_endstops(void)
 {

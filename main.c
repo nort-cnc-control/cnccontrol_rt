@@ -8,9 +8,10 @@
 #include <shell/shell.h>
 #include <control/control.h>
 #include <control/moves.h>
+#include <control/planner.h>
 
 #define FULL_STEPS 200
-#define MICRO_STEP 16
+#define MICRO_STEP 8
 #define MM_PER_ROUND 4.0
 
 #define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
@@ -124,12 +125,15 @@ static void gpio_setup(void)
         gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                       GPIO_CNF_OUTPUT_OPENDRAIN, GPIO7);
 
-	// X - stop
-	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO12);
-	// Y - stop
-	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO13);
 	// Z - stop
-	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO14);
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO12);
+	gpio_set(GPIOB, GPIO12);
+	// Y - stop
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO13);
+	gpio_set(GPIOB, GPIO13);
+	// X - stop
+	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO14);
+	gpio_set(GPIOB, GPIO14);
 }
 
 
@@ -253,9 +257,9 @@ static void line_finished(void)
 static cnc_endstops get_stops(void)
 {
 	cnc_endstops stops = {
-		.stop_x = !(gpio_get(GPIOB, GPIO12) >> 12),
+		.stop_x = !(gpio_get(GPIOB, GPIO14) >> 14),
 		.stop_y = !(gpio_get(GPIOB, GPIO13) >> 13),
-		.stop_z = !(gpio_get(GPIOB, GPIO14) >> 14)
+		.stop_z = !(gpio_get(GPIOB, GPIO12) >> 12)
 	};
 
 	return stops;
@@ -266,9 +270,9 @@ static void init_steppers(void)
 	steppers_definition sd = {
 		.set_dir        = set_dir,
 		.make_step      = make_step,
+		.get_endstops   = get_stops,
 		.line_started   = line_started,
 		.line_finished  = line_finished,
-		.get_endstops   = get_stops,
 		.steps_per_unit = {
 			STEPS_PER_MM,
 			STEPS_PER_MM,
@@ -276,10 +280,16 @@ static void init_steppers(void)
 		},
 		.feed_base = 5,
 		.feed_max = 1200,
+		.size = {
+			224 * 100,
+			324 * 100,
+			105 * 100,
+		},
 	};
 
 	line_finished();
-	init_moves(sd, 5000);
+	init_planner(sd);
+	set_acceleration(5000);
 }
 
 

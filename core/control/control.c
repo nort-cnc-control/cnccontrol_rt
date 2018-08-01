@@ -3,6 +3,7 @@
 
 #include "moves.h"
 #include "control.h"
+#include "planner.h"
 
 #include <gcode/gcodes.h>
 #include <err.h>
@@ -52,6 +53,7 @@ int execute_g_command(const char *command)
 		switch (cmds[0].val_i) {
 		case 0:
 		case 1: {
+			int32_t f = -1;
 			int32_t x[3] = {0, 0, 0};
 			// x contains the relative coordinates
 			for (i = 0; i < 3; i++)
@@ -69,11 +71,11 @@ int execute_g_command(const char *command)
 					x[2] += cmds[i].val_f;
 					break;
 				case 'F':
-					set_speed(cmds[i].val_i);
+					f = cmds[i].val_i;
 					break;
 				}
 			}
-			move_line_to(x, 0, 0);
+			planner_line_to(x, f);
 			break;
 		}
 		case 20:
@@ -102,7 +104,7 @@ int execute_g_command(const char *command)
 				ry = 1;
 				rz = 0;
 			}
-			find_begin(rx, ry, rz);
+			planner_find_begin(rx, ry, rz);
 			break;
 		}
 		case 90:

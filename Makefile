@@ -34,6 +34,7 @@ SRC_OBJS = main.o \
 	   core/gcode/gcodes.o \
 	   core/control/moves.o \
 	   core/control/control.o \
+	   core/control/planner.o \
 	   core/math/math.o \
 
 main.elf: $(SRC_OBJS)
