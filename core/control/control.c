@@ -102,7 +102,7 @@ int execute_g_command(const char *command)
 			if (!rx && !ry && !rz) {
 				rx = 1;
 				ry = 1;
-				rz = 0;
+				rz = 1;
 			}
 			planner_find_begin(rx, ry, rz);
 			break;
