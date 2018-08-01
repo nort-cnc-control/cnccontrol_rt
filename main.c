@@ -254,6 +254,18 @@ static void line_finished(void)
 	moving = 0;
 }
 
+static void line_error(void)
+{
+	int i;
+	timer_disable_counter(TIM2);
+	gpio_set(GPIOC, GPIO13);
+		
+	gpio_set(GPIOA, GPIO0);
+	gpio_set(GPIOA, GPIO3);
+	gpio_set(GPIOA, GPIO6);
+	moving = 0;
+}
+
 static cnc_endstops get_stops(void)
 {
 	cnc_endstops stops = {
@@ -273,6 +285,7 @@ static void init_steppers(void)
 		.get_endstops   = get_stops,
 		.line_started   = line_started,
 		.line_finished  = line_finished,
+		.line_error     = line_error,
 		.steps_per_unit = {
 			STEPS_PER_MM,
 			STEPS_PER_MM,
@@ -289,7 +302,7 @@ static void init_steppers(void)
 
 	line_finished();
 	init_planner(sd);
-	set_acceleration(5000);
+	set_acceleration(3000);
 }
 
 

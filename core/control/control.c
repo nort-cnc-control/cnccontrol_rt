@@ -9,6 +9,7 @@
 #include <err.h>
 
 #include <shell/shell.h>
+#include <shell/print.h>
 
 #define MAX_CMDS 20
 
@@ -18,13 +19,29 @@
 static void print_endstops(void)
 {
 	cnc_endstops stops = moves_get_endstops();
-	shell_send_string("X: ");
+	shell_send_string("ok X: ");
 	shell_send_char(stops.stop_x + '0');
 	shell_send_string(" Y: ");
 	shell_send_char(stops.stop_y + '0');
 	shell_send_string(" Z: ");
 	shell_send_char(stops.stop_z + '0');
 	shell_send_string("\r\n");
+}
+
+static void print_position(void)
+{	
+	shell_send_string("ok X: ");
+	shell_print_fixed_2(position.pos[0]);
+	shell_send_string(" Y: ");
+	shell_print_fixed_2(position.pos[1]);
+	shell_send_string(" Z: ");
+	shell_print_fixed_2(position.pos[2]);
+	shell_send_string("\r\n");
+}
+
+static void send_ok(void)
+{
+	shell_send_string("ok\n\r");
 }
 
 int execute_g_command(const char *command)
@@ -55,20 +72,23 @@ int execute_g_command(const char *command)
 		case 1: {
 			int32_t f = -1;
 			int32_t x[3] = {0, 0, 0};
+			int32_t init[3] = {0, 0, 0};
 			// x contains the relative coordinates
-			for (i = 0; i < 3; i++)
-				x[i] = -position.pos[i] * position.abs_crd;
-			
+			if (position.abs_crd)
+			{
+				for (i = 0; i < 3; i++)
+					init[i] = position.pos[i];
+			}
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
 				case 'X':
-					x[0] += cmds[i].val_f;
+					x[0] = cmds[i].val_f - init[0];
 					break;
 				case 'Y':
-					x[1] += cmds[i].val_f;
+					x[1] = cmds[i].val_f - init[1];
 					break;
 				case 'Z':
-					x[2] += cmds[i].val_f;
+					x[2] = cmds[i].val_f - init[2];
 					break;
 				case 'F':
 					f = cmds[i].val_i;
@@ -76,6 +96,7 @@ int execute_g_command(const char *command)
 				}
 			}
 			planner_line_to(x, f);
+			planner_function(send_ok);
 			break;
 		}
 		case 20:
@@ -105,6 +126,7 @@ int execute_g_command(const char *command)
 				rz = 1;
 			}
 			planner_find_begin(rx, ry, rz);
+			planner_function(send_ok);
 			break;
 		}
 		case 90:
@@ -125,6 +147,9 @@ int execute_g_command(const char *command)
 		case 99:
 			// END
 			return -E_OK;
+		case 114:
+			print_position();
+			break;
 		case 119:
 			print_endstops();
 			break;

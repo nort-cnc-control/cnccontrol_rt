@@ -44,6 +44,7 @@ static steppers_definition def;
 void init_moves(steppers_definition definition)
 {
 	def = definition;
+	position.position_error = 1;
 }
 
 static void bresenham_plan(void)
@@ -102,7 +103,7 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 	return s;
 }
 
-void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
+int move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 {
     	int i;
 	len = 0;
@@ -117,27 +118,30 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 	if (endstops.stop_x && dx[0] < 0)
 	{
 		def.line_started();
-		def.line_finished();
-		return;
+		def.line_error();
+		position.position_error = 1;
+		return -2;
 	}
 	if (endstops.stop_y && dx[1] < 0)
 	{
 		def.line_started();
-		def.line_finished();
-		return;
+		def.line_error();
+		position.position_error = 1;
+		return -2;
 	}
 	if (endstops.stop_z && dx[2] < 0)
 	{
 		def.line_started();
-		def.line_finished();
-		return;
+		def.line_error();
+		position.position_error = 1;
+		return -2;
 	}
 	bresenham_plan();
     	if (steps == 0)
 	{
 		def.line_started();
 		def.line_finished();
-		return;
+		return 0;
 	}
 	len = isqrt(len);
 
@@ -169,6 +173,7 @@ void move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 	state = STATE_ACC;
 	is_moving = 1;
 	def.line_started();
+	return 0;
 }
 
 int step_tick(void)
@@ -195,8 +200,9 @@ int step_tick(void)
 
 	if (ex) {
 		is_moving = 0;
-		def.line_finished();
-		return -1;
+		def.line_error();
+		position.position_error = 1;
+		return -2;
 	}
 
 	endstops = nes;
@@ -221,8 +227,6 @@ int step_tick(void)
         	def.line_finished();
         	return -1;
     	}
-
-	
 
 	/* Calculating delay */
 	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);

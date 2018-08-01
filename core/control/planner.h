@@ -8,5 +8,7 @@ void init_planner(steppers_definition pd);
 
 int planner_line_to(int32_t x[3], int feed);
 
+int planner_function(void (*f)(void));
+
 void planner_find_begin(int rx, int ry, int rz);
 
