@@ -19,6 +19,8 @@
 static gcode_frame_t slots[QUEUE_SIZE];
 static volatile int numf;
 
+static int32_t last_pos[3];
+
 static int empty_slots(void)
 {
 	return QUEUE_SIZE - numf;
@@ -90,7 +92,7 @@ static int handle_g_command(gcode_frame_t *frame)
 			if (position.abs_crd)
 			{
 				for (i = 0; i < 3; i++)
-					init[i] = position.pos[i];
+					init[i] = last_pos[i];
 			}
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
@@ -108,6 +110,9 @@ static int handle_g_command(gcode_frame_t *frame)
 					break;
 				}
 			}
+			for (i = 0; i < 3; i++)
+				last_pos[i] += x[i];
+
 			planner_line_to(x, f);
 			planner_function(next_cmd);
 			return -E_WAIT;
@@ -137,6 +142,19 @@ static int handle_g_command(gcode_frame_t *frame)
 				ry = 1;
 				rz = 1;
 			}
+			if (rx) 
+			{
+				last_pos[0] = 0;
+			}
+			if (ry) 
+			{
+				last_pos[1] = 0;
+			}
+			if (rz) 
+			{
+				last_pos[2] = 0;
+			}
+
 			planner_find_begin(rx, ry, rz);
 			planner_function(next_cmd);
 			return -E_WAIT;
