@@ -191,19 +191,26 @@ static void pop_cmd(void)
 
 static void next_frame(void)
 {
-	int ret;
-	if (numf == 0)
-		return;
-	do
+	int ret, go = 1;
+
+	while (numf > 0 && go)
 	{
 		ret = handle_g_command(&slots[0]);
-		if (ret == -E_NEXT)
+		switch (ret)
 		{
+		case -E_INCORRECT:
+		case -E_NEXT:
 			pop_cmd();
-			if (ret >= 0 && empty_slots() == 1)
+			if (empty_slots() == 1)
 				send_ok();
+			break;
+		case -E_WAIT:
+			go = 0;
+			break;
+		default:
+			return;
 		}
-	} while (ret == -E_NEXT && numf > 0);
+	}
 }
 
 static void next_cmd(void)
