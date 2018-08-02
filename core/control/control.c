@@ -11,13 +11,22 @@
 #include <shell/shell.h>
 #include <shell/print.h>
 
-#define MAX_CMDS 20
-
 #define ANSWER_OK(str)  shell_print_answer(0, (str))
 #define ANSWER_ERR(err, str)  shell_print_answer(err, (str))
 
+#define QUEUE_SIZE 4
+
+static gcode_frame_t slots[QUEUE_SIZE];
+static volatile int numf;
+
+static int empty_slots(void)
+{
+	return QUEUE_SIZE - numf;
+}
+
 static void print_endstops(void)
 {
+	int q = empty_slots();
 	cnc_endstops stops = moves_get_endstops();
 	shell_send_string("ok X: ");
 	shell_send_char(stops.stop_x + '0');
@@ -25,36 +34,39 @@ static void print_endstops(void)
 	shell_send_char(stops.stop_y + '0');
 	shell_send_string(" Z: ");
 	shell_send_char(stops.stop_z + '0');
+	shell_send_string(" Q: ");
+	shell_print_dec(q);
 	shell_send_string("\r\n");
 }
 
 static void print_position(void)
 {	
+	int q = empty_slots();
 	shell_send_string("ok X: ");
 	shell_print_fixed_2(position.pos[0]);
 	shell_send_string(" Y: ");
 	shell_print_fixed_2(position.pos[1]);
 	shell_send_string(" Z: ");
 	shell_print_fixed_2(position.pos[2]);
+	shell_send_string(" Q: ");
+	shell_print_dec(q);
 	shell_send_string("\r\n");
 }
 
 static void send_ok(void)
 {
-	shell_send_string("ok\n\r");
+	int q = empty_slots();
+	shell_send_string("ok Q:");
+	shell_print_dec(q);
+	shell_send_string("\r\n");
 }
 
-int execute_g_command(const char *command)
-{
-	cmd_t allcmds[MAX_CMDS];
-	const cmd_t *cmds = allcmds;
-	int ncmds = 0;
-	int i = 0, rc;
+static void next_cmd(void);
 
-	if ((rc = parse_cmdline(command, MAX_CMDS, allcmds, &ncmds)) < 0) {
-		ANSWER_ERR(-1, "parse error");
-		return rc;
-	}
+static int handle_g_command(gcode_frame_t *frame)
+{
+	gcode_cmd_t *cmds = frame->cmds;
+	int ncmds = frame->num;
 
 	// skip line number(s)
 	while (ncmds > 0 && cmds[0].type == 'N') {
@@ -62,7 +74,7 @@ int execute_g_command(const char *command)
 		cmds++;
 	}
 	if (ncmds == 0)
-		return -E_OK;
+		return -E_NEXT;
 
 	// parse command line
 	switch (cmds[0].type) {
@@ -70,6 +82,7 @@ int execute_g_command(const char *command)
 		switch (cmds[0].val_i) {
 		case 0:
 		case 1: {
+			int i;
 			int32_t f = -1;
 			int32_t x[3] = {0, 0, 0};
 			int32_t init[3] = {0, 0, 0};
@@ -96,16 +109,15 @@ int execute_g_command(const char *command)
 				}
 			}
 			planner_line_to(x, f);
-			planner_function(send_ok);
-			break;
+			planner_function(next_cmd);
+			return -E_WAIT;
 		}
 		case 20:
-			shell_print_answer(0, NULL);
-			break;
+			return -E_NEXT;
 		case 21:
-			shell_print_answer(0, NULL);
-			break;
+			return -E_NEXT;
 		case 28: {
+			int i;
 			int rx = 0, ry = 0, rz = 0;
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
@@ -126,17 +138,15 @@ int execute_g_command(const char *command)
 				rz = 1;
 			}
 			planner_find_begin(rx, ry, rz);
-			planner_function(send_ok);
-			break;
+			planner_function(next_cmd);
+			return -E_WAIT;
 		}
 		case 90:
 			position.abs_crd = 1;
-			shell_print_answer(0, NULL);
-			break;
+			return -E_NEXT;
 		case 91:
 			position.abs_crd = 0;
-			shell_print_answer(0, NULL);
-			break;
+			return -E_NEXT;
 		default:
  			shell_print_answer(-1, "unknown command number");
 			return -E_INCORRECT;
@@ -146,22 +156,19 @@ int execute_g_command(const char *command)
 		switch (cmds[0].val_i) {
 		case 99:
 			// END
-			return -E_OK;
+			return -E_NEXT;
 		case 114:
 			print_position();
-			break;
+			return -E_NEXT;
 		case 119:
 			print_endstops();
-			break;
+			return -E_NEXT;
 		case 204:
 			if (cmds[1].type != 'T') {
 				shell_print_answer(-1, "expected: M204 Txx");
 			}
 			set_acceleration(cmds[1].val_i);
-			break;
-		case 999:
-//			system_reset();
-			break;
+			return -E_NEXT;
 		default:
  			shell_print_answer(-1, "unknown command number");
 			return -E_INCORRECT;
@@ -171,6 +178,62 @@ int execute_g_command(const char *command)
  		shell_print_answer(-1, "unknown command");
 		return -E_INCORRECT;
 	}
-	return E_OK;
+	return -E_INCORRECT;
+}
+
+static void pop_cmd(void)
+{
+	int i;
+	for (i = 0; i < numf - 1; i++)
+		slots[i] = slots[i + 1];
+	numf--;
+}
+
+static void next_frame(void)
+{
+	int ret;
+	if (numf == 0)
+		return;
+	do
+	{
+		ret = handle_g_command(&slots[0]);
+		if (ret == -E_NEXT)
+		{
+			pop_cmd();
+			if (ret >= 0 && empty_slots() == 1)
+				send_ok();
+		}
+	} while (ret == -E_NEXT && numf > 0);
+}
+
+static void next_cmd(void)
+{
+	pop_cmd();
+	if (empty_slots() == 1)
+		send_ok();	
+	next_frame();
+}
+
+int execute_g_command(const char *command)
+{
+	gcode_frame_t frame;
+	int rc;
+
+	if (empty_slots() == 0) {
+		ANSWER_ERR(-1, "no slots for frame");
+		return -E_INCORRECT;
+	}
+
+	if ((rc = parse_cmdline(command, &slots[numf++])) < 0) {
+		ANSWER_ERR(-1, "parse error");
+		return rc;
+	}
+
+	if (empty_slots() > 0)
+		send_ok();
+
+	if (numf == 1)
+		next_frame();
+	return -E_OK;
 }
 

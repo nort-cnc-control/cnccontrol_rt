@@ -3,7 +3,7 @@
 #include "planner.h"
 #include <shell/shell.h>
 
-#define QUEUE_SIZE 20
+#define QUEUE_SIZE 50
 
 static steppers_definition def;
 extern cnc_position position;
@@ -110,7 +110,7 @@ int planner_line_to(int32_t x[3], int feed)
 	if (plan_len == 1) {
 		get_cmd();
 	}
-	return 0;
+	return QUEUE_SIZE - plan_len;
 }
 
 int planner_function(void (*f)(void))
@@ -125,7 +125,7 @@ int planner_function(void (*f)(void))
 	if (plan_len == 1) {
 		get_cmd();
 	}
-	return 0;
+	return QUEUE_SIZE - plan_len;
 }
 
 static int srx, sry, srz; 

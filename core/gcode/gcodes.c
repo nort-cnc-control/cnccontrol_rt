@@ -103,7 +103,7 @@ static int read_fixed(const char **str, int32_t *val)
 	return -E_BADNUM;
 }
 
-static int parse_element(const char **str, cmd_t *cmd)
+static int parse_element(const char **str, gcode_cmd_t *cmd)
 {
 	if (str == NULL || *str == NULL)
 		return -E_NULL;
@@ -161,24 +161,25 @@ static int parse_element(const char **str, cmd_t *cmd)
 	default:
 		return -E_INCORRECT;
 	}
-	while (**str != ' ' && **str != 0 && **str != '\n')
-		(*str)++;
+//	while (**str != ' ' && **str != 0 && **str != '\n')
+//		(*str)++;
 
 	return E_OK;
 }
 
-int parse_cmdline(const char *str, int maxcmds, cmd_t *cmds, int *ncmd)
+int parse_cmdline(const char *str, gcode_frame_t *frame)
 {
 	int i = 0, rc;
-	while (*str != 0 && i < maxcmds) {
-		if ((rc = parse_element(&str, &(cmds[i]))) < 0) {
+	while (*str != 0 && i < MAX_CMDS)
+       	{
+		if ((rc = parse_element(&str, &(frame->cmds[i]))) < 0) {
 			return rc;
 		}
-		if (cmds[i].type == 0)
+		if (frame->cmds[i].type == 0)
 			break;
 		i++;
 	}
-	*ncmd = i;
+	frame->num  = i;
 	return E_OK;
 }
 
