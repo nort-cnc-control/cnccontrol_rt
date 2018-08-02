@@ -102,7 +102,7 @@ void shell_print_answer(int res, const char *ans)
     if (res == 0)
         shell_send_string("ok ");
     else
-        shell_send_string("ok ERROR:");
+        shell_send_string("ERROR:");
     if (ans)
         shell_send_string(ans);
     shell_send_string("\r\n");
