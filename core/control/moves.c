@@ -47,29 +47,6 @@ void init_moves(steppers_definition definition)
 	def = definition;
 }
 
-static void bresenham_plan(void)
-{
-	int i;
-	steps = abs(dc[0]);
-	maxi = 0;
-	if (abs(dc[1]) > steps)
-	{
-		maxi = 1;
-		steps = abs(dc[1]);
-	}
-
-	if (abs(dc[2]) > steps)
-	{
-		maxi = 2;
-		steps = abs(dc[2]);
-	}
-
-	for (i = 0; i < 3; i++)
-	{
-		def.set_dir(i, dc[i] >= 0);
-	}
-	step = 0;
-}
 
 // len is measured in 0.01 mm
 // feed in mm / min
@@ -103,23 +80,20 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 	return s;
 }
 
-int move_line_to(int32_t x[3], int32_t f, int32_t feed0, int32_t feed1)
+int move_line_to(line_plan *plan)
 {
     	int i;
 
-	feed = f;
-
-	if (feed < def.feed_base)
-		feed = def.feed_base;
-	else if (feed > def.feed_max)
-		feed = def.feed_max;
-
-	len = 0;
+	if (plan->len < 0)
+	{
+		pre_calculate(plan);
+	}	
+	
     	for (i = 0; i < 3; i++)
     	{
-		len += x[i]*x[i];
-	    	dx[i] = x[i];
-		dc[i] = x[i] * def.steps_per_unit[i] / 100;
+	    	dx[i] = plan->x[i];
+		dc[i] = plan->s[i];
+		def.set_dir(i, dc[i] >= 0);
     	}
 
 	endstops = def.get_endstops();
@@ -141,42 +115,28 @@ int move_line_to(int32_t x[3], int32_t f, int32_t feed0, int32_t feed1)
 		def.line_error();
 		return -2;
 	}
-	bresenham_plan();
-    	if (steps == 0)
+
+	len = plan->len;
+	maxi = plan->maxi;
+	steps = plan->steps;
+	feed = plan->feed;
+	acceleration = plan->acceleration;
+	feed_next = FIXED_ENCODE(plan->feed0);
+	feed_end  = FIXED_ENCODE(plan->feed1);
+
+	steps_acc = plan->acc_steps;
+	steps_dec = plan->dec_steps;
+
+	if (steps == 0)
 	{
 		def.line_started();
 		def.line_finished();
 		return 0;
 	}
-	len = isqrt(len);
-
-	if (feed1 < def.feed_base)
-		feed1 = def.feed_base;
-	if (feed1 > def.feed_max)
-		feed1 = def.feed_max;
-
-	if (feed0 < def.feed_base)
-		feed0 = def.feed_base;
-	if (feed0 > def.feed_max)
-		feed0 = def.feed_max;
-
-	steps_acc = acc_steps(feed0, feed, acceleration, len, steps);
-	steps_dec = acc_steps(feed1, feed, acceleration, len, steps);
-
-	feed_next = FIXED_ENCODE(feed0);
-	feed_end  = FIXED_ENCODE(feed1);
-	if (steps_acc + steps_dec >= steps)
-	{
-		int32_t d = (steps_acc + steps_dec - steps)/2;
-		steps_acc -= d;
-		steps_dec -= d;
-		if (steps_acc + steps_dec < steps) {
-			steps_acc += (steps - steps_acc - steps_dec);
-		}
-	}
 
 	state = STATE_ACC;
 	is_moving = 1;
+	step = 0;
 	def.line_started();
 	return 0;
 }
@@ -268,11 +228,65 @@ int step_tick(void)
     	return step_delay;
 }
 
-void set_acceleration(int32_t acc)
+static void bresenham_plan(line_plan *plan)
 {
-	acceleration = acc;
+	int i;
+	plan->steps = abs(plan->s[0]);
+	plan->maxi = 0;
+	if (abs(plan->s[1]) > plan->steps)
+	{
+		plan->maxi = 1;
+		plan->steps = abs(plan->s[1]);
+	}
+
+	if (abs(plan->s[2]) > plan->steps)
+	{
+		plan->maxi = 2;
+		plan->steps = abs(plan->s[2]);
+	}
 }
 
+void pre_calculate(line_plan *line)
+{
+	int j;
+	int64_t l = 0;
+	for (j = 0; j < 3; j++)
+	{
+		l += ((int64_t)line->x[j]) * line->x[j];
+		line->s[j] = line->x[j] * def.steps_per_unit[j] / 100;
+	}
+	line->len = isqrt(l);
+	
+	if (line->feed < def.feed_base)
+		line->feed = def.feed_base;
+	else if (line->feed > def.feed_max)
+		line->feed = def.feed_max;
+
+	if (line->feed1 < def.feed_base)
+		line->feed1 = def.feed_base;
+	else if (line->feed1 > def.feed_max)
+		line->feed1 = def.feed_max;
+
+	if (line->feed0 < def.feed_base)
+		line->feed0 = def.feed_base;
+	else if (line->feed0 > def.feed_max)
+		line->feed0 = def.feed_max;
+
+	bresenham_plan(line);
+
+
+	line->acc_steps = acc_steps(line->feed0, line->feed, line->acceleration, line->len, line->steps);
+	line->dec_steps = acc_steps(line->feed1, line->feed, line->acceleration, line->len, line->steps);
+
+	if (line->acc_steps + line->dec_steps > line->steps)
+	{
+		int32_t d = (line->acc_steps + line->dec_steps - line->steps)/2;
+		line->acc_steps -= d;
+		line->dec_steps -= d;
+		if (line->acc_steps + line->dec_steps < line->steps)
+			line->acc_steps += (line->steps - line->acc_steps - line->dec_steps);
+	}
+}
 
 cnc_endstops moves_get_endstops(void)
 {

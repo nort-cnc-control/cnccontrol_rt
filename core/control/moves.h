@@ -31,15 +31,34 @@ typedef struct
 	int32_t feed_base;
 	int32_t feed_max;
 	int32_t size[3];
+	int32_t acc_default;
+	int32_t feed_default;
 } steppers_definition;
+
+typedef struct {
+	int32_t x[3];
+	int32_t s[3];
+	int32_t maxi;
+	int32_t feed;
+	int32_t feed0;
+	int32_t feed1;
+	int32_t len;
+	int32_t steps;
+	int32_t acc_steps;
+	int32_t dec_steps;
+	int32_t acceleration;
+} line_plan;
 
 void init_moves(steppers_definition definition);
 
-int move_line_to(int32_t x[3], int32_t feed, int32_t feed0, int32_t feed1);
+int move_line_to(line_plan *plan);
 
 void find_begin(int rx, int ry, int rz);
 
 void set_acceleration(int32_t acc);
+
+void pre_calculate(line_plan *line);
+
 
 // step of moving
 int step_tick(void);

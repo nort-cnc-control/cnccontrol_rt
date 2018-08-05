@@ -75,7 +75,7 @@ static int handle_g_command(gcode_frame_t *frame)
 		case 0:
 		case 1: {
 			int i;
-			int32_t f = 0, feed0 = 0, feed1 = 0;
+			int32_t f = 0, feed0 = 0, feed1 = 0, acc = def.acc_default;
 			int32_t x[3] = {0, 0, 0};
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
@@ -97,10 +97,13 @@ static int handle_g_command(gcode_frame_t *frame)
 				case 'L':
 					feed1 = cmds[i].val_i;
 					break;
+				case 'T':
+					acc = cmds[i].val_i;
+					break;
 				}
 			}
 
-			planner_line_to(x, f, feed0, feed1);
+			planner_line_to(x, f, feed0, feed1, acc);
 			send_ok();
 			return -E_OK;
 		}
@@ -142,13 +145,6 @@ static int handle_g_command(gcode_frame_t *frame)
 			return -E_OK;
 		case 119:
 			print_endstops();
-			return -E_OK;
-		case 204:
-			if (cmds[1].type != 'T') {
-				shell_print_answer(-1, "expected: M204 Txx");
-			}
-			set_acceleration(cmds[1].val_i);
-			send_ok();
 			return -E_OK;
 		default:
  			shell_print_answer(-1, "unknown command number");

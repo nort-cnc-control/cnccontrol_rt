@@ -298,11 +298,11 @@ static void init_steppers(void)
 			324 * 100,
 			105 * 100,
 		},
+		.acc_default = 2000,
 	};
 
 	line_finished();
 	init_planner(sd);
-	set_acceleration(3000);
 }
 
 

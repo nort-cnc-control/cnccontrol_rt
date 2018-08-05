@@ -8,7 +8,7 @@
 
 #define QUEUE_SIZE 50
 
-static steppers_definition def;
+steppers_definition def;
 extern cnc_position position;
 
 static volatile int search_begin;
@@ -19,13 +19,6 @@ typedef enum {
 	ACTION_LINE = 0,
 	ACTION_FUNCTION,
 } action_type;
-
-typedef struct {
-	int32_t x[3];
-	int32_t feed;
-	int32_t feed0;
-	int32_t feed1;
-} line_plan;
 
 typedef struct {
 	action_type type;
@@ -48,8 +41,7 @@ static void line_started(void)
 static void pop_cmd(void)
 {
 	int i;
-	memmove(plan, &plan[1], (plan_len-1)*sizeof(plan[0]));
-	plan_len--;
+	memmove(plan, &plan[1], (--plan_len)*sizeof(plan[0]));
 }
 
 static void get_cmd(void)
@@ -62,7 +54,7 @@ static void get_cmd(void)
 	switch (plan[0].type) {
 	case ACTION_LINE:
 		def.line_started();
-		move_line_to(plan[0].line.x, plan[0].line.feed, plan[0].line.feed0, plan[0].line.feed1);
+		move_line_to(&(plan[0].line));
 		break;
 	case ACTION_FUNCTION:
 		plan[0].f();
@@ -116,7 +108,7 @@ static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
 	return s * f;
 }
 
-int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1)
+int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1, int32_t acc)
 {
 	action_plan *prev, *cur;
 	if (plan_len >= QUEUE_SIZE)
@@ -133,6 +125,10 @@ int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1)
 	cur->line.feed = feed;
 	cur->line.feed0 = f0;
 	cur->line.feed1 = f1;
+	cur->line.acceleration = acc;
+	cur->line.len = -1;
+	cur->line.acc_steps = -1;
+	cur->line.dec_steps = -1;
 	plan_len++;
 
 	if (plan_len == 1) {
@@ -175,27 +171,27 @@ void planner_find_begin(int rx, int ry, int rz)
 	srz = rz;
 	if (rx) {
 		int32_t x[3] = {-def.size[0], 0, 0};
-		planner_line_to(x, 600, 0, 0);
+		planner_line_to(x, 600, 0, 0, def.acc_default);
 		x[0] = 2*100;
-		planner_line_to(x, 100, 0, 0);
+		planner_line_to(x, 100, 0, 0, def.acc_default);
 		x[0] = -10*100;
-		planner_line_to(x, 30, 0, 0);
+		planner_line_to(x, 30, 0, 0, def.acc_default);
 	}
 	if (ry) {
 		int32_t x[3] = {0, -def.size[1], 0};
-		planner_line_to(x, 600, 0, 0);
+		planner_line_to(x, 600, 0, 0, def.acc_default);
 		x[1] = 2*100;
-		planner_line_to(x, 100, 0, 0);
+		planner_line_to(x, 100, 0, 0, def.acc_default);
 		x[1] = -10*100;
-		planner_line_to(x, 30, 0, 0);
+		planner_line_to(x, 30, 0, 0, def.acc_default);
 	}
 	if (rz) {
 		int32_t x[3] = {0, 0, -def.size[2]};
-		planner_line_to(x, 600, 0, 0);
+		planner_line_to(x, 600, 0, 0, def.acc_default);
 		x[2] = 2*100;
-		planner_line_to(x, 100, 0, 0);
+		planner_line_to(x, 100, 0, 0, def.acc_default);
 		x[2] = -10*100;
-		planner_line_to(x, 30, 0, 0);
+		planner_line_to(x, 30, 0, 0, def.acc_default);
 	}
 	planner_function(set_pos_0);
 }
