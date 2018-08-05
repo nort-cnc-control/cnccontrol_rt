@@ -32,11 +32,12 @@ static int32_t steps_acc;
 static int32_t steps_dec;
 static int32_t step;
 
-static int feed;
+
 static fixed feed_next;
 static fixed feed_end;
 static volatile int is_moving;
 
+static int32_t feed;
 static int32_t acceleration;
 static steppers_definition def;
 
@@ -44,7 +45,6 @@ static steppers_definition def;
 void init_moves(steppers_definition definition)
 {
 	def = definition;
-	position.position_error = 1;
 }
 
 static void bresenham_plan(void)
@@ -103,9 +103,17 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 	return s;
 }
 
-int move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
+int move_line_to(int32_t x[3], int32_t f, int32_t feed0, int32_t feed1)
 {
     	int i;
+
+	feed = f;
+
+	if (feed < def.feed_base)
+		feed = def.feed_base;
+	else if (feed > def.feed_max)
+		feed = def.feed_max;
+
 	len = 0;
     	for (i = 0; i < 3; i++)
     	{
@@ -119,21 +127,18 @@ int move_line_to(int32_t x[3], int32_t feed0, int32_t feed1)
 	{
 		def.line_started();
 		def.line_error();
-		position.position_error = 1;
 		return -2;
 	}
 	if (endstops.stop_y && dx[1] < 0)
 	{
 		def.line_started();
 		def.line_error();
-		position.position_error = 1;
 		return -2;
 	}
 	if (endstops.stop_z && dx[2] < 0)
 	{
 		def.line_started();
 		def.line_error();
-		position.position_error = 1;
 		return -2;
 	}
 	bresenham_plan();
@@ -201,7 +206,6 @@ int step_tick(void)
 	if (ex) {
 		is_moving = 0;
 		def.line_error();
-		position.position_error = 1;
 		return -2;
 	}
 
@@ -262,15 +266,6 @@ int step_tick(void)
 	}
 	
     	return step_delay;
-}
-
-void set_speed(int32_t speed)
-{
-	feed = speed;
-	if (feed < def.feed_base)
-		feed = def.feed_base;
-	else if (feed > def.feed_max)
-		feed = def.feed_max;
 }
 
 void set_acceleration(int32_t acc)

@@ -3,9 +3,11 @@
 #include <stdint.h>
 #include "moves.h"
 
+int empty_slots(void);
+
 void init_planner(steppers_definition pd);
 
-int planner_line_to(int32_t x[3], int feed);
+int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1);
 
 int planner_function(void (*f)(void));
 

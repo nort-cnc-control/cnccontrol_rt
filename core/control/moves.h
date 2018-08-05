@@ -11,8 +11,6 @@ typedef struct {
 	int32_t pos[3];
 	int32_t speed[3];
 	step_flags flags[3];
-	uint8_t abs_crd;
-	uint8_t position_error;
 } cnc_position;
 
 typedef struct {
@@ -37,11 +35,9 @@ typedef struct
 
 void init_moves(steppers_definition definition);
 
-int move_line_to(int32_t x[3], int32_t feed0, int32_t feed1);
+int move_line_to(int32_t x[3], int32_t feed, int32_t feed0, int32_t feed1);
 
 void find_begin(int rx, int ry, int rz);
-
-void set_speed(int32_t speed);
 
 void set_acceleration(int32_t acc);
 
@@ -51,5 +47,4 @@ int step_tick(void);
 cnc_endstops moves_get_endstops(void);
 
 extern cnc_position position;
-extern int busy;
 

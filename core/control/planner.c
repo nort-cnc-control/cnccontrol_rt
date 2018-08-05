@@ -1,7 +1,10 @@
+#include <string.h>
 #include <stddef.h>
 #include "moves.h"
 #include "planner.h"
 #include <shell/shell.h>
+#include <shell/print.h>
+#include <math/math.h>
 
 #define QUEUE_SIZE 50
 
@@ -33,6 +36,11 @@ typedef struct {
 static action_plan plan[QUEUE_SIZE];
 static int plan_len;
 
+int empty_slots(void)
+{
+	return QUEUE_SIZE - plan_len;
+}
+
 static void line_started(void)
 {
 }
@@ -40,9 +48,7 @@ static void line_started(void)
 static void pop_cmd(void)
 {
 	int i;
-	for (i = 0; i < plan_len - 1; i++) {
-		plan[i] = plan[i + 1];
-	}
+	memmove(plan, &plan[1], (plan_len-1)*sizeof(plan[0]));
 	plan_len--;
 }
 
@@ -56,9 +62,7 @@ static void get_cmd(void)
 	switch (plan[0].type) {
 	case ACTION_LINE:
 		def.line_started();
-		if (plan[0].line.feed > 0)
-			set_speed(plan[0].line.feed);
-		move_line_to(plan[0].line.x, plan[0].line.feed0, plan[0].line.feed1);
+		move_line_to(plan[0].line.x, plan[0].line.feed, plan[0].line.feed0, plan[0].line.feed1);
 		break;
 	case ACTION_FUNCTION:
 		plan[0].f();
@@ -92,19 +96,43 @@ void init_planner(steppers_definition pd)
 	init_moves(sd);
 }
 
-
-int planner_line_to(int32_t x[3], int feed)
+static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
 {
+	int i;
+	int64_t s, pl = 0, l;
+	for (i = 0; i < 3; i++)
+	{
+		pl += ((int64_t)px[i]) * px[i];
+		l += ((int64_t)x[i]) * x[i];
+	}
+	pl = isqrt(pl);
+	l = isqrt(l);
+
+	for (i = 0; i < 3; i++)
+	{
+		s += ((int64_t)px[i]) * x[i] / pl / l;
+	}
+
+	return s * f;
+}
+
+int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1)
+{
+	action_plan *prev, *cur;
 	if (plan_len >= QUEUE_SIZE)
 		return -1;
 
-	plan[plan_len].type = ACTION_LINE;
-	plan[plan_len].line.x[0] = x[0];
-	plan[plan_len].line.x[1] = x[1];
-	plan[plan_len].line.x[2] = x[2];
-	plan[plan_len].line.feed = feed;
-	plan[plan_len].line.feed0 = 0;
-	plan[plan_len].line.feed1 = 0;
+	if (x[0] == 0 && x[1] == 0 && x[2] == 0)
+		return QUEUE_SIZE - plan_len;
+
+	cur = &plan[plan_len];
+	cur->type = ACTION_LINE;
+	cur->line.x[0] = x[0];
+	cur->line.x[1] = x[1];
+	cur->line.x[2] = x[2];
+	cur->line.feed = feed;
+	cur->line.feed0 = f0;
+	cur->line.feed1 = f1;
 	plan_len++;
 
 	if (plan_len == 1) {
@@ -138,9 +166,6 @@ void set_pos_0(void)
 		position.pos[1] = 0;
 	if (srz)
 		position.pos[2] = 0;
-	if (srx && sry && srz)
-		position.position_error = 0;
-	search_begin = 0;
 }
 
 void planner_find_begin(int rx, int ry, int rz)
@@ -148,30 +173,29 @@ void planner_find_begin(int rx, int ry, int rz)
 	srx = rx;
 	sry = ry;
 	srz = rz;
-	search_begin = 1;
 	if (rx) {
 		int32_t x[3] = {-def.size[0], 0, 0};
-		planner_line_to(x, 600);
+		planner_line_to(x, 600, 0, 0);
 		x[0] = 2*100;
-		planner_line_to(x, 100);
+		planner_line_to(x, 100, 0, 0);
 		x[0] = -10*100;
-		planner_line_to(x, 30);
+		planner_line_to(x, 30, 0, 0);
 	}
 	if (ry) {
 		int32_t x[3] = {0, -def.size[1], 0};
-		planner_line_to(x, 600);
+		planner_line_to(x, 600, 0, 0);
 		x[1] = 2*100;
-		planner_line_to(x, 100);
+		planner_line_to(x, 100, 0, 0);
 		x[1] = -10*100;
-		planner_line_to(x, 30);
+		planner_line_to(x, 30, 0, 0);
 	}
 	if (rz) {
 		int32_t x[3] = {0, 0, -def.size[2]};
-		planner_line_to(x, 600);
+		planner_line_to(x, 600, 0, 0);
 		x[2] = 2*100;
-		planner_line_to(x, 100);
+		planner_line_to(x, 100, 0, 0);
 		x[2] = -10*100;
-		planner_line_to(x, 30);
+		planner_line_to(x, 30, 0, 0);
 	}
 	planner_function(set_pos_0);
 }
