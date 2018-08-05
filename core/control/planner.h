@@ -13,4 +13,6 @@ int planner_function(void (*f)(void));
 
 void planner_find_begin(int rx, int ry, int rz);
 
+void planner_pre_calculate(void);
+
 extern steppers_definition def;

@@ -87,8 +87,8 @@ int move_line_to(line_plan *plan)
 	if (plan->len < 0)
 	{
 		pre_calculate(plan);
-	}	
-	
+	}
+
     	for (i = 0; i < 3; i++)
     	{
 	    	dx[i] = plan->x[i];

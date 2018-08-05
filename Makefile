@@ -16,7 +16,7 @@ GDB             := $(PREFIX)-gdb
 INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
-CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
+CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -O2
 LDFLAGS		+= -T stm32.ld $(LIBS) $(ARCH_FLAGS) --static -nostartfiles
 
 

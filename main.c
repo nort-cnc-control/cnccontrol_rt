@@ -238,7 +238,7 @@ static void line_started(void)
 	gpio_set(GPIOA, GPIO6);
 	moving = 1;
 
-	timer_set_period(TIM2, 1000);
+	timer_set_period(TIM2, 1);
 	timer_set_counter(TIM2, 0);	
 	timer_enable_counter(TIM2);
 }
@@ -338,6 +338,7 @@ int main(void)
 
 	shell_send_string("Hello\r\n");
         while (1) {
+		planner_pre_calculate();
 	}
 
         return 0;

@@ -196,3 +196,17 @@ void planner_find_begin(int rx, int ry, int rz)
 	planner_function(set_pos_0);
 }
 
+void planner_pre_calculate(void)
+{
+	int i;
+	for (i = 0; i < plan_len; i++)
+	{
+		if (plan[i].type != ACTION_LINE)
+			continue;
+		if (plan[i].line.len < 0)
+		{
+			pre_calculate(&(plan[i].line));
+		}
+	}
+}
+
