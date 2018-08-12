@@ -32,6 +32,7 @@ SRC_OBJS = main.o \
 	   core/shell/shell.o \
 	   core/shell/print.o \
 	   core/gcode/gcodes.o \
+	   core/control/line.o \
 	   core/control/moves.o \
 	   core/control/control.o \
 	   core/control/planner.o \
