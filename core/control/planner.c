@@ -5,6 +5,7 @@
 #include <shell/shell.h>
 #include <shell/print.h>
 #include <math/math.h>
+#include <err.h>
 
 #define QUEUE_SIZE 50
 
@@ -22,8 +23,10 @@ typedef enum {
 
 typedef struct {
 	action_type type;
-	line_plan line;
-	void (*f)(void);
+    union {
+	    line_plan line;
+	    void (*f)(void);
+    };
 } action_plan;
 
 static action_plan plan[QUEUE_SIZE];
@@ -108,11 +111,12 @@ static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
 	return s * f;
 }
 
-int planner_line_to(int32_t x[3], int feed, int32_t f0, int32_t f1, int32_t acc)
+int planner_line_to(int32_t x[3],
+                    int32_t feed, int32_t f0, int32_t f1, int32_t acc)
 {
 	action_plan *prev, *cur;
 	if (plan_len >= QUEUE_SIZE)
-		return -1;
+		return -E_NOMEM;
 
 	if (x[0] == 0 && x[1] == 0 && x[2] == 0)
 		return QUEUE_SIZE - plan_len;

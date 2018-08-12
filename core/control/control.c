@@ -103,11 +103,19 @@ static int handle_g_command(gcode_frame_t *frame)
 				}
 			}
 
-			planner_line_to(x, f, feed0, feed1, acc);
-			send_ok();
-			return -E_OK;
+			int res = planner_line_to(x, f, feed0, feed1, acc);
+            if (res >= 0)
+            {
+                send_ok();
+			    return -E_OK;
+            }
+            else
+            {
+                shell_print_answer(-1, "problem with planning arc");
+                return res;
+            }
 		}
-		case 28: {
+        case 28: {
 			int i;
 			int rx = 0, ry = 0, rz = 0;
 			for (i = 1; i < ncmds; i++) {

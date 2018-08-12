@@ -2,8 +2,6 @@
 #include "moves.h"
 
 #define LINE 0
-#define CIRCLE_CW 1
-#define CIRCLE_CCW 2
 
 static int type;
 
