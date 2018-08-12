@@ -13,6 +13,15 @@ OBJCOPY         := $(PREFIX)-objcopy
 OBJDUMP         := $(PREFIX)-objdump
 GDB             := $(PREFIX)-gdb
 
+HOST_CC         := gcc
+HOST_CXX        := g++
+HOST_LD         := gcc
+HOST_AR         := ar
+HOST_AS         := as
+HOST_OBJCOPY    := objcopy
+HOST_OBJDUMP    := objdump
+HOST_GDB        := gdb
+
 INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
@@ -28,15 +37,8 @@ all:	main.bin
 %.o: %.s
 	$(AS) -c $< -o $@
 
-SRC_OBJS = main.o \
-	   core/shell/shell.o \
-	   core/shell/print.o \
-	   core/gcode/gcodes.o \
-	   core/control/line.o \
-	   core/control/moves.o \
-	   core/control/control.o \
-	   core/control/planner.o \
-	   core/math/math.o \
+SRCS = main.c \
+	   
 
 main.elf: $(SRC_OBJS)
 	$(LD) $(LDFLAGS) $^ -lopencm3_stm32f1 -o $@

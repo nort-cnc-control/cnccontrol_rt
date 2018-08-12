@@ -7,4 +7,3 @@
 #define E_BADNUM 2
 #define E_INCORRECT 3
 #define E_UNKNOWN 4
-

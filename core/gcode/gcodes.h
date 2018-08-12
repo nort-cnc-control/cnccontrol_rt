@@ -2,7 +2,9 @@
 
 #include <stdint.h>
 
-#define MAX_CMDS 6
+#include <err.h>
+
+#define MAX_CMDS 10
 
 typedef struct {
         char type;
@@ -18,4 +20,3 @@ typedef struct {
 } gcode_frame_t;
 
 int parse_cmdline(const char *str, gcode_frame_t *frame);
-

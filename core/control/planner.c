@@ -54,7 +54,7 @@ static void get_cmd(void)
 	switch (plan[0].type) {
 	case ACTION_LINE:
 		def.line_started();
-		move_line_to(&(plan[0].line));
+		line_move_to(&(plan[0].line));
 		break;
 	case ACTION_FUNCTION:
 		plan[0].f();
@@ -85,7 +85,7 @@ void init_planner(steppers_definition pd)
 	sd.line_started = line_started;
 	sd.line_error = line_error;
 	sd.line_finished = line_finished;
-	init_moves(sd);
+	moves_init(sd);
 }
 
 static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
@@ -205,7 +205,7 @@ void planner_pre_calculate(void)
 			continue;
 		if (plan[i].line.len < 0)
 		{
-			pre_calculate(&(plan[i].line));
+			line_pre_calculate(&(plan[i].line));
 		}
 	}
 }

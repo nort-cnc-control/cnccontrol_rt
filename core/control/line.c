@@ -71,19 +71,19 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 
 int line_move_to(line_plan *plan)
 {
-    	int i;
+    int i;
 
 	if (plan->len < 0)
 	{
-		pre_calculate(plan);
+		line_pre_calculate(plan);
 	}
 
-    	for (i = 0; i < 3; i++)
-    	{
-	    	dx[i] = plan->x[i];
+    for (i = 0; i < 3; i++)
+    {
+		dx[i] = plan->x[i];
 		dc[i] = plan->s[i];
 		def.set_dir(i, dc[i] >= 0);
-    	}
+    }
 
 	endstops = def.get_endstops();
 	if (endstops.stop_x && dx[0] < 0)
