@@ -17,6 +17,12 @@ void moves_init(steppers_definition definition)
 	def = definition;
 }
 
+int moves_line_to(line_plan *plan)
+{
+    type = LINE;
+    line_move_to(plan);
+}
+
 int moves_step_tick(void)
 {
 	if (type == LINE)
@@ -28,4 +34,3 @@ cnc_endstops moves_get_endstops(void)
 {
 	return def.get_endstops();
 }
-

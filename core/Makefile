@@ -29,6 +29,9 @@ OBJECTS_UNIT = $(addsuffix .o, $(basename $(UNIT_TESTS)))
 TARGET_DIR = build
 HOST_DIR   = host
 
+all: clean libcore_host.a libcore_target.a unit_tests
+
+
 build/target/%.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
@@ -41,8 +44,11 @@ libcore_host.a: $(OBJECTS_HOST)
 libcore_target.a: $(OBJECTS_TARGET)
 	$(AR) cr $@ $^
 
+unit_tests: $(UNIT_TESTS)
+
 unit_tests/% : unit_tests/%.c libcore_host.a
 	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
+	$@
 
 clean:
 	rm -f $(UNIT_TESTS)

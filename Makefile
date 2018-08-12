@@ -37,8 +37,9 @@ all:	main.bin
 %.o: %.s
 	$(AS) -c $< -o $@
 
-SRCS = main.c \
-	   
+SRCS = main.c
+
+
 
 main.elf: $(SRC_OBJS)
 	$(LD) $(LDFLAGS) $^ -lopencm3_stm32f1 -o $@

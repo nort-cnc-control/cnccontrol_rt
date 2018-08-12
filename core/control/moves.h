@@ -39,11 +39,9 @@ typedef struct
 
 void moves_init(steppers_definition definition);
 
-void moves_find_begin(int rx, int ry, int rz);
-
-void moves_set_acceleration(int32_t acc);
-
 cnc_endstops moves_get_endstops(void);
+
+int moves_line_to(line_plan *plan);
 
 int moves_step_tick(void);
 
