@@ -2,16 +2,16 @@ DEFS            += -DSTM32F1
 FP_FLAGS        ?= -msoft-float -mfloat-abi=soft
 ARCH_FLAGS      = -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd $(FP_FLAGS)
 
-PREFIX         ?= arm-none-eabi-
+export PREFIX         ?= arm-none-eabi-
 
-export CC              := $(PREFIX)gcc
-export CXX             := $(PREFIX)g++
-export LD              := $(PREFIX)gcc
-export AR              := $(PREFIX)ar
-export AS              := $(PREFIX)as
-export OBJCOPY         := $(PREFIX)objcopy
-export OBJDUMP         := $(PREFIX)objdump
-export GDB             := $(PREFIX)gdb
+CC              := $(PREFIX)gcc
+CXX             := $(PREFIX)g++
+LD              := $(PREFIX)gcc
+AR              := $(PREFIX)ar
+AS              := $(PREFIX)as
+OBJCOPY         := $(PREFIX)objcopy
+OBJDUMP         := $(PREFIX)objdump
+GDB             := $(PREFIX)gdb
 
 HOST_CC         := gcc
 HOST_CXX        := g++
@@ -25,7 +25,7 @@ HOST_GDB        := gdb
 INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
-CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -O2
+CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
 LDFLAGS		+= -T stm32.ld $(LIBS) $(ARCH_FLAGS) --static -nostartfiles
 
 all:	main.bin

@@ -333,7 +333,7 @@ int main(void)
 	init_steppers();
 	step_timer_setup();
 	usart_setup(57600);
-	
+
 	gpio_set(GPIOC, GPIO13);
 
 	shell_send_string("Hello\r\n");

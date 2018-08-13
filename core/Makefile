@@ -1,14 +1,31 @@
-HOST_CC         ?= gcc
-HOST_CXX        ?= g++
-HOST_LD         ?= gcc
-HOST_AR         ?= ar
-HOST_AS         ?= as
-HOST_OBJCOPY    ?= objcopy
-HOST_OBJDUMP    ?= objdump
-HOST_GDB        ?= gdb
+PREFIX	   ?= arm-none-eabi-
+
+CC         := $(PREFIX)gcc
+CXX        := $(PREFIX)g++
+LD         := $(PREFIX)gcc
+AR         := $(PREFIX)ar
+AS         := $(PREFIX)as
+OBJCOPY    := $(PREFIX)objcopy
+OBJDUMP    := $(PREFIX)objdump
+GDB        := $(PREFIX)gdb
+
+DEFS            := -DSTM32F1
+FP_FLAGS        := -msoft-float -mfloat-abi=soft
+ARCH_FLAGS      := -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd $(FP_FLAGS)
+INCLUDE         := -I ./
+CFLAGS		:= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
+
+HOST_CC         := gcc
+HOST_CXX        := g++
+HOST_LD         := gcc
+HOST_AR         := ar
+HOST_AS         := as
+HOST_OBJCOPY    := objcopy
+HOST_OBJDUMP    := objdump
+HOST_GDB        := gdb
 
 HOST_CFLAGS 	:= -I ./ -O0 -g -ggdb
-CFLAGS 			:= -I ./ -Os
+
 
 SRCS = shell/shell.c \
 	   shell/print.c \
