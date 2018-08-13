@@ -57,7 +57,7 @@ static void get_cmd(void)
 	switch (plan[0].type) {
 	case ACTION_LINE:
 		def.line_started();
-		line_move_to(&(plan[0].line));
+		moves_line_to(&(plan[0].line));
 		break;
 	case ACTION_FUNCTION:
 		plan[0].f();

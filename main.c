@@ -216,7 +216,7 @@ void tim2_isr(void)
 	if (TIM_SR(TIM2) & TIM_SR_UIF) {
 		TIM_SR(TIM2) &= ~TIM_SR_UIF;
 
-		int delay_us = step_tick();
+		int delay_us = moves_step_tick();
 		int delay = delay_us * FTIMER / 1000000UL;
 
 		if (delay < 3)

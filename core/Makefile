@@ -54,3 +54,6 @@ clean:
 	rm -f $(UNIT_TESTS)
 	rm -f $(OBJECTS_TARGET)
 	rm -f $(OBJECTS_HOST)
+	rm -f libcore_target.a
+	rm -f libcore_host.a
+
