@@ -37,6 +37,13 @@ static volatile int is_moving;
 
 static int32_t feed;
 
+static steppers_definition def;
+
+void line_init(steppers_definition definition)
+{
+	def = definition;
+}
+
 // len is measured in 0.01 mm
 // feed in mm / min
 // delay in usec

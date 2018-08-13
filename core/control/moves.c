@@ -8,11 +8,12 @@ static int type;
 cnc_endstops endstops;
 cnc_position position;
 
-steppers_definition def;
+static steppers_definition def;
 
 void moves_init(steppers_definition definition)
 {
 	def = definition;
+	line_init(def);
 }
 
 int moves_line_to(line_plan *plan)

@@ -232,7 +232,7 @@ void tim2_isr(void)
 static void line_started(void)
 {
 	gpio_clear(GPIOC, GPIO13);
-	
+
 	gpio_set(GPIOA, GPIO0);
 	gpio_set(GPIOA, GPIO3);
 	gpio_set(GPIOA, GPIO6);

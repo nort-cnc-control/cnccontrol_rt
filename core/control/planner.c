@@ -30,7 +30,7 @@ typedef struct {
 } action_plan;
 
 static action_plan plan[QUEUE_SIZE];
-static int plan_len;
+static int plan_len = 0;
 
 int empty_slots(void)
 {

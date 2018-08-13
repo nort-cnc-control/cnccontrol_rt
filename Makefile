@@ -25,7 +25,7 @@ HOST_GDB        := gdb
 INCLUDE		+= -I ./libopencm3/include -I ./core
 LIBS		+= -L ./libopencm3/lib
 
-CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
+CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -O0
 LDFLAGS		+= -T stm32.ld $(LIBS) $(ARCH_FLAGS) --static -nostartfiles
 
 all:	main.bin
@@ -54,5 +54,6 @@ flash: main.bin
 	stm32flash -w $< /dev/ttyUSB0
 
 clean:
-	rm -f main.elf main.bin $(SRC_OBJS)
+	rm -f main.elf main.bin $(OBJECTS_TARGET)
 	cd core && make clean
+

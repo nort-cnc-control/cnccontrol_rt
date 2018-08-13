@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "steppers.h"
+
 typedef struct {
 	int32_t x[3];
 	int32_t s[3];
@@ -15,6 +17,8 @@ typedef struct {
 	int32_t dec_steps;
 	int32_t acceleration;
 } line_plan;
+
+void line_init(steppers_definition definition);
 
 void line_pre_calculate(line_plan *line);
 

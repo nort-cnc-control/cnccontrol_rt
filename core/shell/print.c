@@ -36,3 +36,29 @@ void shell_print_fixed_2(int32_t x)
 	shell_print_dec(x % 10);
 }
 
+void shell_print_hex(uint32_t x)
+{
+	char buf[9];
+	int i;
+	if (x == 0)
+	{
+		shell_send_string("0x0");
+		return;
+	}
+	for (i = 0; i < 20 && x > 0; i++)
+	{
+		buf[i] = x & 0xF;
+		x >>= 4;
+	}
+	i--;
+	shell_send_string("0x");
+	while (i >= 0)
+	{
+		if (buf[i] <= 9)
+			shell_send_char('0' + buf[i]);
+		else
+			shell_send_char('A' + buf[i] - 0xA);
+		i--;
+	}
+}
+
