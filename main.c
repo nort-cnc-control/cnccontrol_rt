@@ -5,14 +5,12 @@
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/timer.h>
 
+#include "config.h"
+
 #include <shell/shell.h>
 #include <control/control.h>
 #include <control/moves.h>
 #include <control/planner.h>
-
-#define FULL_STEPS 200
-#define MICRO_STEP 8
-#define MM_PER_ROUND 4.0
 
 #define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
@@ -291,14 +289,14 @@ static void init_steppers(void)
 			STEPS_PER_MM,
 			STEPS_PER_MM
 		},
-		.feed_base = 5,
-		.feed_max = 1200,
+		.feed_base = FEED_BASE,
+		.feed_max = FEED_MAX,
 		.size = {
-			224 * 100,
-			324 * 100,
-			105 * 100,
+			SIZE_X * 100,
+			SIZE_Y * 100,
+			SIZE_Z * 100,
 		},
-		.acc_default = 2000,
+		.acc_default = ACC,
 	};
 
 	line_finished();

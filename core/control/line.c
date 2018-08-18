@@ -59,7 +59,10 @@ static uint32_t feed_to_delay(uint32_t feed, uint32_t len, uint32_t steps)
 
 static fixed accelerate(fixed feed, int32_t acc, int32_t delay)
 {
-	return feed + acc * delay / (1000000 / feed_k);
+	// feed - (mm * feed_k) / min
+	// acc - mm / s^2
+	// delay = us
+	return feed + acc * delay / (1000000 / feed_k / 60);
 }
 
 static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32_t steps)
@@ -260,13 +263,13 @@ void line_pre_calculate(line_plan *line)
 
 	if (line->feed1 < def.feed_base)
 		line->feed1 = def.feed_base;
-	else if (line->feed1 > def.feed_max)
-		line->feed1 = def.feed_max;
+	else if (line->feed1 > line->feed)
+		line->feed1 = line->feed;
 
 	if (line->feed0 < def.feed_base)
 		line->feed0 = def.feed_base;
-	else if (line->feed0 > def.feed_max)
-		line->feed0 = def.feed_max;
+	else if (line->feed0 > line->feed)
+		line->feed0 = line->feed;
 
 	bresenham_plan(line);
 
