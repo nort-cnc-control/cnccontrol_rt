@@ -13,7 +13,7 @@ DEFS            := -DSTM32F1
 FP_FLAGS        := -msoft-float -mfloat-abi=soft
 ARCH_FLAGS      := -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd $(FP_FLAGS)
 INCLUDE         := -I ./
-CFLAGS		:= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -Os
+CFLAGS		:= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -O2
 
 HOST_CC         := gcc
 HOST_CXX        := g++

@@ -81,19 +81,19 @@ static int32_t acc_steps(int32_t f0, int32_t f1, int32_t acc, int32_t len, int32
 
 int line_move_to(line_plan *plan)
 {
-    int i;
+	int i;
 
-    if (plan->len < 0)
-    {
-        line_pre_calculate(plan);
-    }
+	if (plan->len < 0)
+	{
+		line_pre_calculate(plan);
+	}
 
-    for (i = 0; i < 3; i++)
-    {
+	for (i = 0; i < 3; i++)
+	{
 		dx[i] = plan->x[i];
 		dc[i] = plan->s[i];
 		def.set_dir(i, dc[i] >= 0);
-    }
+	}
 
 	endstops = def.get_endstops();
 	if (endstops.stop_x && dx[0] < 0)
@@ -133,13 +133,13 @@ int line_move_to(line_plan *plan)
 		return 0;
 	}
 
-    state = STATE_ACC;
-    is_moving = 1;
-    step = 0;
-    for (i = 0; i < 3; i++)
-        start_position[i] = position.pos[i];
-    def.line_started();
-    return 0;
+	state = STATE_ACC;
+	is_moving = 1;
+	step = 0;
+	for (i = 0; i < 3; i++)
+		start_position[i] = position.pos[i];
+	def.line_started();
+	return 0;
 }
 
 int line_step_tick(void)
@@ -185,18 +185,18 @@ int line_step_tick(void)
 	}
 
 	step++;
-    int32_t cx[3];
-    for (i = 0; i < 3; i++)
-    {
-        cx[i] = start_position[i] + dx[i] * step / steps;
-    }
-    moves_set_position(cx);
+	int32_t cx[3];
+	for (i = 0; i < 3; i++)
+	{
+		cx[i] = start_position[i] + dx[i] * step / steps;
+	}
+	moves_set_position(cx);
 
-    if (step == steps) {
+	if (step == steps) {
 		is_moving = 0;
-        def.line_finished();
-        return -1;
-    }
+		def.line_finished();
+		return -1;
+	}
 
 	/* Calculating delay */
 	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);
@@ -230,8 +230,8 @@ int line_step_tick(void)
 	case STATE_STOP:
 		break;
 	}
-	
-    	return step_delay;
+
+	return step_delay;
 }
 
 static void bresenham_plan(line_plan *plan)
