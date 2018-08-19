@@ -33,7 +33,7 @@ int moves_step_tick(void)
 {
 	if (type == LINE)
 		return line_step_tick();
-	return -1;
+	return -10;
 }
 
 cnc_endstops moves_get_endstops(void)

@@ -7,7 +7,7 @@ void shell_print_dec(int32_t x)
 	int i;
 	if (x < 0)
 	{
-		x *= -1;
+		x = -x;
 		shell_send_char('-');
 	}
 	if (x == 0)

@@ -148,8 +148,9 @@ int line_step_tick(void)
 	int i;
 	int32_t step_delay;
 	if (step >= steps)
+	{
 		return -1;
-
+	}
 	cnc_endstops nes = def.get_endstops();
 
 	ex = 0;
@@ -166,8 +167,8 @@ int line_step_tick(void)
 
 	if (ex) {
 		is_moving = 0;
-		def.line_error();
-		return -2;
+		def.line_finished();
+		return -1;
 	}
 
 	endstops = nes;
@@ -192,7 +193,7 @@ int line_step_tick(void)
 	}
 	moves_set_position(cx);
 
-	if (step == steps) {
+	if (step >= steps) {
 		is_moving = 0;
 		def.line_finished();
 		return -1;

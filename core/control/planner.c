@@ -7,7 +7,7 @@
 #include <math/math.h>
 #include <err.h>
 
-#define QUEUE_SIZE 50
+#define QUEUE_SIZE 64
 
 steppers_definition def;
 extern cnc_position position;
@@ -32,7 +32,6 @@ typedef struct {
 static action_plan plan[QUEUE_SIZE];
 static int plan_cur = 0;
 static int plan_last = 0;
-static int moving = 0;
 
 int empty_slots(void)
 {
@@ -52,6 +51,7 @@ int used_slots(void)
 
 static void line_started(void)
 {
+	def.line_started();
 }
 
 static void pop_cmd(void)
@@ -66,29 +66,14 @@ static void get_cmd(void)
 
 	if (plan_last == plan_cur)
 	{
-		if (moving)
-		{
-			moving = 0;
-			def.line_finished();
-		}
 		return;
 	}
 
 	switch (cp->type) {
 	case ACTION_LINE:
-		if (!moving)
-		{
-			moving = 1;
-			def.line_started();
-		}
 		moves_line_to(&(cp->line));
 		break;
 	case ACTION_FUNCTION:
-		if (moving)
-		{
-			moving = 0;
-			def.line_finished();
-		}
 		cp->f();
 		pop_cmd();
 		get_cmd();
@@ -98,6 +83,7 @@ static void get_cmd(void)
 
 static void line_finished(void)
 {
+	def.line_finished();
 	pop_cmd();
 	get_cmd();
 }
@@ -109,7 +95,6 @@ static void line_error(void)
 
 void init_planner(steppers_definition pd)
 {
-	moving = 0;
 	plan_cur = plan_last = 0;
 	search_begin = 0;
 	finish_action = NULL;

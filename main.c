@@ -8,6 +8,7 @@
 #include "config.h"
 
 #include <shell/shell.h>
+#include <shell/print.h>
 #include <control/control.h>
 #include <control/moves.h>
 #include <control/planner.h>
@@ -209,17 +210,24 @@ static void end_step(void)
 	gpio_set(GPIOA, GPIO6);
 }
 
+static void make_tick(void)
+{
+	int delay_us = moves_step_tick();
+	if (delay_us < 0)
+	{
+		return;
+	}
+	int delay = delay_us * FTIMER / 1000000UL;
+	if (delay < 3)
+		delay = 3;
+	timer_set_period(TIM2, delay);
+}
+
 void tim2_isr(void)
 {
 	if (TIM_SR(TIM2) & TIM_SR_UIF) {
 		TIM_SR(TIM2) &= ~TIM_SR_UIF;
-
-		int delay_us = moves_step_tick();
-		int delay = delay_us * FTIMER / 1000000UL;
-
-		if (delay < 3)
-			delay = 3;
-		timer_set_period(TIM2, delay);
+		make_tick();
 	}
 	else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
 		TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
@@ -236,10 +244,10 @@ static void line_started(void)
 	gpio_set(GPIOA, GPIO6);
 	moving = 1;
 
-	timer_set_period(TIM2, 1000);
-	timer_set_counter(TIM2, 0);	
+	timer_set_period(TIM2, 10000);
+	timer_set_counter(TIM2, 0);
 	timer_enable_counter(TIM2);
-	tim2_isr();
+	make_tick();
 }
 
 static void line_finished(void)
