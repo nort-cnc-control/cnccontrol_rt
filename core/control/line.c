@@ -23,7 +23,7 @@ static int32_t acceleration;
 
 static uint64_t len;
 static int32_t dc[3], dx[3];
-
+static int32_t start_position[3];
 static int32_t err[3];
 static int maxi;
 static int32_t steps;
@@ -133,11 +133,13 @@ int line_move_to(line_plan *plan)
 		return 0;
 	}
 
-	state = STATE_ACC;
-	is_moving = 1;
-	step = 0;
-	def.line_started();
-	return 0;
+    state = STATE_ACC;
+    is_moving = 1;
+    step = 0;
+    for (i = 0; i < 3; i++)
+        start_position[i] = position.pos[i];
+    def.line_started();
+    return 0;
 }
 
 int line_step_tick(void)
@@ -183,13 +185,18 @@ int line_step_tick(void)
 	}
 
 	step++;
-	if (step == steps) {
-		for (i = 0; i < 3; i++)
-			position.pos[i] += dx[i];
+    int32_t cx[3];
+    for (i = 0; i < 3; i++)
+    {
+        cx[i] = start_position[i] + dx[i] * step / steps;
+    }
+    moves_set_position(cx);
+
+    if (step == steps) {
 		is_moving = 0;
-        	def.line_finished();
-        	return -1;
-    	}
+        def.line_finished();
+        return -1;
+    }
 
 	/* Calculating delay */
 	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);

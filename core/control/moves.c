@@ -10,6 +10,13 @@ cnc_position position;
 
 static steppers_definition def;
 
+void moves_set_position(int32_t x[3])
+{
+    int i;
+    for (i = 0; i < 3; i++)
+        position.pos[i] = x[i];
+}
+
 void moves_init(steppers_definition definition)
 {
 	def = definition;

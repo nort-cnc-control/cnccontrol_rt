@@ -24,6 +24,8 @@ int moves_line_to(line_plan *plan);
 
 int moves_step_tick(void);
 
+void moves_set_position(int32_t x[3]);
+
 extern cnc_position position;
 extern cnc_endstops endstops;
 
