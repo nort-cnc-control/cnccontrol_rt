@@ -30,6 +30,11 @@ void shell_print_dec(int32_t x)
 
 void shell_print_fixed_2(int32_t x)
 {
+	if (x < 0)
+	{
+		shell_send_char('-');
+		x = -x;
+	}
 	shell_print_dec(x / 100);
 	shell_send_char('.');
 	shell_print_dec((x % 100)/10);
