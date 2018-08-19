@@ -236,9 +236,10 @@ static void line_started(void)
 	gpio_set(GPIOA, GPIO6);
 	moving = 1;
 
-	timer_set_period(TIM2, 1);
+	timer_set_period(TIM2, 1000);
 	timer_set_counter(TIM2, 0);	
 	timer_enable_counter(TIM2);
+	tim2_isr();
 }
 
 static void line_finished(void)

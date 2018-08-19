@@ -30,11 +30,23 @@ typedef struct {
 } action_plan;
 
 static action_plan plan[QUEUE_SIZE];
-static int plan_len = 0;
+static int plan_cur = 0;
+static int plan_last = 0;
 
 int empty_slots(void)
 {
+	int plan_len = plan_last - plan_cur;
+	if (plan_len < 0)
+		plan_len += QUEUE_SIZE;
 	return QUEUE_SIZE - plan_len;
+}
+
+int used_slots(void)
+{
+	int plan_len = plan_last - plan_cur;
+	if (plan_len < 0)
+		plan_len += QUEUE_SIZE;
+	return plan_len;
 }
 
 static void line_started(void)
@@ -43,24 +55,26 @@ static void line_started(void)
 
 static void pop_cmd(void)
 {
-	int i;
-	memmove(plan, &plan[1], (--plan_len)*sizeof(plan[0]));
+	plan_cur++;
+	plan_cur %= QUEUE_SIZE;
 }
 
 static void get_cmd(void)
 {
-	if (plan_len == 0)
+	action_plan *cp = &plan[plan_cur];
+
+	if (plan_last == plan_cur)
 	{
 		return;
 	}
 
-	switch (plan[0].type) {
+	switch (cp->type) {
 	case ACTION_LINE:
 		def.line_started();
-		moves_line_to(&(plan[0].line));
+		moves_line_to(&(cp->line));
 		break;
 	case ACTION_FUNCTION:
-		plan[0].f();
+		cp->f();
 		pop_cmd();
 		get_cmd();
 		break;
@@ -81,6 +95,7 @@ static void line_error(void)
 
 void init_planner(steppers_definition pd)
 {
+	plan_cur = plan_last = 0;
 	search_begin = 0;
 	finish_action = NULL;
 	steppers_definition sd = pd;
@@ -115,13 +130,13 @@ int planner_line_to(int32_t x[3],
                     int32_t feed, int32_t f0, int32_t f1, int32_t acc)
 {
 	action_plan *prev, *cur;
-	if (plan_len >= QUEUE_SIZE)
+	if (empty_slots() == 0)
 		return -E_NOMEM;
 
 	if (x[0] == 0 && x[1] == 0 && x[2] == 0)
-		return QUEUE_SIZE - plan_len;
+		return empty_slots();
 
-	cur = &plan[plan_len];
+	cur = &plan[plan_last];
 	cur->type = ACTION_LINE;
 	cur->line.x[0] = x[0];
 	cur->line.x[1] = x[1];
@@ -133,27 +148,31 @@ int planner_line_to(int32_t x[3],
 	cur->line.len = -1;
 	cur->line.acc_steps = -1;
 	cur->line.dec_steps = -1;
-	plan_len++;
+	plan_last++;
+	plan_last %= QUEUE_SIZE;
 
-	if (plan_len == 1) {
+	if (used_slots() == 1) {
 		get_cmd();
 	}
-	return QUEUE_SIZE - plan_len;
+	return empty_slots();
 }
 
 int planner_function(void (*f)(void))
 {
-	if (plan_len >= QUEUE_SIZE)
-		return -1;
+	action_plan *cur;
+	if (empty_slots() == 0)
+		return -E_NOMEM;
 
-	plan[plan_len].type = ACTION_FUNCTION;
-	plan[plan_len].f = f;
-	plan_len++;
+	cur = &plan[plan_last];
+	cur->type = ACTION_FUNCTION;
+	cur->f = f;
+	plan_last++;
+	plan_last %= QUEUE_SIZE;
 
-	if (plan_len == 1) {
+	if (used_slots() == 1) {
 		get_cmd();
 	}
-	return QUEUE_SIZE - plan_len;
+	return empty_slots();
 }
 
 static int srx, sry, srz; 
@@ -203,13 +222,15 @@ void planner_find_begin(int rx, int ry, int rz)
 void planner_pre_calculate(void)
 {
 	int i;
-	for (i = 0; i < plan_len; i++)
+	for (i = 0; i < used_slots(); i++)
 	{
-		if (plan[i].type != ACTION_LINE)
+		int pos = (plan_cur + i) % QUEUE_SIZE;
+		action_plan *p = &plan[pos];
+		if (p->type != ACTION_LINE)
 			continue;
-		if (plan[i].line.len < 0)
+		if (p->line.len < 0)
 		{
-			line_pre_calculate(&(plan[i].line));
+			line_pre_calculate(&(plan->line));
 		}
 	}
 }
