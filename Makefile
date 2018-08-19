@@ -23,10 +23,12 @@ HOST_OBJDUMP    := objdump
 HOST_GDB        := gdb
 
 INCLUDE		+= -I ./libopencm3/include -I ./core
-LIBS		+= -L ./libopencm3/lib
+LIBS		+= -L ./libopencm3/lib -L ./core
 
 CFLAGS		+= $(ARCH_FLAGS) $(INCLUDE) $(DEFS) -O2
 LDFLAGS		+= -T stm32.ld $(LIBS) $(ARCH_FLAGS) --static -nostartfiles
+
+SUBDIRS		= core
 
 all:	main.bin
 
@@ -40,11 +42,8 @@ SRCS = main.c
 
 OBJECTS_TARGET = $(addprefix build/, $(addsuffix .o, $(basename $(SRCS))))
 
-core/libcore_target.a:
-	cd core && make
-
-main.elf: $(OBJECTS_TARGET) core/libcore_target.a
-	$(LD) $(LDFLAGS) $^ -lopencm3_stm32f1 -o $@
+main.elf: $(OBJECTS_TARGET)
+	$(LD) $(LDFLAGS) $^ -lcore_target -lopencm3_stm32f1 -o $@
 
 
 main.bin: main.elf
@@ -55,5 +54,4 @@ flash: main.bin
 
 clean:
 	rm -f main.elf main.bin $(OBJECTS_TARGET)
-	cd core && make clean
-
+	make -C core clean
