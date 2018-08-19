@@ -83,10 +83,10 @@ int line_move_to(line_plan *plan)
 {
     int i;
 
-	if (plan->len < 0)
-	{
-		line_pre_calculate(plan);
-	}
+    if (plan->len < 0)
+    {
+        line_pre_calculate(plan);
+    }
 
     for (i = 0; i < 3; i++)
     {

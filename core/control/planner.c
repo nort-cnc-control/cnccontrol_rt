@@ -32,6 +32,7 @@ typedef struct {
 static action_plan plan[QUEUE_SIZE];
 static int plan_cur = 0;
 static int plan_last = 0;
+static int moving = 0;
 
 int empty_slots(void)
 {
@@ -65,15 +66,29 @@ static void get_cmd(void)
 
 	if (plan_last == plan_cur)
 	{
+		if (moving)
+		{
+			moving = 0;
+			def.line_finished();
+		}
 		return;
 	}
 
 	switch (cp->type) {
 	case ACTION_LINE:
-		def.line_started();
+		if (!moving)
+		{
+			moving = 1;
+			def.line_started();
+		}
 		moves_line_to(&(cp->line));
 		break;
 	case ACTION_FUNCTION:
+		if (moving)
+		{
+			moving = 0;
+			def.line_finished();
+		}
 		cp->f();
 		pop_cmd();
 		get_cmd();
@@ -83,7 +98,6 @@ static void get_cmd(void)
 
 static void line_finished(void)
 {
-	def.line_finished();
 	pop_cmd();
 	get_cmd();
 }
@@ -95,6 +109,7 @@ static void line_error(void)
 
 void init_planner(steppers_definition pd)
 {
+	moving = 0;
 	plan_cur = plan_last = 0;
 	search_begin = 0;
 	finish_action = NULL;
@@ -230,7 +245,7 @@ void planner_pre_calculate(void)
 			continue;
 		if (p->line.len < 0)
 		{
-			line_pre_calculate(&(plan->line));
+			line_pre_calculate(&(p->line));
 		}
 	}
 }
