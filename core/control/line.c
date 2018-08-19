@@ -149,6 +149,8 @@ int line_step_tick(void)
 	int32_t step_delay;
 	if (step >= steps)
 	{
+		is_moving = 0;
+		def.line_finished();
 		return -1;
 	}
 	cnc_endstops nes = def.get_endstops();
@@ -193,14 +195,10 @@ int line_step_tick(void)
 	}
 	moves_set_position(cx);
 
-	if (step >= steps) {
-		is_moving = 0;
-		def.line_finished();
-		return -1;
-	}
-
 	/* Calculating delay */
 	step_delay = feed_to_delay(FIXED_DECODE(feed_next), len, steps);
+	if (steps == step)
+		state = STATE_STOP;
 	switch (state)
 	{
 	case STATE_ACC:
