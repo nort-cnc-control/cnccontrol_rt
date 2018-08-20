@@ -62,6 +62,7 @@ static void pop_cmd(void)
 
 static void get_cmd(void)
 {
+	int res;
 	action_plan *cp = &plan[plan_cur];
 
 	if (plan_last == plan_cur)
@@ -71,7 +72,12 @@ static void get_cmd(void)
 
 	switch (cp->type) {
 	case ACTION_LINE:
-		moves_line_to(&(cp->line));
+		res = moves_line_to(&(cp->line));
+		if (res == -E_NEXT)
+		{
+			pop_cmd();
+			get_cmd();
+		}
 		break;
 	case ACTION_FUNCTION:
 		cp->f();

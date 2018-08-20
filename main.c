@@ -153,7 +153,7 @@ static void init_shell(void)
 		.transmit_char = transmit_char,
 	};
 	shell_init(cbs);
-	shell_echo_enable(1);
+	shell_echo_enable(0);
 }
 
 static volatile int moving;

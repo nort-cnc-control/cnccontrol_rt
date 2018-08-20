@@ -4,6 +4,7 @@
 #include <shell/shell.h>
 #include "line.h"
 #include "moves.h"
+#include <err.h>
 
 #define abs(a) ((a) > 0 ? (a) : (-(a))) 
 
@@ -98,21 +99,15 @@ int line_move_to(line_plan *plan)
 	endstops = def.get_endstops();
 	if (endstops.stop_x && dx[0] < 0)
 	{
-		def.line_started();
-		def.line_error();
-		return -2;
+		return -E_NEXT;
 	}
 	if (endstops.stop_y && dx[1] < 0)
 	{
-		def.line_started();
-		def.line_error();
-		return -2;
+		return -E_NEXT;
 	}
 	if (endstops.stop_z && dx[2] < 0)
 	{
-		def.line_started();
-		def.line_error();
-		return -2;
+		return -E_NEXT;
 	}
 
 	len = plan->len;
@@ -128,9 +123,7 @@ int line_move_to(line_plan *plan)
 
 	if (steps == 0)
 	{
-		def.line_started();
-		def.line_finished();
-		return 0;
+		return -E_NEXT;
 	}
 
 	state = STATE_ACC;
@@ -139,7 +132,7 @@ int line_move_to(line_plan *plan)
 	for (i = 0; i < 3; i++)
 		start_position[i] = position.pos[i];
 	def.line_started();
-	return 0;
+	return -E_OK;
 }
 
 int line_step_tick(void)
