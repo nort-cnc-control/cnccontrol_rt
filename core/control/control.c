@@ -51,6 +51,11 @@ static void send_ok(void)
 	shell_send_string("\r\n");
 }
 
+void on_slot_appeared(void)
+{
+	send_ok();
+}
+
 static void next_cmd(void);
 
 static int handle_g_command(gcode_frame_t *frame)
@@ -106,12 +111,13 @@ static int handle_g_command(gcode_frame_t *frame)
 			int res = planner_line_to(x, f, feed0, feed1, acc);
 			if (res >= 0)
 			{
-				send_ok();
+				if (empty_slots() > 0)
+					send_ok();
 				return -E_OK;
 			}
 			else
 			{
-				shell_print_answer(-1, "problem with planning arc");
+				shell_print_answer(-1, "problem with planning line");
 				return res;
 			}
 		}

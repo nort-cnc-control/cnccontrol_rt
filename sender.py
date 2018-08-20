@@ -4,6 +4,7 @@ import time
 import getopt
 import sys
 import serial
+import re
 
 baudrate = 57600
 port = "/dev/ttyUSB0"
@@ -35,7 +36,7 @@ if f == None:
     usage()
     sys.exit(1)
 
-ser = serial.Serial(port, baudrate, bytesize=8, parity='N', stopbits=1)
+ser = serial.Serial(port, baudrate, bytesize=8, parity='N', stopbits=1, timeout=1)
 
 source = open(f, "r")
 gcoderaw = source.readlines()
@@ -53,7 +54,12 @@ for gc in gcode:
     print("Sending: %s" % gc)
     cmd = gc + "\n"
     ser.write(bytes(cmd, "UTF-8"))
-    time.sleep(0.5)
+    ser.flush()
+    ans = ""
+    while ans == "":
+        ans = ser.readline().decode("UTF-8")
+    print("Ans: %s" % ans)
+    #time.sleep(0.5)
 
 ser.close()
 

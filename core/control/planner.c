@@ -16,6 +16,8 @@ static volatile int search_begin;
 
 static void (*finish_action)(void);
 
+void on_slot_appeared(void);
+
 typedef enum {
 	ACTION_LINE = 0,
 	ACTION_FUNCTION,
@@ -33,20 +35,17 @@ static action_plan plan[QUEUE_SIZE];
 static int plan_cur = 0;
 static int plan_last = 0;
 
-int empty_slots(void)
-{
-	int plan_len = plan_last - plan_cur;
-	if (plan_len < 0)
-		plan_len += QUEUE_SIZE;
-	return QUEUE_SIZE - plan_len;
-}
-
 int used_slots(void)
 {
 	int plan_len = plan_last - plan_cur;
 	if (plan_len < 0)
 		plan_len += QUEUE_SIZE;
 	return plan_len;
+}
+
+int empty_slots(void)
+{
+	return QUEUE_SIZE - used_slots() - 1;
 }
 
 static void line_started(void)
@@ -58,6 +57,10 @@ static void pop_cmd(void)
 {
 	plan_cur++;
 	plan_cur %= QUEUE_SIZE;
+	if (empty_slots() == 1)
+	{
+		on_slot_appeared();
+	}
 }
 
 static void get_cmd(void)
