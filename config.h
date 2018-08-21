@@ -10,5 +10,10 @@
 
 #define FEED_MAX 1500
 #define FEED_BASE 5
-#define ACC 20
+#define ACC 60
+
+#define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
+#define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
+
+#define SHELL_BAUDRATE 57600
 

@@ -38,7 +38,8 @@ build/%.o: %.c
 build/%.o: %.s
 	$(AS) -c $< -o $@
 
-SRCS = main.c
+SRCS = 	main.c \
+	stm32f103.c
 
 OBJECTS_TARGET = $(addprefix build/, $(addsuffix .o, $(basename $(SRCS))))
 
