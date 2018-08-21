@@ -255,6 +255,9 @@ void line_pre_calculate(line_plan *line)
 	}
 	line->len = isqrt(l);
 	
+	if (line->len == 0)
+		return;
+
 	if (line->feed < def.feed_base)
 		line->feed = def.feed_base;
 	else if (line->feed > def.feed_max)

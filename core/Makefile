@@ -36,7 +36,7 @@ SRCS = shell/shell.c \
 	   control/planner.c \
 	   math/math.c
 
-UNIT_TESTS = unit_tests/test_gcode
+UNIT_TESTS = unit_tests/test_gcode unit_tests/test_lines
 
 OBJECTS_TARGET = $(addprefix build/target/, $(addsuffix .o, $(basename $(SRCS))))
 OBJECTS_HOST = $(addprefix build/host/, $(addsuffix .o, $(basename $(SRCS))))
@@ -65,7 +65,8 @@ unit_tests: $(UNIT_TESTS)
 
 unit_tests/% : unit_tests/%.c libcore_host.a
 	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
-	$@
+	bash -c "$@"
+
 
 clean:
 	rm -f $(UNIT_TESTS)
