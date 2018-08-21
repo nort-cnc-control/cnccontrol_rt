@@ -130,6 +130,9 @@ static void gpio_setup(void)
 	// X - stop
 	gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO14);
 	gpio_set(GPIOB, GPIO14);
+	// Z - probe
+	gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO15);
+	gpio_set(GPIOA, GPIO15);
 }
 
 
@@ -273,9 +276,10 @@ static void line_error(void)
 static cnc_endstops get_stops(void)
 {
 	cnc_endstops stops = {
-		.stop_x = !(gpio_get(GPIOB, GPIO14) >> 14),
-		.stop_y = !(gpio_get(GPIOB, GPIO13) >> 13),
-		.stop_z = !(gpio_get(GPIOB, GPIO12) >> 12)
+		.stop_x  = !(gpio_get(GPIOB, GPIO14) >> 14),
+		.stop_y  = !(gpio_get(GPIOB, GPIO13) >> 13),
+		.stop_z  = !(gpio_get(GPIOB, GPIO12) >> 12),
+		.probe_z = !(gpio_get(GPIOA, GPIO15) >> 15),
 	};
 
 	return stops;
