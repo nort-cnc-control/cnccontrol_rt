@@ -156,6 +156,8 @@ static void init_shell(void)
 	shell_echo_enable(0);
 }
 
+
+
 static volatile int moving;
 
 static void set_dir(int i, int dir)
@@ -285,32 +287,14 @@ static cnc_endstops get_stops(void)
 	return stops;
 }
 
-static void init_steppers(void)
+void config_steppers(steppers_definition *sd)
 {
-	steppers_definition sd = {
-		.set_dir        = set_dir,
-		.make_step      = make_step,
-		.get_endstops   = get_stops,
-		.line_started   = line_started,
-		.line_finished  = line_finished,
-		.line_error     = line_error,
-		.steps_per_unit = {
-			STEPS_PER_MM,
-			STEPS_PER_MM,
-			STEPS_PER_MM
-		},
-		.feed_base = FEED_BASE,
-		.feed_max = FEED_MAX,
-		.size = {
-			SIZE_X * 100,
-			SIZE_Y * 100,
-			SIZE_Z * 100,
-		},
-		.acc_default = ACC,
-	};
-
-	line_finished();
-	init_planner(sd);
+	sd->set_dir        = set_dir;
+	sd->make_step      = make_step;
+	sd->get_endstops   = get_stops;
+	sd->line_started   = line_started;
+	sd->line_finished  = line_finished;
+	sd->line_error     = line_error;
 }
 
 void hard_fault_handler(void)
@@ -336,7 +320,6 @@ void hardware_setup(void)
         clock_setup();
         gpio_setup();
 	init_shell();
-	init_steppers();
 	step_timer_setup();
 	usart_setup(SHELL_BAUDRATE);
 

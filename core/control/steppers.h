@@ -20,6 +20,10 @@ typedef struct
 	int32_t steps_per_unit[3];
 	int32_t feed_base;
 	int32_t feed_max;
+	int32_t es_travel;
+	int32_t es_precise;
+	int32_t probe_travel;
+	int32_t probe_precise;
 	int32_t size[3];
 	int32_t acc_default;
 	int32_t feed_default;

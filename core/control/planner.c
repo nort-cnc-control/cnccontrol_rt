@@ -231,11 +231,11 @@ static int break_on_probe(int32_t *dx)
 void planner_z_probe(void)
 {
 	int32_t x[3] = {0, 0, def.size[2]};
-	planner_line_to(x, break_on_probe, 600, 0, 0, def.acc_default);
+	planner_line_to(x, break_on_probe, def.probe_travel, 0, 0, def.acc_default);
 	x[2] = -1*100;
-	planner_line_to(x, break_on_probe, 100, 0, 0, def.acc_default);
+	planner_line_to(x, break_on_probe, def.probe_travel, 0, 0, def.acc_default);
 	x[2] = 2*100;
-	planner_line_to(x, break_on_probe, 20, 0, 0, def.acc_default);
+	planner_line_to(x, break_on_probe, def.probe_precise, 0, 0, def.acc_default);
 }
 
 void planner_find_begin(int rx, int ry, int rz)
@@ -245,27 +245,27 @@ void planner_find_begin(int rx, int ry, int rz)
 	srz = rz;
 	if (rx) {
 		int32_t x[3] = {-def.size[0], 0, 0};
-		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[0] = 2*100;
-		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[0] = -10*100;
-		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default);
 	}
 	if (ry) {
 		int32_t x[3] = {0, -def.size[1], 0};
-		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[1] = 2*100;
-		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[1] = -10*100;
-		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default);
 	}
 	if (rz) {
 		int32_t x[3] = {0, 0, -def.size[2]};
-		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[2] = 2*100;
-		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default);
 		x[2] = -10*100;
-		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default);
 	}
 	planner_function(set_pos_0);
 }
