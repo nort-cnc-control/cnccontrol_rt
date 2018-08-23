@@ -27,5 +27,4 @@ int moves_step_tick(void);
 void moves_set_position(int32_t x[3]);
 
 extern cnc_position position;
-extern cnc_endstops endstops;
 

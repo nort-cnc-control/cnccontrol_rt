@@ -31,6 +31,7 @@ static int32_t steps;
 static int32_t steps_acc;
 static int32_t steps_dec;
 static int32_t step;
+static int (*check_break)(int32_t *dx);
 
 static fixed feed_next;
 static fixed feed_end;
@@ -96,20 +97,9 @@ int line_move_to(line_plan *plan)
 		def.set_dir(i, dc[i] >= 0);
 	}
 
-	endstops = def.get_endstops();
-	if (endstops.stop_x && dx[0] < 0)
-	{
+	if (plan->check_break && plan->check_break(dx))
 		return -E_NEXT;
-	}
-	if (endstops.stop_y && dx[1] < 0)
-	{
-		return -E_NEXT;
-	}
-	if (endstops.stop_z && dx[2] < 0)
-	{
-		return -E_NEXT;
-	}
-
+	check_break = plan->check_break;
 	len = plan->len;
 	maxi = plan->maxi;
 	steps = plan->steps;
@@ -146,27 +136,13 @@ int line_step_tick(void)
 		def.line_finished();
 		return -1;
 	}
-	cnc_endstops nes = def.get_endstops();
 
-	ex = 0;
-	/* check endstops */
-	if (dx[0] < 0 && nes.stop_x && !endstops.stop_x) {
-		ex = 1;
-	}
-	if (dx[1] < 0 && nes.stop_y && !endstops.stop_y) {
-		ex = 1;
-	}
-	if (dx[2] < 0 && nes.stop_z && !endstops.stop_z) {
-		ex = 1;
-	}
-
-	if (ex) {
+	if (check_break && check_break(dx))
+	{	
 		is_moving = 0;
 		def.line_finished();
 		return -1;
 	}
-
-	endstops = nes;
 
 	/* Bresenham */
 	def.make_step(maxi);

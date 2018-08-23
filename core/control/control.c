@@ -24,6 +24,8 @@ static void print_endstops(void)
 	shell_send_char(stops.stop_y + '0');
 	shell_send_string(" Z: ");
 	shell_send_char(stops.stop_z + '0');
+	shell_send_string(" P: ");
+	shell_send_char(stops.probe_z + '0');
 	shell_send_string(" Q: ");
 	shell_print_dec(q);
 	shell_send_string("\r\n");
@@ -108,7 +110,7 @@ static int handle_g_command(gcode_frame_t *frame)
 				}
 			}
 
-			int res = planner_line_to(x, f, feed0, feed1, acc);
+			int res = planner_line_to(x, NULL, f, feed0, feed1, acc);
 			if (res >= 0)
 			{
 				if (empty_slots() > 0)
@@ -144,9 +146,15 @@ static int handle_g_command(gcode_frame_t *frame)
 			}
 
 			planner_find_begin(rx, ry, rz);
-			send_ok();
+			if (empty_slots() > 0)
+				send_ok();
 			return -E_OK;
 		}
+		case 30:
+			planner_z_probe();
+			if (empty_slots() > 0)
+				send_ok();
+			return -E_OK;
 		default:
  			shell_print_answer(-1, "unknown command number");
 			return -E_INCORRECT;

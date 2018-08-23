@@ -135,7 +135,25 @@ static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
 	return s * f;
 }
 
-int planner_line_to(int32_t x[3],
+static int break_on_endstops(int32_t *dx)
+{
+	cnc_endstops endstops = def.get_endstops();
+	if (endstops.stop_x && dx[0] < 0)
+	{
+		return 1;
+	}
+	if (endstops.stop_y && dx[1] < 0)
+	{
+		return 1;
+	}
+	if (endstops.stop_z && dx[2] < 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+int planner_line_to(int32_t x[3], int (*cbr)(int32_t *),
                     int32_t feed, int32_t f0, int32_t f1, int32_t acc)
 {
 	action_plan *prev, *cur;
@@ -145,8 +163,11 @@ int planner_line_to(int32_t x[3],
 	if (x[0] == 0 && x[1] == 0 && x[2] == 0)
 		return empty_slots();
 
+	if (cbr == NULL)
+		cbr = break_on_endstops;
 	cur = &plan[plan_last];
 	cur->type = ACTION_LINE;
+	cur->line.check_break = cbr;
 	cur->line.x[0] = x[0];
 	cur->line.x[1] = x[1];
 	cur->line.x[2] = x[2];
@@ -196,6 +217,27 @@ void set_pos_0(void)
 		position.pos[2] = 0;
 }
 
+
+static int break_on_probe(int32_t *dx)
+{
+	cnc_endstops endstops = def.get_endstops();
+	if (endstops.probe_z && dx[2] > 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+void planner_z_probe(void)
+{
+	int32_t x[3] = {0, 0, def.size[2]};
+	planner_line_to(x, break_on_probe, 600, 0, 0, def.acc_default);
+	x[2] = -1*100;
+	planner_line_to(x, break_on_probe, 100, 0, 0, def.acc_default);
+	x[2] = 2*100;
+	planner_line_to(x, break_on_probe, 20, 0, 0, def.acc_default);
+}
+
 void planner_find_begin(int rx, int ry, int rz)
 {
 	srx = rx;
@@ -203,27 +245,27 @@ void planner_find_begin(int rx, int ry, int rz)
 	srz = rz;
 	if (rx) {
 		int32_t x[3] = {-def.size[0], 0, 0};
-		planner_line_to(x, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
 		x[0] = 2*100;
-		planner_line_to(x, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
 		x[0] = -10*100;
-		planner_line_to(x, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
 	}
 	if (ry) {
 		int32_t x[3] = {0, -def.size[1], 0};
-		planner_line_to(x, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
 		x[1] = 2*100;
-		planner_line_to(x, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
 		x[1] = -10*100;
-		planner_line_to(x, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
 	}
 	if (rz) {
 		int32_t x[3] = {0, 0, -def.size[2]};
-		planner_line_to(x, 600, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 600, 0, 0, def.acc_default);
 		x[2] = 2*100;
-		planner_line_to(x, 100, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 100, 0, 0, def.acc_default);
 		x[2] = -10*100;
-		planner_line_to(x, 30, 0, 0, def.acc_default);
+		planner_line_to(x, NULL, 30, 0, 0, def.acc_default);
 	}
 	planner_function(set_pos_0);
 }

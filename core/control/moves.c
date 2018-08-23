@@ -5,7 +5,6 @@
 
 static int type;
 
-cnc_endstops endstops;
 cnc_position position;
 
 static steppers_definition def;

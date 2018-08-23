@@ -16,6 +16,7 @@ typedef struct {
 	int32_t acc_steps;
 	int32_t dec_steps;
 	int32_t acceleration;
+	int (*check_break)(int32_t *dx);
 } line_plan;
 
 void line_init(steppers_definition definition);
