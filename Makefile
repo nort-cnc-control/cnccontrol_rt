@@ -55,4 +55,3 @@ flash: main.bin
 
 clean:
 	rm -f main.elf main.bin $(OBJECTS_TARGET)
-	make -C core clean

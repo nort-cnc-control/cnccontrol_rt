@@ -14,48 +14,94 @@
 #define ANSWER_OK(str)  shell_print_answer(0, (str))
 #define ANSWER_ERR(err, str)  shell_print_answer(err, (str))
 
-static void print_endstops(void)
+static void print_endstops(int nid)
 {
+	send_started(nid);
 	int q = empty_slots();
 	cnc_endstops stops = moves_get_endstops();
-	shell_send_string("ok X: ");
+	shell_send_string("completed");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" Q:");
+	shell_print_dec(q);
+	shell_send_string(" X:");
 	shell_send_char(stops.stop_x + '0');
-	shell_send_string(" Y: ");
+	shell_send_string(" Y:");
 	shell_send_char(stops.stop_y + '0');
-	shell_send_string(" Z: ");
+	shell_send_string(" Z:");
 	shell_send_char(stops.stop_z + '0');
-	shell_send_string(" P: ");
+	shell_send_string(" P:");
 	shell_send_char(stops.probe_z + '0');
-	shell_send_string(" Q: ");
-	shell_print_dec(q);
 	shell_send_string("\r\n");
 }
 
-static void print_position(void)
-{	
+static void print_position(int nid)
+{
+	send_started(nid);
 	int q = empty_slots();
-	shell_send_string("ok X: ");
+	shell_send_string("completed");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" Q:");
+	shell_print_dec(q);
+	shell_send_string(" X:");
 	shell_print_fixed_2(position.pos[0]);
-	shell_send_string(" Y: ");
+	shell_send_string(" Y:");
 	shell_print_fixed_2(position.pos[1]);
-	shell_send_string(" Z: ");
+	shell_send_string(" Z:");
 	shell_print_fixed_2(position.pos[2]);
-	shell_send_string(" Q: ");
-	shell_print_dec(q);
 	shell_send_string("\r\n");
 }
 
-static void send_ok(void)
+void send_queued(int nid)
 {
 	int q = empty_slots();
-	shell_send_string("ok Q:");
+	shell_send_string("queued");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" Q:");
 	shell_print_dec(q);
 	shell_send_string("\r\n");
 }
 
-void on_slot_appeared(void)
+void send_started(int nid)
 {
-	send_ok();
+	int q = empty_slots();
+	shell_send_string("started");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" Q:");
+	shell_print_dec(q);
+	shell_send_string("\r\n");
+}
+
+void send_completed(int nid)
+{
+	int q = empty_slots();
+	shell_send_string("completed");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" Q:");
+	shell_print_dec(q);
+	shell_send_string("\r\n");
+}
+
+void send_ok(int nid)
+{
+	send_queued(nid);
+	send_started(nid);
+	send_completed(nid);
+}
+
+void send_error(int nid, const char *err)
+{
+	int q = empty_slots();
+	shell_send_string("error");
+	shell_send_string(" N:");
+	shell_print_dec(nid);
+	shell_send_string(" ");
+	shell_send_string(err);
+	shell_send_string("\r\n");
 }
 
 static void next_cmd(void);
@@ -64,15 +110,23 @@ static int handle_g_command(gcode_frame_t *frame)
 {
 	gcode_cmd_t *cmds = frame->cmds;
 	int ncmds = frame->num;
+	int nid = -1;
 
 	// skip line number(s)
 	while (ncmds > 0 && cmds[0].type == 'N') {
+		nid = cmds[0].val_i;
 		ncmds--;
 		cmds++;
 	}
+
+	if (nid == -1)
+	{
+		send_error(-1, "No command number specified");
+		return -E_INCORRECT;
+	}
 	if (ncmds == 0)
 	{
-		send_ok();
+		send_ok(nid);
 		return -E_OK;
 	}
 	// parse command line
@@ -110,16 +164,14 @@ static int handle_g_command(gcode_frame_t *frame)
 				}
 			}
 
-			int res = planner_line_to(x, NULL, f, feed0, feed1, acc);
+			int res = planner_line_to(x, NULL, f, feed0, feed1, acc, nid);
 			if (res >= 0)
 			{
-				if (empty_slots() > 0)
-					send_ok();
 				return -E_OK;
 			}
 			else
 			{
-				shell_print_answer(-1, "problem with planning line");
+				send_error(nid, "problem with planning line");
 				return res;
 			}
 		}
@@ -145,36 +197,32 @@ static int handle_g_command(gcode_frame_t *frame)
 				rz = 1;
 			}
 
-			planner_find_begin(rx, ry, rz);
-			if (empty_slots() > 0)
-				send_ok();
+			planner_find_begin(rx, ry, rz, nid);
 			return -E_OK;
 		}
 		case 30:
-			planner_z_probe();
-			if (empty_slots() > 0)
-				send_ok();
+			planner_z_probe(nid);
 			return -E_OK;
 		default:
- 			shell_print_answer(-1, "unknown command number");
+			send_error(nid, "unknown command");
 			return -E_INCORRECT;
 		}
 		break;
 	case 'M':
 		switch (cmds[0].val_i) {
 		case 114:
-			print_position();
+			print_position(nid);
 			return -E_OK;
 		case 119:
-			print_endstops();
+			print_endstops(nid);
 			return -E_OK;
 		default:
- 			shell_print_answer(-1, "unknown command number");
+			send_error(nid, "unknown command");
 			return -E_INCORRECT;
 		}
 		break;
 	default:
- 		shell_print_answer(-1, "unknown command");
+		send_error(nid, "unknown command");
 		return -E_INCORRECT;
 	}
 	return -E_INCORRECT;
