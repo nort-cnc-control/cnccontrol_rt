@@ -40,10 +40,10 @@ int main(void)
 	hardware_setup();
 	init_steppers();
 	shell_send_string("Hello\r\n");
-        while (1) {
+    while (1) {
 		planner_pre_calculate();
 	}
 
-        return 0;
+    return 0;
 }
 

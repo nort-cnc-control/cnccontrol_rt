@@ -26,7 +26,6 @@ HOST_GDB        := gdb
 
 HOST_CFLAGS 	:= -I ./ -O0 -g -ggdb
 
-
 SRCS = shell/shell.c \
 	   shell/print.c \
 	   gcode/gcodes.c \
@@ -58,14 +57,9 @@ dirs:
 	mkdir -p build/target/control
 	mkdir -p build/target/math
 
+# build for target platform for running unit tests
 build/target/%.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
-
-build/host/%.o : %.c
-	$(HOST_CC) -c $(HOST_CFLAGS) $< -o $@
-
-libcore_host.a: $(OBJECTS_HOST)
-	$(HOST_AR) cr $@ $^
 
 libcore_target.a: $(OBJECTS_TARGET)
 	$(AR) cr $@ $^
@@ -76,6 +70,13 @@ unit_tests/% : unit_tests/%.c libcore_host.a
 	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
 	bash -c "$@"
 
+# build for host platform for running unit tests
+build/host/%.o : %.c
+	$(HOST_CC) -c $(HOST_CFLAGS) $< -o $@
+
+libcore_host.a: $(OBJECTS_HOST)
+	$(HOST_AR) cr $@ $^
+
 
 clean:
 	rm -f $(UNIT_TESTS)
@@ -83,4 +84,3 @@ clean:
 	rm -f $(OBJECTS_HOST)
 	rm -f libcore_target.a
 	rm -f libcore_host.a
-
