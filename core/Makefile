@@ -46,8 +46,17 @@ OBJECTS_UNIT = $(addsuffix .o, $(basename $(UNIT_TESTS)))
 TARGET_DIR = build
 HOST_DIR   = host
 
-all: clean libcore_host.a libcore_target.a unit_tests
+all: clean dirs libcore_host.a libcore_target.a unit_tests
 
+dirs:
+	mkdir -p build/host/shell
+	mkdir -p build/host/gcode
+	mkdir -p build/host/control
+	mkdir -p build/host/math
+	mkdir -p build/target/shell
+	mkdir -p build/target/gcode
+	mkdir -p build/target/control
+	mkdir -p build/target/math
 
 build/target/%.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
