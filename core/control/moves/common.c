@@ -46,9 +46,10 @@ uint32_t acceleration_steps(fixed feed0,
                             uint32_t steps)
 {
     int64_t cacc = acc;
-    cacc = cacc * 3600*1000;
+    cacc = FIXED_ENCODE(cacc * 3600);
     // cacc in 0.001 mm / min^2
     fixed slen = (feed1*feed1 - feed0*feed0) / (2*cacc);
     // len in 0.001 mm
-    return FIXED_DECODE(slen * steps/len);
+    return slen * steps/len;
 }
+

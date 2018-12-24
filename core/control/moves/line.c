@@ -193,11 +193,18 @@ void line_pre_calculate ( line_plan *line )
     shell_print_dec(line->feed1);
     shell_send_char('\n');
   */  
-//    line->acc_steps = acceleration_steps ( line->feed0, line->feed, line->acceleration, line->len, line->steps );
-//    line->dec_steps = acceleration_steps ( line->feed1, line->feed, line->acceleration, line->len, line->steps );
+    line->acc_steps = acceleration_steps ( line->feed0, line->feed, line->acceleration, line->len, line->steps );
+    line->dec_steps = acceleration_steps ( line->feed1, line->feed, line->acceleration, line->len, line->steps );
 
-    line->acc_steps = 0;
-    line->dec_steps = 0;
+    shell_print_dec(line->acc_steps);
+    shell_send_char(',');
+    shell_print_dec(line->steps);
+    shell_send_char(',');
+    shell_print_dec(line->dec_steps);
+    shell_send_char('\n');
+ 
+//    line->acc_steps = 0;
+//    line->dec_steps = 0;
 
     if ( line->acc_steps + line->dec_steps > line->steps ) {
         int32_t d = ( line->acc_steps + line->dec_steps - line->steps ) / 2;
