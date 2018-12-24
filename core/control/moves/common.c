@@ -26,7 +26,7 @@ fixed accelerate(fixed feed, int32_t acc, int32_t delay)
 {
 	//feed + ( FIXED_ENCODE(acc) * 60*60) * (delay / (60 * 1000000UL));
 	int df = FIXED_ENCODE(acc) * 60 * delay / 1000000;
-    	if (df == 0 && acc > 0)
+	if (df == 0 && acc > 0)
 		df = 1;
 	else if (df == 0 && acc < 0)
 		df = -1;
@@ -45,14 +45,10 @@ uint32_t acceleration_steps(fixed feed0,
                             fixed len,
                             uint32_t steps)
 {
-	uint32_t s = 0;
-	fixed fe = feed0;
-	while (fe < feed1)
-	{
-		uint32_t delay = feed2delay(fe, len, steps);
-		fe = accelerate(fe, acc, delay);
-		s++;
-	}
-	return s;
+    int64_t cacc = acc;
+    cacc = cacc * 3600*1000;
+    // cacc in 0.001 mm / min^2
+    fixed slen = (feed1*feed1 - feed0*feed0) / (2*cacc);
+    // len in 0.001 mm
+    return FIXED_DECODE(slen * steps/len);
 }
-
