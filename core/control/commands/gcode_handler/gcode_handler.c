@@ -40,13 +40,13 @@ static int handle_g_command(gcode_frame_t *frame)
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
 				case 'X':
-					x[0] = cmds[i].val_f;
+					x[0] = FIXED_ENCODE(cmds[i].val_f)/100;
 					break;
 				case 'Y':
-					x[1] = cmds[i].val_f;
+					x[1] = FIXED_ENCODE(cmds[i].val_f)/100;
 					break;
 				case 'Z':
-					x[2] = cmds[i].val_f;
+					x[2] = FIXED_ENCODE(cmds[i].val_f)/100;
 					break;
 				case 'F':
 					f = cmds[i].val_i;

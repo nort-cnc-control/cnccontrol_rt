@@ -159,7 +159,7 @@ void line_pre_calculate ( line_plan *line )
     int64_t l = 0;
     for ( j = 0; j < 3; j++ ) {
         l += ( ( int64_t ) line->x[j] ) * line->x[j];
-        line->s[j] = line->x[j] * def.steps_per_unit[j] / 100;
+        line->s[j] = FIXED_DECODE(line->x[j] * def.steps_per_unit[j]);
     }
     line->len = isqrt ( l );
 
@@ -188,7 +188,7 @@ void line_pre_calculate ( line_plan *line )
     line->dec_steps = acceleration_steps ( line->feed1, line->feed, line->acceleration, line->len, line->steps );
 
     if ( line->acc_steps + line->dec_steps > line->steps ) {
-        int32_t d = ( line->acc_steps + line->dec_steps - line->steps ) /2;
+        int32_t d = ( line->acc_steps + line->dec_steps - line->steps ) / 2;
         line->acc_steps -= d;
         line->dec_steps -= d;
         if ( line->acc_steps + line->dec_steps < line->steps )

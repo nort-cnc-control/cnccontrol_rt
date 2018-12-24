@@ -145,7 +145,7 @@ static int break_on_endstops(int32_t *dx, void *user_data)
 	return 0;
 }
 
-static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *usr_data,
+static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr_data,
                     int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid, int ns, int ne)
 {
 	action_plan *cur;
@@ -173,9 +173,9 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *u
 	cur->line.x[0] = x[0];
 	cur->line.x[1] = x[1];
 	cur->line.x[2] = x[2];
-	cur->line.feed = feed;
-	cur->line.feed0 = f0;
-	cur->line.feed1 = f1;
+	cur->line.feed = FIXED_ENCODE(feed);
+	cur->line.feed0 = FIXED_ENCODE(f0);
+	cur->line.feed1 = FIXED_ENCODE(f1);
 	cur->line.acceleration = acc;
 	cur->line.len = -1;
 	cur->line.acc_steps = -1;
@@ -185,7 +185,7 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *u
     return empty_slots();
 }
 
-int planner_line_to(int32_t x[3], int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid)
+int planner_line_to(fixed x[3], int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid)
 {
     if (empty_slots() == 0)
     {
@@ -249,11 +249,11 @@ static int break_on_probe(int32_t *dx, void *user_data)
 
 void planner_z_probe(int nid)
 {
-	int32_t x[3] = {0, 0, def.size[2]};
+	fixed x[3] = {0, 0, def.size[2]};
 	_planner_line_to(x, break_on_probe, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
-	x[2] = -1*100;
+	x[2] = FIXED_ENCODE(-1);
 	_planner_line_to(x, NULL, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
-	x[2] = 2*100;
+	x[2] = FIXED_ENCODE(2);
 	_planner_line_to(x, break_on_probe, NULL, def.probe_precise, 0, 0, def.acc_default, nid, 0, 1);
 
 	ev_send_queued(nid);
@@ -270,29 +270,29 @@ void planner_find_begin(int rx, int ry, int rz, int nid)
 	sry = ry;
 	srz = rz;
 	if (rx) {
-		int32_t x[3] = {-def.size[0], 0, 0};
+		fixed x[3] = {-FIXED_ENCODE(def.size[0]), 0, 0};
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 1, 0);
-		x[0] = 2*100;
+		x[0] = FIXED_ENCODE(2);
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-		x[0] = -10*100;
+		x[0] = FIXED_ENCODE(-10);
 		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 		f = 0;
 	}
 	if (ry) {
-		int32_t x[3] = {0, -def.size[1], 0};
+		fixed x[3] = {0, -FIXED_ENCODE(def.size[1]), 0};
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-		x[1] = 2*100;
+		x[1] = FIXED_ENCODE(2);
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-		x[1] = -10*100;
+		x[1] = FIXED_ENCODE(-10);
 		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 		f = 0;
 	}
 	if (rz) {
-		int32_t x[3] = {0, 0, -def.size[2]};
+		fixed x[3] = {0, 0, -FIXED_ENCODE(def.size[2])};
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-		x[2] = 2*100;
+		x[2] = FIXED_ENCODE(2);
 		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-		x[2] = -10*100;
+		x[2] = FIXED_ENCODE(-10);
 		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 	}
 	_planner_function(set_pos_0, nid, 0, 1);

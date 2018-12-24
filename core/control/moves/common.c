@@ -23,8 +23,8 @@ uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
 // Return: new feed in 0.001 mm / min
 fixed accelerate(fixed feed, int32_t acc, uint32_t delay)
 {
-	//feed + (acc * 1000 * 60*60) * (delay / (60 * 1000000UL));
-    return feed + acc * fixed_k * 60 * delay / 1000000UL;
+	//feed + ( FIXED_ENCODE(acc) * 60*60) * (delay / (60 * 1000000UL));
+    return feed + FIXED_ENCODE(acc) * 60 * delay / 1000000UL;
 }
 
 // Find amount of acceleration steps from feed0 to feed1
