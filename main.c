@@ -26,9 +26,9 @@ static void init_steppers(void)
 		.es_precise = FEED_ES_PRECISE,
 		.probe_precise = FEED_PROBE_PRECISE,
 		.size = {
-			SIZE_X * 100,
-			SIZE_Y * 100,
-			SIZE_Z * 100,
+			SIZE_X,
+			SIZE_Y,
+			SIZE_Z,
 		},
 		.acc_default = ACC,
 	};

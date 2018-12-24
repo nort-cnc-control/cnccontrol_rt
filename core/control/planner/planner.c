@@ -109,8 +109,11 @@ void init_planner(steppers_definition pd,
 	plan_cur = plan_last = 0;
 	search_begin = 0;
 	finish_action = NULL;
-	steppers_definition sd = pd;
+	
 	def = pd;
+	def.feed_max = FIXED_ENCODE(pd.feed_max);
+
+	steppers_definition sd = def;
 	sd.line_started = line_started;
 	sd.line_error = line_error;
 	sd.line_finished = line_finished;
@@ -249,7 +252,7 @@ static int break_on_probe(int32_t *dx, void *user_data)
 
 void planner_z_probe(int nid)
 {
-	fixed x[3] = {0, 0, def.size[2]};
+	fixed x[3] = {0, 0, FIXED_ENCODE(def.size[2])};
 	_planner_line_to(x, break_on_probe, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
 	x[2] = FIXED_ENCODE(-1);
 	_planner_line_to(x, NULL, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
