@@ -113,7 +113,7 @@ int line_step_tick ( void )
                 current_state.feed = current_plan->feed;
             } else {
                 current_state.state = STATE_DEC;
-            }
+	    }
         } else {
             current_state.feed = accelerate ( current_state.feed, current_plan->acceleration, step_delay );
         }
@@ -124,11 +124,14 @@ int line_step_tick ( void )
         }
         break;
     case STATE_DEC:
-        current_state.feed = accelerate ( current_state.feed, -current_plan->acceleration, step_delay );
-        if ( current_state.feed < current_plan->feed1 ) {
+	{
+	int acc = current_plan->acceleration;
+        current_state.feed = accelerate ( current_state.feed, -acc, step_delay );
+	if ( current_state.feed < current_plan->feed1 ) {
             current_state.feed = current_plan->feed1;
             current_state.state = STATE_STOP;
         }
+	}
         break;
     case STATE_STOP:
         break;
@@ -182,10 +185,19 @@ void line_pre_calculate ( line_plan *line )
         line->feed0 = line->feed;
 
     bresenham_plan ( line );
+/*
+    shell_print_dec(line->feed0);
+    shell_send_char(',');
+    shell_print_dec(line->feed);
+    shell_send_char(',');
+    shell_print_dec(line->feed1);
+    shell_send_char('\n');
+  */  
+//    line->acc_steps = acceleration_steps ( line->feed0, line->feed, line->acceleration, line->len, line->steps );
+//    line->dec_steps = acceleration_steps ( line->feed1, line->feed, line->acceleration, line->len, line->steps );
 
-
-    line->acc_steps = acceleration_steps ( line->feed0, line->feed, line->acceleration, line->len, line->steps );
-    line->dec_steps = acceleration_steps ( line->feed1, line->feed, line->acceleration, line->len, line->steps );
+    line->acc_steps = 0;
+    line->dec_steps = 0;
 
     if ( line->acc_steps + line->dec_steps > line->steps ) {
         int32_t d = ( line->acc_steps + line->dec_steps - line->steps ) / 2;

@@ -1,4 +1,5 @@
 #include <fixed.h>
+#include <math.h>
 
 // Find delay between ticks
 //
@@ -11,7 +12,7 @@ uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
 	if (feed == 0)
 		feed = 1;
 
-	return len * 60UL * 1000000UL / feed / steps;
+	return len * 60 * 1000000 / feed / steps;
 }
 
 // Find new feed when acceleration
@@ -21,10 +22,15 @@ uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
 // delay in usec
 //
 // Return: new feed in 0.001 mm / min
-fixed accelerate(fixed feed, int32_t acc, uint32_t delay)
+fixed accelerate(fixed feed, int32_t acc, int32_t delay)
 {
 	//feed + ( FIXED_ENCODE(acc) * 60*60) * (delay / (60 * 1000000UL));
-    return feed + FIXED_ENCODE(acc) * 60 * delay / 1000000UL;
+	int df = FIXED_ENCODE(acc) * 60 * delay / 1000000;
+    	if (df == 0 && acc > 0)
+		df = 1;
+	else if (df == 0 && acc < 0)
+		df = -1;
+	return feed + df;
 }
 
 // Find amount of acceleration steps from feed0 to feed1
@@ -35,7 +41,7 @@ fixed accelerate(fixed feed, int32_t acc, uint32_t delay)
 // len in 0.001 mm
 uint32_t acceleration_steps(fixed feed0,
                             fixed feed1,
-                            uint32_t acc,
+                            int32_t acc,
                             fixed len,
                             uint32_t steps)
 {
@@ -49,3 +55,4 @@ uint32_t acceleration_steps(fixed feed0,
 	}
 	return s;
 }
+

@@ -112,6 +112,7 @@ void init_planner(steppers_definition pd,
 	
 	def = pd;
 	def.feed_max = FIXED_ENCODE(pd.feed_max);
+	def.feed_base = FIXED_ENCODE(pd.feed_base);
 
 	steppers_definition sd = def;
 	sd.line_started = line_started;
