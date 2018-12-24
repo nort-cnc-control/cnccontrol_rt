@@ -36,7 +36,7 @@ static int handle_g_command(gcode_frame_t *frame)
 		case 1: {
 			int i;
 			int32_t f = 0, feed0 = 0, feed1 = 0, acc = def.acc_default;
-			int32_t x[3] = {0, 0, 0};
+			fixed x[3] = {0, 0, 0};
 			for (i = 1; i < ncmds; i++) {
 				switch (cmds[i].type) {
 				case 'X':
