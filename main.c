@@ -1,10 +1,11 @@
 #include "config.h"
 
-#include <shell/shell.h>
-#include <shell/print.h>
-#include <control/control.h>
-#include <control/moves.h>
-#include <control/planner.h>
+#include <shell.h>
+#include <print.h>
+
+#include <moves.h>
+#include <planner.h>
+#include <control.h>
 
 void hardware_setup(void);
 
@@ -32,7 +33,7 @@ static void init_steppers(void)
 		.acc_default = ACC,
 	};
 	config_steppers(&sd);
-	init_planner(sd);
+	init_control(sd);
 }
 
 int main(void)

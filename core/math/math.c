@@ -1,7 +1,5 @@
 #include "math.h"
 
-#define abs(x) ((x) >= 0 ? (x) : (-(x)))
-
 uint64_t isqrt(uint64_t x)
 {
 	uint64_t r = 1;

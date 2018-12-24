@@ -1,13 +1,16 @@
 #include "line.h"
 #include "moves.h"
 
-#define LINE 0
-
-static int type;
+static enum {
+    MOVE_NONE = 0,
+    MOVE_LINE,
+} current_move_type;
 
 cnc_position position;
 
 static steppers_definition def;
+
+
 
 void moves_set_position(int32_t x[3])
 {
@@ -24,13 +27,13 @@ void moves_init(steppers_definition definition)
 
 int moves_line_to(line_plan *plan)
 {
-	type = LINE;
+	current_move_type = MOVE_LINE;
 	return line_move_to(plan);
 }
 
 int moves_step_tick(void)
 {
-	if (type == LINE)
+	if (current_move_type == MOVE_LINE)
 		return line_step_tick();
 	return -10;
 }

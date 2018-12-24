@@ -1,3 +1,5 @@
+#define STM32F1
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
@@ -7,11 +9,12 @@
 
 #include "config.h"
 
-#include <shell/shell.h>
-#include <shell/print.h>
-#include <control/control.h>
-#include <control/moves.h>
-#include <control/planner.h>
+#include <shell.h>
+#include <print.h>
+#include <control.h>
+#include <moves.h>
+#include <planner.h>
+#include <gcode_handler.h>
 
 #define FCPU 72000000UL
 #define FTIMER 100000UL

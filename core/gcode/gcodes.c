@@ -1,5 +1,5 @@
 #include <err.h>
-#include <gcode/gcodes.h>
+#include <gcodes.h>
 #include <stdio.h>
 
 static int islast(char c)

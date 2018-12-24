@@ -9,7 +9,7 @@ typedef struct {
 	uint8_t probe_z:1;
 } cnc_endstops;
 
-typedef struct 
+typedef struct
 {
 	void (*set_dir)(int i, int dir);
 	void (*make_step)(int i);
@@ -28,4 +28,3 @@ typedef struct
 	int32_t acc_default;
 	int32_t feed_default;
 } steppers_definition;
-

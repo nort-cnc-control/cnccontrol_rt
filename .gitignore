@@ -2,3 +2,6 @@
 *.a
 *.bin
 *.elf
+.kdev4
+build
+.vscode

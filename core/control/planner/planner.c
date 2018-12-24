@@ -1,11 +1,8 @@
 #include <string.h>
 #include <stddef.h>
 #include "moves.h"
-#include "control.h"
 #include "planner.h"
-#include <shell/shell.h>
-#include <shell/print.h>
-#include <math/math.h>
+#include <math.h>
 #include <err.h>
 
 #define QUEUE_SIZE 64
@@ -37,28 +34,20 @@ static action_plan plan[QUEUE_SIZE];
 static int plan_cur = 0;
 static int plan_last = 0;
 
-int used_slots(void)
-{
-	int plan_len = plan_last - plan_cur;
-	if (plan_len < 0)
-		plan_len += QUEUE_SIZE;
-	return plan_len;
-}
-
-int empty_slots(void)
-{
-	return QUEUE_SIZE - used_slots() - 1;
-}
-
-static void line_started(void)
-{
-	def.line_started();
-}
+static void (*ev_send_started)(int nid);
+static void (*ev_send_completed)(int nid);
+static void (*ev_send_queued)(int nid);
 
 static void pop_cmd(void)
 {
 	plan_cur++;
 	plan_cur %= QUEUE_SIZE;
+}
+
+
+static void line_started(void)
+{
+	def.line_started();
 }
 
 static void get_cmd(void)
@@ -72,21 +61,21 @@ static void get_cmd(void)
 	}
 
 	if (cp->ns)
-		send_started(cp->nid);
+		ev_send_started(cp->nid);
 	switch (cp->type) {
 	case ACTION_LINE:
 		res = moves_line_to(&(cp->line));
 		if (res == -E_NEXT)
 		{
 			if (cp->ne)
-				send_completed(cp->nid);
+				ev_send_completed(cp->nid);
 			pop_cmd();
 			get_cmd();
 		}
 		break;
 	case ACTION_FUNCTION:
 		cp->f();
-		send_completed(cp->nid);
+		ev_send_completed(cp->nid);
 		pop_cmd();
 		get_cmd();
 		break;
@@ -97,7 +86,7 @@ static void line_finished(void)
 {
 	action_plan *cp = &plan[plan_cur];
 	if (cp->ne)
-		send_completed(cp->nid);
+		ev_send_completed(cp->nid);
 	def.line_finished();
 	pop_cmd();
 	get_cmd();
@@ -108,8 +97,15 @@ static void line_error(void)
 	line_finished();
 }
 
-void init_planner(steppers_definition pd)
+
+void init_planner(steppers_definition pd,
+                  void (*arg_send_queued)(int nid),
+                  void (*arg_send_started)(int nid),
+                  void (*arg_send_completed)(int nid))
 {
+    ev_send_started = arg_send_started;
+    ev_send_completed = arg_send_completed;
+    ev_send_queued = arg_send_queued;
 	plan_cur = plan_last = 0;
 	search_begin = 0;
 	finish_action = NULL;
@@ -121,63 +117,59 @@ void init_planner(steppers_definition pd)
 	moves_init(sd);
 }
 
-static int32_t feed_proj(int32_t px[3], int32_t x[3], int32_t f)
+int used_slots(void)
 {
-	int i;
-	int64_t s, pl = 0, l;
-	for (i = 0; i < 3; i++)
-	{
-		pl += ((int64_t)px[i]) * px[i];
-		l += ((int64_t)x[i]) * x[i];
-	}
-	pl = isqrt(pl);
-	l = isqrt(l);
-
-	for (i = 0; i < 3; i++)
-	{
-		s += ((int64_t)px[i]) * x[i] / pl / l;
-	}
-
-	return s * f;
+	int plan_len = plan_last - plan_cur;
+	if (plan_len < 0)
+		plan_len += QUEUE_SIZE;
+	return plan_len;
 }
 
-static int break_on_endstops(int32_t *dx)
+int empty_slots(void)
+{
+	return QUEUE_SIZE - used_slots() - 1;
+}
+
+static int break_on_endstops(int32_t *dx, void *user_data)
 {
 	cnc_endstops endstops = def.get_endstops();
 	if (endstops.stop_x && dx[0] < 0)
-	{
 		return 1;
-	}
+
 	if (endstops.stop_y && dx[1] < 0)
-	{
 		return 1;
-	}
+
 	if (endstops.stop_z && dx[2] < 0)
-	{
 		return 1;
-	}
+
 	return 0;
 }
 
-
-static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *),
+static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *usr_data,
                     int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid, int ns, int ne)
 {
-	action_plan *prev, *cur;
+	action_plan *cur;
 	if (empty_slots() == 0)
 		return -E_NOMEM;
 
 	if (x[0] == 0 && x[1] == 0 && x[2] == 0)
 		return empty_slots();
 
-	if (cbr == NULL)
-		cbr = break_on_endstops;
 	cur = &plan[plan_last];
 	cur->type = ACTION_LINE;
 	cur->nid = nid;
 	cur->ne = ne;
 	cur->ns = ns;
-	cur->line.check_break = cbr;
+    if (cbr != NULL)
+    {
+        cur->line.check_break = cbr;
+        cur->line.check_break_data = usr_data;
+    }
+    else
+    {
+		cur->line.check_break = break_on_endstops;
+        cur->line.check_break_data = x;
+    }
 	cur->line.x[0] = x[0];
 	cur->line.x[1] = x[1];
 	cur->line.x[2] = x[2];
@@ -190,14 +182,18 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *),
 	cur->line.dec_steps = -1;
 	plan_last++;
 	plan_last %= QUEUE_SIZE;
-
+    return empty_slots();
 }
 
-int planner_line_to(int32_t x[3], int (*cbr)(int32_t *),
-                    int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid)
+int planner_line_to(int32_t x[3], int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid)
 {
-	_planner_line_to(x, cbr, feed, f0, f1, acc, nid, 1, 1);
-	send_queued(nid);
+    if (empty_slots() == 0)
+    {
+        return -E_NOMEM;
+    }
+
+	_planner_line_to(x, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+	ev_send_queued(nid);
 	if (used_slots() == 1) {
 		get_cmd();
 	}
@@ -223,7 +219,7 @@ static void _planner_function(void (*f)(void), int nid, int ns, int ne)
 int planner_function(void (*f)(void), int nid)
 {
 	_planner_function(f, nid, 1, 1);
-	send_queued(nid);
+	ev_send_queued(nid);
 	if (used_slots() == 1) {
 		get_cmd();
 	}
@@ -242,26 +238,25 @@ void set_pos_0(void)
 		position.pos[2] = 0;
 }
 
-static int break_on_probe(int32_t *dx)
+static int break_on_probe(int32_t *dx, void *user_data)
 {
 	cnc_endstops endstops = def.get_endstops();
 	if (endstops.probe_z && dx[2] > 0)
-	{
 		return 1;
-	}
+
 	return 0;
 }
 
 void planner_z_probe(int nid)
 {
 	int32_t x[3] = {0, 0, def.size[2]};
-	_planner_line_to(x, break_on_probe, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
+	_planner_line_to(x, break_on_probe, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
 	x[2] = -1*100;
-	_planner_line_to(x, break_on_probe, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
+	_planner_line_to(x, NULL, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
 	x[2] = 2*100;
-	_planner_line_to(x, break_on_probe, def.probe_precise, 0, 0, def.acc_default, nid, 0, 1);
+	_planner_line_to(x, break_on_probe, NULL, def.probe_precise, 0, 0, def.acc_default, nid, 0, 1);
 
-	send_queued(nid);
+	ev_send_queued(nid);
 	if (used_slots() == 3) {
 		get_cmd();
 	}
@@ -276,33 +271,33 @@ void planner_find_begin(int rx, int ry, int rz, int nid)
 	srz = rz;
 	if (rx) {
 		int32_t x[3] = {-def.size[0], 0, 0};
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, 1, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 1, 0);
 		x[0] = 2*100;
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
 		x[0] = -10*100;
-		_planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 		f = 0;
 	}
 	if (ry) {
 		int32_t x[3] = {0, -def.size[1], 0};
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
 		x[1] = 2*100;
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
 		x[1] = -10*100;
-		_planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 		f = 0;
 	}
 	if (rz) {
 		int32_t x[3] = {0, 0, -def.size[2]};
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
 		x[2] = 2*100;
-		_planner_line_to(x, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
 		x[2] = -10*100;
-		_planner_line_to(x, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
+		_planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
 	}
 	_planner_function(set_pos_0, nid, 0, 1);
 
-	send_queued(nid);
+	ev_send_queued(nid);
 	if (s)
 		get_cmd();
 }
