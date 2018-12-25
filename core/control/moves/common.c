@@ -9,10 +9,10 @@
 // Return: delay in usec
 uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
 {
-	if (feed == 0)
-		feed = 1;
+    if (feed == 0)
+        feed = 1;
 
-	return len * 60 * 1000000 / feed / steps;
+    return len * 60 * 1000000 / feed / steps;
 }
 
 // Find new feed when acceleration
@@ -24,13 +24,13 @@ uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
 // Return: new feed in 0.001 mm / min
 fixed accelerate(fixed feed, int32_t acc, int32_t delay)
 {
-	//feed + ( FIXED_ENCODE(acc) * 60*60) * (delay / (60 * 1000000UL));
-	int df = FIXED_ENCODE(acc) * 60 * delay / 1000000;
-	if (df == 0 && acc > 0)
-		df = 1;
-	else if (df == 0 && acc < 0)
-		df = -1;
-	return feed + df;
+    //feed + ( FIXED_ENCODE(acc) * 60*60) * (delay / (60 * 1000000UL));
+    int df = FIXED_ENCODE(acc) * 60 * delay / 1000000;
+    if (df == 0 && acc > 0)
+        df = 1;
+    else if (df == 0 && acc < 0)
+        df = -1;
+    return feed + df;
 }
 
 // Find amount of acceleration steps from feed0 to feed1

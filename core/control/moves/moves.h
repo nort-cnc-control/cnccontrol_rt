@@ -6,14 +6,14 @@
 #include "line.h"
 
 typedef struct {
-	uint8_t en:1;
-	uint8_t dir:1;
+    uint8_t en:1;
+    uint8_t dir:1;
 } step_flags;
 
 typedef struct {
-	int32_t pos[3];
-	int32_t speed[3];
-	step_flags flags[3];
+    int32_t pos[3];
+    int32_t speed[3];
+    step_flags flags[3];
 } cnc_position;
 
 void moves_init(steppers_definition definition);

@@ -32,69 +32,69 @@ void shell_init(shell_cbs callbacks)
 
 void shell_echo_enable(int enable_echo)
 {
-	echo = enable_echo;
+    echo = enable_echo;
 }
 
 void shell_send_char(char c)
 {
-	if (outlen == BUFLEN)
-		return;
-	outbuf[outlen++] = c;
-	if (outlen == 1 && serial_flags.rdy == 1)
-	{
-		pos = 1;
-		serial_flags.rdy = 0;
-		cbs.transmit_char(outbuf[0]);
-	}
+    if (outlen == BUFLEN)
+        return;
+    outbuf[outlen++] = c;
+    if (outlen == 1 && serial_flags.rdy == 1)
+    {
+        pos = 1;
+        serial_flags.rdy = 0;
+        cbs.transmit_char(outbuf[0]);
+    }
 }
 
 void shell_char_received(char c)
 {
-	switch (c)
-	{
-		case '\n':
-		case '\r':
-			inbuf[inlen] = 0;
-        		inlen = 0;
-        		if (echo)
-            			shell_send_string("\r\n");
-        		if (cbs.line_received)
-            			cbs.line_received(inbuf);
-			break;
-		case '\b':
-		case 0x7F:
-			if (inlen > 0)
-			{
-                		inlen--;
-            			if (echo)
-                			shell_send_char('\b');
-			}
-			break;
-		default:
-			if ((inlen < BUFLEN - 1)) {
-				inbuf[inlen++] = c;
-				if (echo)
-                    			shell_send_char(c);
-			} else {
-				if (echo)
-                    			shell_send_char('^');
-			}
-			break;
-	}
+    switch (c)
+    {
+    case '\n':
+    case '\r':
+        inbuf[inlen] = 0;
+        inlen = 0;
+        if (echo)
+            shell_send_string("\r\n");
+        if (cbs.line_received)
+            cbs.line_received(inbuf);
+        break;
+    case '\b':
+    case 0x7F:
+        if (inlen > 0)
+        {
+            inlen--;
+            if (echo)
+                shell_send_char('\b');
+        }
+        break;
+    default:
+        if ((inlen < BUFLEN - 1)) {
+            inbuf[inlen++] = c;
+            if (echo)
+                shell_send_char(c);
+        } else {
+            if (echo)
+                shell_send_char('^');
+        }
+        break;
+    }
 }
 
 void shell_char_transmitted(void)
 {
-	if (outbuf[pos] && pos < outlen) {
-		int p = pos;
-		pos++;
-        	cbs.transmit_char(outbuf[p]);
-    	}
-    	else {
-        	outlen = 0;
-        	pos = 0;
-        	serial_flags.rdy = 1;
-    	}
+    if (outbuf[pos] && pos < outlen) {
+        int p = pos;
+        pos++;
+        cbs.transmit_char(outbuf[p]);
+    }
+    else {
+        outlen = 0;
+        pos = 0;
+        serial_flags.rdy = 1;
+    }
 }
 
 void shell_print_answer(int res, const char *ans)
