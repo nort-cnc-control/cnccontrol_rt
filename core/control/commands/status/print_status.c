@@ -37,10 +37,10 @@ void print_position(int nid)
     shell_send_string(" Q:");
     shell_print_dec(q);
     shell_send_string(" X:");
-    shell_print_fixed_2(position.pos[0]);
+    shell_print_fixed(position.pos[0]);
     shell_send_string(" Y:");
-    shell_print_fixed_2(position.pos[1]);
+    shell_print_fixed(position.pos[1]);
     shell_send_string(" Z:");
-    shell_print_fixed_2(position.pos[2]);
+    shell_print_fixed(position.pos[2]);
     shell_send_string("\r\n");
 }

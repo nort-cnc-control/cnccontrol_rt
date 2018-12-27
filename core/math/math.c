@@ -34,3 +34,4 @@ fixed fsqrt(fixed x)
         r -= 1;
     return r;
 }
+

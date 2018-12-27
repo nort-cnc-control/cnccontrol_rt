@@ -3,8 +3,8 @@
 
 // Find delay between ticks
 //
-// feed in 0.001 mm / min
-// len is measured in 0.001 mm
+// feed in mm / min
+// len is measured in mm
 //
 // Return: delay in usec
 uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
@@ -12,7 +12,7 @@ uint32_t feed2delay(fixed feed, fixed len, uint32_t steps)
     if (feed == 0)
         feed = 1;
 
-    return len * 60 * 1000000 / feed / steps;
+    return FIXED_DECODE(DIV(len * 60 * 1000000, feed) / steps);
 }
 
 // Find new feed when acceleration
@@ -48,8 +48,8 @@ uint32_t acceleration_steps(fixed feed0,
     int64_t cacc = acc;
     cacc = FIXED_ENCODE(cacc * 3600);
     // cacc in 0.001 mm / min^2
-    fixed slen = (feed1*feed1 - feed0*feed0) / (2*cacc);
+    fixed slen = DIV(SQR(feed1) - SQR(feed0), 2*cacc);
     // len in 0.001 mm
-    return slen * steps/len;
+    return FIXED_DECODE(DIV(slen * steps, len));
 }
 

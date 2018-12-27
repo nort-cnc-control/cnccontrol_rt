@@ -11,7 +11,7 @@ void init_planner(steppers_definition pd,
                   void (*arg_send_completed)(int nid));
 
 
-int planner_line_to(fixed x[3], int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid);
+int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int nid);
 
 int planner_function(void (*f)(void), int nid);
 

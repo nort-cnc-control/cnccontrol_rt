@@ -35,7 +35,8 @@ static int handle_g_command(gcode_frame_t *frame)
         case 0:
         case 1: {
             int i;
-            int32_t f = 0, feed0 = 0, feed1 = 0, acc = def.acc_default;
+            fixed f = 0, feed0 = 0, feed1 = 0;
+	    int32_t acc = def.acc_default;
             fixed x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -49,13 +50,13 @@ static int handle_g_command(gcode_frame_t *frame)
                     x[2] = FIXED_ENCODE(cmds[i].val_f)/100;
                     break;
                 case 'F':
-                    f = cmds[i].val_i;
+                    f = FIXED_ENCODE(cmds[i].val_i);
                     break;
                 case 'P':
-                    feed0 = cmds[i].val_i;
+                    feed0 = FIXED_ENCODE(cmds[i].val_i);
                     break;
                 case 'L':
-                    feed1 = cmds[i].val_i;
+                    feed1 = FIXED_ENCODE(cmds[i].val_i);
                     break;
                 case 'T':
                     acc = cmds[i].val_i;

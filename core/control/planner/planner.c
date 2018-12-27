@@ -150,7 +150,7 @@ static int break_on_endstops(int32_t *dx, void *user_data)
 }
 
 static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr_data,
-                            int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid, int ns, int ne)
+                            fixed feed, fixed f0, fixed f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
     if (empty_slots() == 0)
@@ -177,9 +177,9 @@ static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr
     cur->line.x[0] = x[0];
     cur->line.x[1] = x[1];
     cur->line.x[2] = x[2];
-    cur->line.feed = FIXED_ENCODE(feed);
-    cur->line.feed0 = FIXED_ENCODE(f0);
-    cur->line.feed1 = FIXED_ENCODE(f1);
+    cur->line.feed = feed;
+    cur->line.feed0 = f0;
+    cur->line.feed1 = f1;
     cur->line.acceleration = acc;
     cur->line.len = -1;
     cur->line.acc_steps = -1;
@@ -189,7 +189,7 @@ static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr
     return empty_slots();
 }
 
-int planner_line_to(fixed x[3], int32_t feed, int32_t f0, int32_t f1, int32_t acc, int nid)
+int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int nid)
 {
     if (empty_slots() == 0)
     {

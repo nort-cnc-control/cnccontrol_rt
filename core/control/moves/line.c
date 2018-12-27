@@ -27,7 +27,7 @@ static struct {
         STATE_DEC,
     } state;
 
-    int32_t start_pos[3];
+    fixed start_pos[3];
 } current_state;
 
 static steppers_definition def;
@@ -60,10 +60,15 @@ int line_move_to ( line_plan *plan )
     current_state.is_moving = 1;
     current_state.step = 0;
     for ( i = 0; i < 3; i++ )
+    {
+        current_state.err[i] = 0;
         current_state.start_pos[i] = position.pos[i];
+    }
+ 
     def.line_started();
     return -E_OK;
 }
+
 
 int line_step_tick ( void )
 {
@@ -88,14 +93,14 @@ int line_step_tick ( void )
         if ( i == current_plan->maxi )
             continue;
         current_state.err[i] += abs ( current_plan->s[i] );
-        if ( current_state.err[i] * 2 >= current_plan->steps ) {
-            current_state.err[i] -= current_plan->steps;
+        if ( current_state.err[i] * 2 >= (int32_t)current_plan->steps ) {
+            current_state.err[i] -= (int32_t)current_plan->steps;
             def.make_step ( i );
         }
     }
 
     current_state.step++;
-    int32_t cx[3];
+    fixed cx[3];
     for ( i = 0; i < 3; i++ ) {
         cx[i] = current_state.start_pos[i] + current_plan->x[i] * current_state.step / current_plan->steps;
     }
@@ -164,7 +169,7 @@ void line_pre_calculate ( line_plan *line )
         l += SQR(line->x[j]);
         line->s[j] = FIXED_DECODE(line->x[j] * def.steps_per_unit[j]);
     }
-    line->len = isqrt ( l );
+    line->len = fsqrt ( l );
 
     if ( line->len == 0 )
         return;
@@ -203,9 +208,11 @@ void line_pre_calculate ( line_plan *line )
     shell_print_dec(line->dec_steps);
     shell_send_char('\n');
  */
-//    line->acc_steps = 0;
-//    line->dec_steps = 0;
+    //line->acc_steps = 0;
+    //line->dec_steps = 0;
 
+   
+    
     if ( line->acc_steps + line->dec_steps > line->steps ) {
         int32_t d = ( line->acc_steps + line->dec_steps - line->steps ) / 2;
         line->acc_steps -= d;
