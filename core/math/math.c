@@ -16,3 +16,21 @@ uint64_t isqrt(uint64_t x)
     return r;
 }
 
+fixed fsqrt(fixed x)
+{
+    if (x < 0)
+        return -1;
+    fixed r = 1;
+
+    if (x == 0)
+        return 0;
+
+    while (abs(DIV(x, r) - r) > 1)
+    {
+        r = (DIV(x, r) + r)/2;
+    }
+
+    while (SQR(r) > x)
+        r -= 1;
+    return r;
+}
