@@ -55,7 +55,7 @@ int line_move_to ( line_plan *plan )
     if ( current_plan->steps == 0 )
         return -E_NEXT;
 
-	current_state.feed = current_plan->feed0;
+    current_state.feed = current_plan->feed0;
     current_state.state = STATE_ACC;
     current_state.is_moving = 1;
     current_state.step = 0;
@@ -161,7 +161,7 @@ void line_pre_calculate ( line_plan *line )
     int j;
     int64_t l = 0;
     for ( j = 0; j < 3; j++ ) {
-        l += ( ( int64_t ) line->x[j] ) * line->x[j];
+        l += SQR(line->x[j]);
         line->s[j] = FIXED_DECODE(line->x[j] * def.steps_per_unit[j]);
     }
     line->len = isqrt ( l );
