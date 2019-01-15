@@ -36,7 +36,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 1: {
             int i;
             fixed f = 0, feed0 = 0, feed1 = 0;
-	    int32_t acc = def.acc_default;
+	        int32_t acc = def.acc_default;
             fixed x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -80,6 +80,77 @@ static int handle_g_command(gcode_frame_t *frame)
                 return res;
             }
         }
+        case 2:
+        case 3: {
+            int i;
+            fixed f = 0, feed0 = 0, feed1 = 0;
+	    int32_t acc = def.acc_default;
+            fixed x[3] = {0, 0, 0};
+            int plane = XY;
+            fixed d = 0;
+            for (i = 1; i < ncmds; i++) {
+                switch (cmds[i].type) {
+                case 'X':
+                    x[0] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    break;
+                case 'Y':
+                    x[1] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    break;
+                case 'Z':
+                    x[2] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    break;
+                case 'D':
+                    d = FIXED_ENCODE(cmds[i].val_f)/100;
+                    break;
+                case 'F':
+                    f = FIXED_ENCODE(cmds[i].val_i);
+                    break;
+                case 'P':
+                    feed0 = FIXED_ENCODE(cmds[i].val_i);
+                    break;
+                case 'L':
+                    feed1 = FIXED_ENCODE(cmds[i].val_i);
+                    break;
+                case 'T':
+                    acc = cmds[i].val_i;
+                    break;
+                case 'G':
+                    switch (cmds[i].val_i)
+                    {
+                    case 17:
+                        plane = XY;
+                        break;
+                    case 18:
+                        plane = YZ;
+                        break;
+                    case 19:
+                        plane = ZX;
+                        break;
+                    default:
+                        break;
+                    }
+                    break;
+                }
+            }
+            int cw = (cmds[0].val_i == 2);
+            int res = planner_arc_to(x, d, plane, cw, f, feed0, feed1, acc, nid);
+            if (res >= 0)
+            {
+                return -E_OK;
+            }
+            else if (res == -E_NOMEM)
+            {
+                send_error(nid, "no space in buffer");
+                return res;
+            }
+            else
+            {
+                send_error(nid, "problem with planning line");
+                return res;
+            }
+        }
+ 
+
         case 28: {
             int i;
             int rx = 0, ry = 0, rz = 0;

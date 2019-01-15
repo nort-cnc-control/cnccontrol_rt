@@ -1,9 +1,11 @@
 #include "line.h"
+#include "arc.h"
 #include "moves.h"
 
 static enum {
     MOVE_NONE = 0,
     MOVE_LINE,
+    MOVE_ARC,
 } current_move_type;
 
 cnc_position position;
@@ -29,10 +31,18 @@ int moves_line_to(line_plan *plan)
     return line_move_to(plan);
 }
 
+int moves_arc_to(arc_plan *plan)
+{
+    current_move_type = MOVE_ARC;
+    return arc_move_to(plan);
+}
+
 int moves_step_tick(void)
 {
     if (current_move_type == MOVE_LINE)
         return line_step_tick();
+    if (current_move_type == MOVE_ARC)
+        return arc_step_tick();
     return -10;
 }
 

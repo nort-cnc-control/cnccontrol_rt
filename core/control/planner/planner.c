@@ -16,6 +16,7 @@ static void (*finish_action)(void);
 
 typedef enum {
     ACTION_LINE = 0,
+    ACTION_ARC,
     ACTION_FUNCTION,
 } action_type;
 
@@ -26,6 +27,7 @@ typedef struct {
     action_type type;
     union {
         line_plan line;
+        arc_plan arc;
         void (*f)(void);
     };
 } action_plan;
@@ -65,6 +67,16 @@ static void get_cmd(void)
     switch (cp->type) {
     case ACTION_LINE:
         res = moves_line_to(&(cp->line));
+        if (res == -E_NEXT)
+        {
+            if (cp->ne)
+                ev_send_completed(cp->nid);
+            pop_cmd();
+            get_cmd();
+        }
+        break;
+    case ACTION_ARC:
+        res = moves_arc_to(&(cp->arc));
         if (res == -E_NEXT)
         {
             if (cp->ne)
@@ -153,8 +165,6 @@ static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr
                             fixed feed, fixed f0, fixed f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
-    if (empty_slots() == 0)
-        return -E_NOMEM;
 
     if (x[0] == 0 && x[1] == 0 && x[2] == 0)
         return empty_slots();
@@ -203,6 +213,64 @@ int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int
     }
     return empty_slots();
 }
+
+static int _planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
+                           fixed feed, fixed f0, fixed f1, int32_t acc, int nid, int ns, int ne)
+{
+    action_plan *cur;
+
+    if (x[0] == 0 && x[1] == 0 && x[2] == 0)
+        return empty_slots();
+
+    cur = &plan[plan_last];
+    cur->type = ACTION_ARC;
+    cur->nid = nid;
+    cur->ne = ne;
+    cur->ns = ns;
+    if (cbr != NULL)
+    {
+        cur->arc.check_break = cbr;
+        cur->arc.check_break_data = usr_data;
+    }
+    else
+    {
+        cur->arc.check_break = break_on_endstops;
+        cur->arc.check_break_data = x;
+    }
+    cur->arc.x[0] = x[0];
+    cur->arc.x[1] = x[1];
+    cur->arc.x[2] = x[2];
+    cur->arc.d = d;
+    cur->arc.cw = cw;
+    cur->arc.plane = plane;
+    cur->arc.feed = feed;
+    cur->arc.feed0 = f0;
+    cur->arc.feed1 = f1;
+    cur->arc.acceleration = acc;
+    cur->arc.ready = 0;
+    cur->arc.acc_steps = -1;
+    cur->arc.dec_steps = -1;
+    plan_last++;
+    plan_last %= QUEUE_SIZE;
+    return empty_slots();
+}
+
+
+int planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, fixed feed, fixed f0, fixed f1, int32_t acc, int nid)
+{
+    if (empty_slots() == 0)
+    {
+        return -E_NOMEM;
+    }
+
+    _planner_arc_to(x, d, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    ev_send_queued(nid);
+    if (used_slots() == 1) {
+        get_cmd();
+    }
+    return empty_slots();
+}
+
 
 static void _planner_function(void (*f)(void), int nid, int ns, int ne)
 {
@@ -313,11 +381,22 @@ void planner_pre_calculate(void)
     {
         int pos = (plan_cur + i) % QUEUE_SIZE;
         action_plan *p = &plan[pos];
-        if (p->type != ACTION_LINE)
-            continue;
-        if (p->line.len < 0)
+        switch(p->type)
         {
-            line_pre_calculate(&(p->line));
+            case ACTION_LINE:
+                if (p->line.len < 0)
+                {
+                    line_pre_calculate(&(p->line));
+                }
+                break;
+            case ACTION_ARC:
+                if (p->arc.ready == 0)
+                {
+                    arc_pre_calculate(&(p->arc));
+                }
+                break;
+            default:
+                break;
         }
     }
 }

@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <moves.h>
+#include <arc.h>
+
 
 int empty_slots(void);
 
@@ -12,6 +14,8 @@ void init_planner(steppers_definition pd,
 
 
 int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int nid);
+
+int planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, fixed feed, fixed f0, fixed f1, int32_t acc, int nid);
 
 int planner_function(void (*f)(void), int nid);
 

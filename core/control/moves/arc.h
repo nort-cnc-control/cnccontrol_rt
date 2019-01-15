@@ -1,14 +1,32 @@
 #pragma once
 
 #include <fixed.h>
+#include "steppers.h"
+#include "err.h"
+
+typedef struct {
+    int32_t start[2];
+    int32_t finish[2];
+    int32_t a;
+    int32_t b;
+    struct {
+        int go_x:1;
+        int go_y:1;
+        int sign:2;
+    };
+    int stx;
+    int sty;
+} arc_segment;
+
+typedef enum {
+    XY = 0,
+    YZ = 1,
+    ZX = 2,
+} arc_plane;
 
 typedef struct {
     // Specified data
-    enum {
-        XY = 0,
-        YZ = 1,
-        ZX = 2,
-    } plane;               // selected plane
+    arc_plane plane;       // selected plane
     fixed x[3];            // delta
     fixed d;               // center in selected plane
     fixed feed;            // feed of moving
@@ -19,19 +37,23 @@ typedef struct {
     void *check_break_data;
 
     // Pre-calculated data
-    fixed radius;          // radius
-    fixed angle;           // angle of arc
-    fixed pld[2];          // delta in selected plane
-    fixed center[2];       // center of arc
-    fixed height;          // delta in 3-rd axis
-    fixed length;          // length of arc in plane
     uint32_t steps;        // total amount of steps
     uint32_t acc_steps;    // steps on acceleration
     uint32_t dec_steps;    // steps on deceleration
 
+    arc_segment segments[5]; // arc segments
+    int num_segments;        // amount of arc segments
+
     // flags
     struct {
-        int big_arc : 1; // True if > 180 degrees
         int cw : 1;      // True if clock-wise
+        int ready : 1;   // Plan is calculated
     };
-} helix_plan;
+} arc_plan;
+
+void arc_pre_calculate ( arc_plan *arc );
+
+int arc_move_to(arc_plan *plan);
+
+int arc_step_tick(void);
+
