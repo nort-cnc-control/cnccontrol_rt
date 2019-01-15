@@ -10,12 +10,12 @@ typedef struct {
     int32_t a;
     int32_t b;
     struct {
-        int go_x:1;
-        int go_y:1;
-        int sign:2;
+        uint8_t go_x:1;
+        uint8_t go_y:1;
+        int8_t sign:2;
+        uint8_t stx:2;
+        uint8_t sty:2;
     };
-    int stx;
-    int sty;
 } arc_segment;
 
 typedef enum {
@@ -50,6 +50,8 @@ typedef struct {
         int ready : 1;   // Plan is calculated
     };
 } arc_plan;
+
+void arc_init ( steppers_definition definition );
 
 void arc_pre_calculate ( arc_plan *arc );
 

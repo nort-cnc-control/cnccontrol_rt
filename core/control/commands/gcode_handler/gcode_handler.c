@@ -79,12 +79,13 @@ static int handle_g_command(gcode_frame_t *frame)
                 send_error(nid, "problem with planning line");
                 return res;
             }
+            break;
         }
         case 2:
         case 3: {
             int i;
             fixed f = 0, feed0 = 0, feed1 = 0;
-	    int32_t acc = def.acc_default;
+	        int32_t acc = def.acc_default;
             fixed x[3] = {0, 0, 0};
             int plane = XY;
             fixed d = 0;
@@ -148,8 +149,8 @@ static int handle_g_command(gcode_frame_t *frame)
                 send_error(nid, "problem with planning line");
                 return res;
             }
+            break;
         }
- 
 
         case 28: {
             int i;

@@ -23,6 +23,7 @@ void moves_init(steppers_definition definition)
 {
     def = definition;
     line_init(def);
+    arc_init(def);
 }
 
 int moves_line_to(line_plan *plan)

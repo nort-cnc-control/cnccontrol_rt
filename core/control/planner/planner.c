@@ -5,7 +5,7 @@
 #include <math.h>
 #include <err.h>
 
-#define QUEUE_SIZE 64
+#define QUEUE_SIZE 20
 
 steppers_definition def;
 extern cnc_position position;
@@ -270,7 +270,6 @@ int planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, fixed feed, fix
     }
     return empty_slots();
 }
-
 
 static void _planner_function(void (*f)(void), int nid, int ns, int ne)
 {
