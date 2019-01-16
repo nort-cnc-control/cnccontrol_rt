@@ -68,6 +68,7 @@ static struct
 
 static void start_segment(arc_segment *s)
 {
+    /*
     shell_send_string("start segment\n\r");
     shell_print_dec(s->start[0]);
     shell_send_string("\n\r");
@@ -77,7 +78,7 @@ static void start_segment(arc_segment *s)
     shell_send_string("\n\r");
     shell_print_dec(s->finish[1]);
     shell_send_string("\n\r");
-    shell_send_string("*****\n\r");
+    shell_send_string("*****\n\r");*/
     current_state.dir[0] = 0;
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
@@ -179,17 +180,18 @@ static double plan_tick()
 {
     int i;
     double len = make_step();
-    for (i = 0; i < 3; i++)
+    /*for (i = 0; i < 3; i++)
     {
         shell_print_dec(current_state.steps[i]);
         shell_send_char(' ');
     }
-    shell_send_string("\r\n");
+    shell_send_string("\r\n");*/
 
     if (current_state.x == current_state.x1)
     {
+/*
 	shell_send_string("debug: finish segment: ");
-        /*for (i = 0; i < 3; i++)
+        for (i = 0; i < 3; i++)
         {
             shell_print_dec(current_state.steps[i]);
             shell_send_char(' ');
