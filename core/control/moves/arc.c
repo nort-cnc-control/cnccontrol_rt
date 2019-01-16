@@ -2,6 +2,7 @@
 #include <math.h>
 #include "common.h"
 
+#include <moves.h>
 #include <print.h>
 #include <shell.h>
 
@@ -44,6 +45,7 @@ static arc_plan *current_plan;
 
 static struct
 {
+    fixed start[3];
     int32_t dir[3];
     fixed feed;
     int segment_id;
@@ -112,13 +114,18 @@ static void start_segment(arc_segment *s)
     current_state.x = current_state.x0;
     current_state.y = current_state.y0;
 
-    
     fixed step_x = one / def.steps_per_unit[current_state.stx];
     fixed step_y = one / def.steps_per_unit[current_state.sty];
     
     current_state.step_str = step_x;
     current_state.step_hyp = fsqrt(SQR(step_x) + SQR(step_y));
 
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        current_state.start[i] = position.pos[i];
+    }
+    
     def.set_dir(current_state.stx, current_state.dx >= 0);
 
     /*shell_send_string("debug: str len = ");
@@ -197,6 +204,22 @@ int arc_step_tick(void)
 {
     fixed len = plan_tick();
 
+    fixed cx[3];
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        cx[i] = current_state.start[i];
+    }
+    int32_t x = current_state.x - current_state.x0;
+    int32_t y = current_state.y - current_state.y0;
+    int stx = current_state.stx;
+    int sty = current_state.sty;
+    int32_t stxu = def.steps_per_unit[stx];
+    int32_t styu = def.steps_per_unit[sty];
+    cx[stx] += FIXED_ENCODE(x) / stxu;
+    cx[sty] += FIXED_ENCODE(y) / styu;
+    moves_set_position(cx);
+
     if (len <= 0)
     {
         //shell_send_string("debug: arc finished\n\r");
@@ -211,7 +234,6 @@ int arc_step_tick(void)
         return -1;
     }
 
-    //moves_set_position(cx);
 
     int step_delay = feed2delay(current_state.feed, len, 1);
     return step_delay;
