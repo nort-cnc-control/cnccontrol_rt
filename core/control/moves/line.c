@@ -1,5 +1,4 @@
 #include <math.h>
-#include <fixed.h>
 
 #include <print.h>
 #include <shell.h>
@@ -9,14 +8,16 @@
 #include "moves.h"
 #include <err.h>
 
+#define SQR(x) ((x)*(x))
+
 static line_plan *current_plan;
 
 static struct {
     int32_t err[3];
     uint32_t step;
 
-    fixed feed;
-    fixed feed_end;
+    double feed;
+    double feed_end;
 
     int is_moving;
 
@@ -27,7 +28,7 @@ static struct {
         STATE_DEC,
     } state;
 
-    fixed start_pos[3];
+    double start_pos[3];
 } current_state;
 
 static steppers_definition def;
@@ -100,7 +101,7 @@ int line_step_tick ( void )
     }
 
     current_state.step++;
-    fixed cx[3];
+    double cx[3];
     for ( i = 0; i < 3; i++ ) {
         cx[i] = current_state.start_pos[i] + current_plan->x[i] * current_state.step / current_plan->steps;
     }
@@ -167,9 +168,9 @@ void line_pre_calculate ( line_plan *line )
     int64_t l = 0;
     for ( j = 0; j < 3; j++ ) {
         l += SQR(line->x[j]);
-        line->s[j] = FIXED_DECODE(line->x[j] * def.steps_per_unit[j]);
+        line->s[j] = line->x[j] * def.steps_per_unit[j];
     }
-    line->len = fsqrt ( l );
+    line->len = sqrt ( l );
 
     if ( line->len == 0 )
         return;

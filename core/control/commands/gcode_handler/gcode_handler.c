@@ -35,28 +35,28 @@ static int handle_g_command(gcode_frame_t *frame)
         case 0:
         case 1: {
             int i;
-            fixed f = 0, feed0 = 0, feed1 = 0;
+            double f = 0, feed0 = 0, feed1 = 0;
 	        int32_t acc = def.acc_default;
-            fixed x[3] = {0, 0, 0};
+            double x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[0] = cmds[i].val_f/100.0;
                     break;
                 case 'Y':
-                    x[1] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[1] = cmds[i].val_f/100.0;
                     break;
                 case 'Z':
-                    x[2] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[2] = cmds[i].val_f/100.0;
                     break;
                 case 'F':
-                    f = FIXED_ENCODE(cmds[i].val_i);
+                    f = cmds[i].val_i;
                     break;
                 case 'P':
-                    feed0 = FIXED_ENCODE(cmds[i].val_i);
+                    feed0 = cmds[i].val_i;
                     break;
                 case 'L':
-                    feed1 = FIXED_ENCODE(cmds[i].val_i);
+                    feed1 = cmds[i].val_i;
                     break;
                 case 'T':
                     acc = cmds[i].val_i;
@@ -84,33 +84,33 @@ static int handle_g_command(gcode_frame_t *frame)
         case 2:
         case 3: {
             int i;
-            fixed f = 0, feed0 = 0, feed1 = 0;
+            double f = 0, feed0 = 0, feed1 = 0;
 	        int32_t acc = def.acc_default;
-            fixed x[3] = {0, 0, 0};
+            double x[3] = {0, 0, 0};
             int plane = XY;
-            fixed d = 0;
+            double d = 0;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[0] = cmds[i].val_f/100.0;
                     break;
                 case 'Y':
-                    x[1] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[1] = cmds[i].val_f/100.0;
                     break;
                 case 'Z':
-                    x[2] = FIXED_ENCODE(cmds[i].val_f)/100;
+                    x[2] = cmds[i].val_f/100.0;
                     break;
                 case 'D':
-                    d = FIXED_ENCODE(cmds[i].val_f)/100;
+                    d = cmds[i].val_f/100.0;
                     break;
                 case 'F':
-                    f = FIXED_ENCODE(cmds[i].val_i);
+                    f = cmds[i].val_i;
                     break;
                 case 'P':
-                    feed0 = FIXED_ENCODE(cmds[i].val_i);
+                    feed0 = cmds[i].val_i;
                     break;
                 case 'L':
-                    feed1 = FIXED_ENCODE(cmds[i].val_i);
+                    feed1 = cmds[i].val_i;
                     break;
                 case 'T':
                     acc = cmds[i].val_i;

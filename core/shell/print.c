@@ -1,6 +1,5 @@
 #include "shell.h"
 #include "print.h"
-#include <fixed.h>
 
 void shell_print_dec(int32_t x)
 {
@@ -42,9 +41,9 @@ void shell_print_fixed_2(int32_t x)
     shell_print_dec(x % 10);
 }
 
-void shell_print_fixed(fixed x)
+void shell_print_fixed(double x)
 {
-    shell_print_fixed_2(FIXED_DECODE(x*100));
+    shell_print_fixed_2(x*100);
 }
 
 void shell_print_hex(uint32_t x)

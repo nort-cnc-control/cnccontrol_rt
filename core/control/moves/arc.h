@@ -1,6 +1,5 @@
 #pragma once
 
-#include <fixed.h>
 #include "steppers.h"
 #include "err.h"
 
@@ -27,11 +26,11 @@ typedef enum {
 typedef struct {
     // Specified data
     arc_plane plane;       // selected plane
-    fixed x[3];            // delta
-    fixed d;               // center in selected plane
-    fixed feed;            // feed of moving
-    fixed feed0;           // initial feed
-    fixed feed1;           // finishing feed
+    double x[3];            // delta
+    double d;               // center in selected plane
+    double feed;            // feed of moving
+    double feed0;           // initial feed
+    double feed1;           // finishing feed
     uint32_t acceleration; // acceleration
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;

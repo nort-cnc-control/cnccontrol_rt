@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <fixed.h>
 
 #include "steppers.h"
 #include "line.h"
@@ -13,8 +12,8 @@ typedef struct {
 } step_flags;
 
 typedef struct {
-    fixed pos[3];
-    fixed speed[3];
+    double pos[3];
+    double speed[3];
     step_flags flags[3];
 } cnc_position;
 
@@ -28,7 +27,7 @@ int moves_arc_to(arc_plan *plan);
 
 int moves_step_tick(void);
 
-void moves_set_position(fixed x[3]);
+void moves_set_position(double x[3]);
 
 extern cnc_position position;
 

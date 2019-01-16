@@ -1,13 +1,15 @@
 #pragma once
 
-#include <fixed.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-uint32_t feed2delay(fixed feed, fixed len, uint32_t steps);
+uint32_t feed2delay(double feed, double len, uint32_t steps);
 
-fixed accelerate(fixed feed, int32_t acc, uint32_t delay);
+double accelerate(double feed, int32_t acc, uint32_t delay);
 
-uint32_t acceleration_steps(fixed feed0,
-                            fixed feed1,
+uint32_t acceleration_steps(double feed0,
+                            double feed1,
                             int32_t acc,
-                            fixed len,
+                            double len,
                             uint32_t steps);
+

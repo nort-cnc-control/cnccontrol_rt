@@ -21,11 +21,11 @@ void helix_pre_calculate ( helix_plan *helix )
             helix->height = helix->x[1];
             break;
     }
-    fixed pldl = fsqrt(SQR(helix->pld[0]) + SQR(helix->pld[1]));
+    fixed pldl = sqrt(SQR(helix->pld[0]) + SQR(helix->pld[1]));
     fixed p[2] = { DIV(helix->pld[1], pldl), -DIV(helix->pld[0], pldl) };
     helix->center[0] = helix->pld[0]/2 + MUL(p[0], helix->d);
     helix->center[1] = helix->pld[1]/2 + MUL(p[1], helix->d);
-    helix->radius = fsqrt(SQR(pldl)/4 + SQR(helix->d));
+    helix->radius = sqrt(SQR(pldl)/4 + SQR(helix->d));
     if (helix->cw)
     {
         if (helix->d > 0)

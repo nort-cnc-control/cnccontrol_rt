@@ -123,8 +123,8 @@ void init_planner(steppers_definition pd,
     finish_action = NULL;
 
     def = pd;
-    def.feed_max = FIXED_ENCODE(pd.feed_max);
-    def.feed_base = FIXED_ENCODE(pd.feed_base);
+    def.feed_max = pd.feed_max;
+    def.feed_base = pd.feed_base;
 
     steppers_definition sd = def;
     sd.line_started = line_started;
@@ -161,8 +161,8 @@ static int break_on_endstops(int32_t *dx, void *user_data)
     return 0;
 }
 
-static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr_data,
-                            fixed feed, fixed f0, fixed f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *usr_data,
+                            double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -199,7 +199,7 @@ static int _planner_line_to(fixed x[3], int (*cbr)(int32_t *, void *), void *usr
     return empty_slots();
 }
 
-int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int nid)
+int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc, int nid)
 {
     if (empty_slots() == 0)
     {
@@ -214,8 +214,8 @@ int planner_line_to(fixed x[3], fixed feed, fixed f0, fixed f1, int32_t acc, int
     return empty_slots();
 }
 
-static int _planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
-                           fixed feed, fixed f0, fixed f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
+                           double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -256,7 +256,7 @@ static int _planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, int (*c
 }
 
 
-int planner_arc_to(fixed x[3], fixed d, arc_plane plane, int cw, fixed feed, fixed f0, fixed f1, int32_t acc, int nid)
+int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid)
 {
     if (empty_slots() == 0)
     {
@@ -320,11 +320,11 @@ static int break_on_probe(int32_t *dx, void *user_data)
 
 void planner_z_probe(int nid)
 {
-    fixed x[3] = {0, 0, FIXED_ENCODE(def.size[2])};
+    double x[3] = {0, 0, def.size[2]};
     _planner_line_to(x, break_on_probe, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
-    x[2] = FIXED_ENCODE(-1);
+    x[2] = -1;
     _planner_line_to(x, NULL, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
-    x[2] = FIXED_ENCODE(2);
+    x[2] = 2;
     _planner_line_to(x, break_on_probe, NULL, def.probe_precise, 0, 0, def.acc_default, nid, 0, 1);
 
     ev_send_queued(nid);
@@ -341,29 +341,29 @@ void planner_find_begin(int rx, int ry, int rz, int nid)
     sry = ry;
     srz = rz;
     if (rx) {
-        fixed x[3] = {-FIXED_ENCODE(def.size[0]), 0, 0};
+        double x[3] = {-def.size[0], 0, 0};
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 1, 0);
-        x[0] = FIXED_ENCODE(2);
+        x[0] = 2;
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        x[0] = FIXED_ENCODE(-10);
+        x[0] = -10;
         _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
         f = 0;
     }
     if (ry) {
-        fixed x[3] = {0, -FIXED_ENCODE(def.size[1]), 0};
+        double x[3] = {0, -def.size[1], 0};
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        x[1] = FIXED_ENCODE(2);
+        x[1] = 2;
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        x[1] = FIXED_ENCODE(-10);
+        x[1] = -10;
         _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
         f = 0;
     }
     if (rz) {
-        fixed x[3] = {0, 0, -FIXED_ENCODE(def.size[2])};
+        double x[3] = {0, 0, -def.size[2]};
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        x[2] = FIXED_ENCODE(2);
+        x[2] = 2;
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        x[2] = FIXED_ENCODE(-10);
+        x[2] = -10;
         _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
     }
     _planner_function(set_pos_0, nid, 0, 1);

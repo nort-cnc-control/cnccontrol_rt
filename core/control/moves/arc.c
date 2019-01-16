@@ -1,12 +1,12 @@
 #include "arc.h"
 #include <math.h>
 #include "common.h"
-
 #include <moves.h>
 #include <print.h>
 #include <shell.h>
 
-static const fixed one = FIXED_ENCODE(1);
+#define SQR(a) ((a)*(a))
+static const double one = 1;
 
 static steppers_definition def;
 void arc_init ( steppers_definition definition )
@@ -16,27 +16,27 @@ void arc_init ( steppers_definition definition )
 
 static int32_t imaxx(int32_t a, int32_t b)
 {
-    fixed fa = FIXED_ENCODE(a);
-    fixed fb = FIXED_ENCODE(b);
-    fixed mx = DIV(SQR(fa), fsqrt(SQR(fa) + SQR(fb)));
-    return FIXED_DECODE_ROUND(mx);
+    double fa = a;
+    double fb = b;
+    double mx = SQR(fa) / sqrt(SQR(fa) + SQR(fb));
+    return mx;
 }
 
-static fixed fun2(int32_t x, int32_t a, int32_t b)
+static double fun2(int32_t x, int32_t a, int32_t b)
 {
-    fixed fa = FIXED_ENCODE(a);
-    fixed fb = FIXED_ENCODE(b);
-    fixed fx = FIXED_ENCODE(x);
-    return MUL(SQR(fb), one - SQR(DIV(fx, fa)));
+    double fa = a;
+    double fb = b;
+    double fx = x;
+    return SQR(fb) * (1 - SQR(fx / fa));
 }
 
 static int32_t ifun(int32_t x, int32_t a, int32_t b)
 {
-    fixed fa = FIXED_ENCODE(a);
-    fixed fb = FIXED_ENCODE(b);
-    fixed fx = FIXED_ENCODE(x);
-    fixed fy = MUL(fb, fsqrt(one - SQR(DIV(fx, fa))));
-    return FIXED_DECODE_ROUND(fy);
+    double fa = a;
+    double fb = b;
+    double fx = x;
+    double fy = fb * sqrt(1 - SQR(fx / fa));
+    return fy;
 }
 
 // Running
@@ -45,10 +45,10 @@ static arc_plan *current_plan;
 
 static struct
 {
-    fixed start[3];
+    double start[3];
     int32_t steps[3];
     int32_t dir[3];
-    fixed feed;
+    double feed;
     int segment_id;
     arc_segment *segment;
     int32_t x0;
@@ -62,13 +62,13 @@ static struct
     int dx;
     int x;
     int y;
-    fixed step_str;
-    fixed step_hyp;
+    double step_str;
+    double step_hyp;
 } current_state;
 
 static void start_segment(arc_segment *s)
 {
-    /*shell_send_string("start segment\n\r");
+    shell_send_string("start segment\n\r");
     shell_print_dec(s->start[0]);
     shell_send_string("\n\r");
     shell_print_dec(s->start[1]);
@@ -77,7 +77,7 @@ static void start_segment(arc_segment *s)
     shell_send_string("\n\r");
     shell_print_dec(s->finish[1]);
     shell_send_string("\n\r");
-    shell_send_string("*****\n\r");*/
+    shell_send_string("*****\n\r");
     current_state.dir[0] = 0;
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
@@ -116,27 +116,27 @@ static void start_segment(arc_segment *s)
     current_state.x = current_state.x0;
     current_state.y = current_state.y0;
 
-    fixed step_x = one / def.steps_per_unit[current_state.stx];
-    fixed step_y = one / def.steps_per_unit[current_state.sty];
+    double step_x = one / def.steps_per_unit[current_state.stx];
+    double step_y = one / def.steps_per_unit[current_state.sty];
     
     current_state.step_str = step_x;
-    current_state.step_hyp = fsqrt(SQR(step_x) + SQR(step_y));
+    current_state.step_hyp = sqrt(SQR(step_x) + SQR(step_y));
 
     def.set_dir(current_state.stx, current_state.dx >= 0);
 
     /*shell_send_string("debug: str len = ");
-    shell_print_fixed(current_state.step_str*100);
+    shell_print_double(current_state.step_str*100);
     shell_send_string("\n\r");
 
     shell_send_string("debug: hyp len = ");
-    shell_print_fixed(current_state.step_hyp*100);
+    shell_print_double(current_state.step_hyp*100);
     shell_send_string("\n\r");
 */
     return;
 }
 
 // Returns length of step
-static fixed make_step(void)
+static double make_step(void)
 {
     if (current_state.x == current_state.x1)
     {
@@ -147,8 +147,8 @@ static fixed make_step(void)
     def.make_step(current_state.stx);
     current_state.steps[current_state.stx] += current_state.dx;
 
-    fixed fy = FIXED_ENCODE(current_state.y);
-    fixed y2 = fun2(current_state.x, current_state.a, current_state.b);
+    double fy = current_state.y;
+    double y2 = fun2(current_state.x, current_state.a, current_state.b);
     if (abs( SQR(fy - one) - y2) < abs(SQR(fy) - y2))
     {
         //shell_send_char('d');
@@ -175,10 +175,10 @@ static fixed make_step(void)
 }
 
 
-static fixed plan_tick()
+static double plan_tick()
 {
     int i;
-    fixed len = make_step();
+    double len = make_step();
     for (i = 0; i < 3; i++)
     {
         shell_print_dec(current_state.steps[i]);
@@ -217,13 +217,13 @@ static fixed plan_tick()
 
 int arc_step_tick(void)
 {
-    fixed len = plan_tick();
+    double len = plan_tick();
 
-    fixed cx[3];
+    double cx[3];
     int i;
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start[i] + FIXED_ENCODE(current_state.steps[i]) / def.steps_per_unit[i];
+        cx[i] = current_state.start[i] + current_state.steps[i] / def.steps_per_unit[i];
     }
     moves_set_position(cx);
 
@@ -504,7 +504,7 @@ static void make_arc_cw( arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
 
 void arc_pre_calculate ( arc_plan *arc )
 {
-    fixed delta[2];
+    double delta[2];
 
     int stx, sty;
 
@@ -529,11 +529,11 @@ void arc_pre_calculate ( arc_plan *arc )
             sty = 0;
             break;
     }
-    fixed len = fsqrt(SQR(delta[0]) + SQR(delta[1]));
-    fixed p[2] = { DIV(delta[1], len), -DIV(delta[0], len) }; // ortogonal vector
+    double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
+    double p[2] = { delta[1] / len, -delta[0] / len }; // ortogonal vector
     
-    fixed center[2] = { delta[0]/2 + MUL(p[0], arc->d), delta[1]/2 + MUL(p[1], arc->d) };
-    fixed radius = fsqrt(SQR(len)/4 + SQR(arc->d));
+    double center[2] = { delta[0]/2 + p[0] * arc->d, delta[1]/2 + p[1] * arc->d };
+    double radius = sqrt(SQR(len)/4 + SQR(arc->d));
 
     int32_t start[2];
     int32_t finish[2];
@@ -542,32 +542,32 @@ void arc_pre_calculate ( arc_plan *arc )
     switch (arc->plane)
     {
         case XY:
-            a = FIXED_DECODE(radius * def.steps_per_unit[0]);
-            b = FIXED_DECODE(radius * def.steps_per_unit[1]);
-            start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[0]);
-            start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[1]);
-            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[0]);
-            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[1]);
+            a = radius * def.steps_per_unit[0];
+            b = radius * def.steps_per_unit[1];
+            start[0] = -center[0] * def.steps_per_unit[0];
+            start[1] = -center[1] * def.steps_per_unit[1];
+            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[0];
+            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[1];
             if (!def.xy_right)
                 cw = !cw;
             break;
         case YZ:
-            a = FIXED_DECODE(radius * def.steps_per_unit[1]);
-            b = FIXED_DECODE(radius * def.steps_per_unit[2]);
-            start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[1]);
-            start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[2]);
-            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[1]);
-            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[2]);
+            a = radius * def.steps_per_unit[1];
+            b = radius * def.steps_per_unit[2];
+            start[0] = -center[0] * def.steps_per_unit[1];
+            start[1] = -center[1] * def.steps_per_unit[2];
+            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[1];
+            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[2];
             if (!def.yz_right)
                 cw = !cw;
             break;
         case ZX:
-            a = FIXED_DECODE(radius * def.steps_per_unit[2]);
-            b = FIXED_DECODE(radius * def.steps_per_unit[0]);
-            start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[2]);
-            start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[0]);
-            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[2]);
-            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[0]);
+            a = radius * def.steps_per_unit[2];
+            b = radius * def.steps_per_unit[0];
+            start[0] = -center[0] * def.steps_per_unit[2];
+            start[1] = -center[1] * def.steps_per_unit[0];
+            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[2];
+            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[0];
             if (!def.zx_right)
                 cw = !cw;
             break;

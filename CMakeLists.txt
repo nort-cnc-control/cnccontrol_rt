@@ -14,7 +14,7 @@ if ( BUILD_TYPE STREQUAL "target")
     link_directories(libopencm3/lib/)
 
     add_executable(controller.elf main.c stm32f103.c)
-    target_link_libraries(controller.elf control err gcode math shell opencm3_stm32f1)
+    target_link_libraries(controller.elf control err gcode shell opencm3_stm32f1 m)
 
     set(LINKER_FLAGS "-T ${CMAKE_SOURCE_DIR}/stm32.ld --static -nostartfiles")
     set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
@@ -24,7 +24,7 @@ if ( BUILD_TYPE STREQUAL "target")
     add_dependencies(controller.bin controller.elf)
 else()
     add_executable(test test.c)
-    target_link_libraries(test control err gcode math shell)
+    target_link_libraries(test control err gcode m shell)
 endif ()
 
 add_subdirectory(core)

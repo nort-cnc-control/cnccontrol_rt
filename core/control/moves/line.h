@@ -1,22 +1,21 @@
 #pragma once
 
 #include <stdint.h>
-#include <fixed.h>
 
 #include "steppers.h"
 
 typedef struct {
     // Specified data
-    fixed x[3]; // delta
-    fixed feed;   // feed of moving
-    fixed feed0;  // initial feed
-    fixed feed1;  // finishing feed
+    double x[3]; // delta
+    double feed;   // feed of moving
+    double feed0;  // initial feed
+    double feed1;  // finishing feed
     uint32_t acceleration; // acceleration
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;
 
     // Pre-calculated data
-    fixed len;  // length of delta
+    double len;  // length of delta
     int32_t s[3]; // steps along each axises
     int maxi;     // which axis has max steps
     uint32_t steps;        // total amount of steps
@@ -34,3 +33,4 @@ int line_move_to(line_plan *plan);
 
 // tick
 int line_step_tick(void);
+
