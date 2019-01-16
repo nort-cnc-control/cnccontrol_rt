@@ -72,7 +72,7 @@ static void init_steppers(void)
 
 void test_arc(void)
 {
-	fixed x[3] = {FIXED_ENCODE(20), 0, 0};
+	fixed x[3] = {FIXED_ENCODE(500), 0, 0};
 	planner_arc_to(x, 0, XY, 0, 100, 100, 100, 1, 0);
 	int l;
 	do {
