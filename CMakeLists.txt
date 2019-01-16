@@ -17,7 +17,8 @@ set(LINKER_FLAGS "-T ${CMAKE_SOURCE_DIR}/stm32.ld --static -nostartfiles")
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}")
 
-add_custom_target(controller.bin arm-none-eabi-objcopy -O binary controller.elf controller.bin)
-
+add_custom_target(controller.bin ALL arm-none-eabi-objcopy -O binary controller.elf controller.bin)
+add_dependencies(controller.bin controller.elf)
 
 add_subdirectory(core)
+
