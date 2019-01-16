@@ -21,6 +21,6 @@
 
 #define SHELL_BAUDRATE 57600
 
-#define XY_DIR (-1)
-#define YZ_DIR 1
-#define ZX_DIR 1
+#define XY_RIGHT 0
+#define YZ_RIGHT 1
+#define ZX_RIGHT 0

@@ -495,7 +495,7 @@ void arc_pre_calculate ( arc_plan *arc )
     int32_t start[2];
     int32_t finish[2];
     int32_t a, b;
-
+    int cw = arc->cw;
     switch (arc->plane)
     {
         case XY:
@@ -505,6 +505,8 @@ void arc_pre_calculate ( arc_plan *arc )
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[1]);
             finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[0]);
             finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[1]);
+            if (!def.xy_right)
+                cw = !cw;
             break;
         case YZ:
             a = FIXED_DECODE(radius * def.steps_per_unit[1]);
@@ -513,6 +515,8 @@ void arc_pre_calculate ( arc_plan *arc )
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[2]);
             finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[1]);
             finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[2]);
+            if (!def.yz_right)
+                cw = !cw;
             break;
         case ZX:
             a = FIXED_DECODE(radius * def.steps_per_unit[2]);
@@ -521,10 +525,12 @@ void arc_pre_calculate ( arc_plan *arc )
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[0]);
             finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[2]);
             finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[0]);
+            if (!def.zx_right)
+                cw = !cw;
             break;
     }
 
-    if (arc->cw)
+    if (cw)
     {
         make_arc_cw(arc, start[0], start[1], finish[0], finish[1], a, b);
     }

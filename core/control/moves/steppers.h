@@ -27,4 +27,9 @@ typedef struct
     int32_t size[3];
     int32_t acc_default;
     int32_t feed_default;
+    struct {
+        int xy_right : 1;
+        int yz_right : 1;
+        int zx_right : 1;
+    };
 } steppers_definition;
