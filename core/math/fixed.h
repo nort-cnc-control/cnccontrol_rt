@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-static const int fixed_k = 1024;
+#define fixed_k 1024
 typedef int64_t fixed;
 
 #define FIXED_ENCODE(x) (((int64_t)(x)) * fixed_k)

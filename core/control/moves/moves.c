@@ -42,7 +42,7 @@ int moves_step_tick(void)
 {
     if (current_move_type == MOVE_LINE)
         return line_step_tick();
-    if (current_move_type == MOVE_ARC)
+    else if (current_move_type == MOVE_ARC)
         return arc_step_tick();
     return -10;
 }

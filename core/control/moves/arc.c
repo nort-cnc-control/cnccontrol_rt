@@ -2,6 +2,11 @@
 #include <math.h>
 #include "common.h"
 
+#include <print.h>
+#include <shell.h>
+
+static const fixed one = FIXED_ENCODE(1);
+
 static steppers_definition def;
 void arc_init ( steppers_definition definition )
 {
@@ -21,7 +26,7 @@ static fixed fun2(int32_t x, int32_t a, int32_t b)
     fixed fa = FIXED_ENCODE(a);
     fixed fb = FIXED_ENCODE(b);
     fixed fx = FIXED_ENCODE(x);
-    return MUL(SQR(fb), FIXED_ENCODE(1) - DIV(SQR(fx), SQR(fa)));
+    return MUL(SQR(fb), one - SQR(DIV(fx, fa)));
 }
 
 static int32_t ifun(int32_t x, int32_t a, int32_t b)
@@ -29,7 +34,7 @@ static int32_t ifun(int32_t x, int32_t a, int32_t b)
     fixed fa = FIXED_ENCODE(a);
     fixed fb = FIXED_ENCODE(b);
     fixed fx = FIXED_ENCODE(x);
-    fixed fy = MUL(fb, fsqrt(FIXED_ENCODE(1) - DIV(SQR(fx), SQR(fa))));
+    fixed fy = MUL(fb, fsqrt(one - SQR(DIV(fx, fa))));
     return FIXED_DECODE_ROUND(fy);
 }
 
@@ -60,6 +65,15 @@ static struct
 
 static void start_segment(arc_segment *s)
 {
+    /*shell_send_string("start segment\n\r");
+    shell_print_dec(s->start[0]);
+    shell_send_string("\n\r");
+    shell_print_dec(s->start[1]);
+    shell_send_string("\n\r");
+    shell_print_dec(s->finish[0]);
+    shell_send_string("\n\r");
+    shell_print_dec(s->finish[1]);
+    shell_send_string("\n\r");*/
     current_state.dir[0] = 0;
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
@@ -86,24 +100,36 @@ static void start_segment(arc_segment *s)
         current_state.stx = s->sty;
         current_state.sty = s->stx;
     }
+    
     if (current_state.x1 > current_state.x0)
         current_state.dx = 1;
     else
         current_state.dx = -1;
 
+    
     current_state.dir[current_state.stx] = current_state.dx;
 
     current_state.x = current_state.x0;
     current_state.y = current_state.y0;
 
-    fixed step_x = FIXED_ENCODE(1) / def.steps_per_unit[current_state.stx];
-    fixed step_y = FIXED_ENCODE(1) / def.steps_per_unit[current_state.sty];
+    
+    fixed step_x = one / def.steps_per_unit[current_state.stx];
+    fixed step_y = one / def.steps_per_unit[current_state.sty];
     
     current_state.step_str = step_x;
     current_state.step_hyp = fsqrt(SQR(step_x) + SQR(step_y));
 
     def.set_dir(current_state.stx, current_state.dx >= 0);
-    def.line_started();
+
+    /*shell_send_string("debug: str len = ");
+    shell_print_fixed(current_state.step_str*100);
+    shell_send_string("\n\r");
+
+    shell_send_string("debug: hyp len = ");
+    shell_print_fixed(current_state.step_hyp*100);
+    shell_send_string("\n\r");
+*/
+    return;
 }
 
 // Returns length of step
@@ -111,29 +137,33 @@ static fixed make_step(void)
 {
     if (current_state.x == current_state.x1)
     {
-        return 0;
+        shell_send_string("debug: unexpected finish\n\r");
+        return -1;
     }
-
     current_state.x += current_state.dx;
     def.make_step(current_state.stx);
 
+    fixed fy = FIXED_ENCODE(current_state.y);
     fixed y2 = fun2(current_state.x, current_state.a, current_state.b);
-    if (abs( SQR(current_state.y - FIXED_ENCODE(1)) - y2) < abs(SQR(current_state.y) - y2))
+    if (abs( SQR(fy - one) - y2) < abs(SQR(fy) - y2))
     {
+        //shell_send_char('d');
         current_state.y -= 1;
         current_state.dir[current_state.sty] = -1;
         def.set_dir(current_state.sty, 0);
         def.make_step(current_state.sty);
-        return current_state.step_hyp;
+        return current_state.step_str;
     }
-    if (abs( SQR(current_state.y + FIXED_ENCODE(1)) - y2) < abs(SQR(current_state.y) - y2))
+    else if (abs( SQR(fy + one) - y2) < abs(SQR(fy) - y2))
     {
+        //shell_send_char('i');
         current_state.y += 1;
         current_state.dir[current_state.sty] = 1;
         def.set_dir(current_state.sty, 1);
         def.make_step(current_state.sty);
-        return current_state.step_hyp;
+        return current_state.step_str;
     }
+    //shell_send_char('0');
     current_state.dir[current_state.sty] = 0;
     return current_state.step_str;
 }
@@ -144,6 +174,7 @@ static fixed plan_tick()
     fixed len = make_step();
     if (current_state.x == current_state.x1)
     {
+        //shell_send_string("debug: segment is finished\n\r");
         // Segment is finished
         int seg = current_state.segment_id;
         seg++;
@@ -166,14 +197,16 @@ int arc_step_tick(void)
 {
     fixed len = plan_tick();
 
-    if (len < 0)
+    if (len <= 0)
     {
+        //shell_send_string("debug: arc finished\n\r");
         def.line_finished();
         return -1;
     }
 
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
     {
+        shell_send_string("debug: break\n\r");
         def.line_finished();
         return -1;
     }
@@ -186,15 +219,20 @@ int arc_step_tick(void)
 
 int arc_move_to(arc_plan *plan)
 {
+    current_plan = plan;
     if (!plan->ready)
     {
         arc_pre_calculate(plan);
     }
-    current_state.feed = plan->feed;
+    /*shell_send_string("debug: num segments: ");
+    shell_print_dec(current_plan->num_segments);
+    shell_send_string("\n\r");*/
+    current_state.segment_id = 0;
+    start_segment(&(current_plan->segments[0]));
+    current_state.feed = current_plan->feed;
     def.line_started();
     return -E_OK;
 }
-
 
 // Pre-calculating
 
@@ -205,6 +243,11 @@ static void build_arc_segment(arc_segment *segment, int32_t sx, int32_t sy, int3
     segment->sign = 0;
     segment->a = a;
     segment->b = b;
+
+    segment->start[0] = sx;
+    segment->start[1] = sy;
+    segment->finish[0] = ex;
+    segment->finish[1] = ey;
 
     if (sx <= -x_s && ex <= -x_s)
     {
@@ -293,7 +336,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     arc->num_segments = 0;
     int32_t x_s = imaxx(a, b);
     int32_t y_s = ifun(x_s, a, b);
-
+    
     if (sx >= x_s)
     {
         // Start from right
@@ -460,24 +503,24 @@ void arc_pre_calculate ( arc_plan *arc )
             b = FIXED_DECODE(radius * def.steps_per_unit[1]);
             start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[0]);
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[1]);
-            finish[0] = FIXED_DECODE(delta[0] - center[0] * def.steps_per_unit[0]);
-            finish[1] = FIXED_DECODE(delta[0] - center[1] * def.steps_per_unit[1]);
+            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[0]);
+            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[1]);
             break;
         case YZ:
             a = FIXED_DECODE(radius * def.steps_per_unit[1]);
             b = FIXED_DECODE(radius * def.steps_per_unit[2]);
             start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[1]);
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[2]);
-            finish[0] = FIXED_DECODE(delta[0] - center[0] * def.steps_per_unit[1]);
-            finish[1] = FIXED_DECODE(delta[0] - center[1] * def.steps_per_unit[2]);
+            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[1]);
+            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[2]);
             break;
         case ZX:
             a = FIXED_DECODE(radius * def.steps_per_unit[2]);
             b = FIXED_DECODE(radius * def.steps_per_unit[0]);
             start[0] = FIXED_DECODE(-center[0] * def.steps_per_unit[2]);
             start[1] = FIXED_DECODE(-center[1] * def.steps_per_unit[0]);
-            finish[0] = FIXED_DECODE(delta[0] - center[0] * def.steps_per_unit[2]);
-            finish[1] = FIXED_DECODE(delta[0] - center[1] * def.steps_per_unit[0]);
+            finish[0] = FIXED_DECODE((delta[0] - center[0]) * def.steps_per_unit[2]);
+            finish[1] = FIXED_DECODE((delta[1] - center[1]) * def.steps_per_unit[0]);
             break;
     }
 

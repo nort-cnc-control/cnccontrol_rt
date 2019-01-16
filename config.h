@@ -21,3 +21,6 @@
 
 #define SHELL_BAUDRATE 57600
 
+#define XY -1
+#define YZ 1
+#define ZX 1
