@@ -2,7 +2,7 @@
 
 typedef struct {
     void (*line_received)(const char *line);
-    void (*transmit_char)(char c);
+    void (*send_char)(char c);
 } shell_cbs;
 
 void shell_init(shell_cbs callbacks);

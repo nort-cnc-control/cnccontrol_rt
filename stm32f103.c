@@ -9,6 +9,7 @@
 
 #include "config.h"
 
+#include <serial_sender.h>
 #include <shell.h>
 #include <print.h>
 #include <control.h>
@@ -94,7 +95,7 @@ void usart1_isr(void)
 
     if (USART_SR(USART1) & USART_SR_TC) {
         USART_SR(USART1) &= ~USART_SR_TC;
-        shell_char_transmitted();
+        serial_sender_char_transmitted();
     }
 }
 
@@ -153,7 +154,7 @@ static void init_shell(void)
 {
     shell_cbs cbs = {
         .line_received = shell_line_received,
-        .transmit_char = transmit_char,
+        .send_char = serial_sender_send_char,
     };
     shell_init(cbs);
     shell_echo_enable(0);
