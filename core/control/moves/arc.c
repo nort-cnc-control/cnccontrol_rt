@@ -46,6 +46,7 @@ static arc_plan *current_plan;
 static struct
 {
     fixed start[3];
+    int32_t steps[3];
     int32_t dir[3];
     fixed feed;
     int segment_id;
@@ -120,12 +121,6 @@ static void start_segment(arc_segment *s)
     current_state.step_str = step_x;
     current_state.step_hyp = fsqrt(SQR(step_x) + SQR(step_y));
 
-    int i;
-    for (i = 0; i < 3; i++)
-    {
-        current_state.start[i] = position.pos[i];
-    }
-    
     def.set_dir(current_state.stx, current_state.dx >= 0);
 
     /*shell_send_string("debug: str len = ");
@@ -149,6 +144,7 @@ static fixed make_step(void)
     }
     current_state.x += current_state.dx;
     def.make_step(current_state.stx);
+    current_state.steps[current_state.stx] += current_state.dx;
 
     fixed fy = FIXED_ENCODE(current_state.y);
     fixed y2 = fun2(current_state.x, current_state.a, current_state.b);
@@ -156,6 +152,7 @@ static fixed make_step(void)
     {
         //shell_send_char('d');
         current_state.y -= 1;
+        current_state.steps[current_state.sty] -= 1;
         current_state.dir[current_state.sty] = -1;
         def.set_dir(current_state.sty, 0);
         def.make_step(current_state.sty);
@@ -165,6 +162,7 @@ static fixed make_step(void)
     {
         //shell_send_char('i');
         current_state.y += 1;
+        current_state.steps[current_state.sty] += 1;
         current_state.dir[current_state.sty] = 1;
         def.set_dir(current_state.sty, 1);
         def.make_step(current_state.sty);
@@ -208,20 +206,19 @@ int arc_step_tick(void)
     int i;
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start[i];
+        cx[i] = current_state.start[i] + FIXED_ENCODE(current_state.steps[i]) / def.steps_per_unit[i];
     }
-    int32_t x = current_state.x - current_state.x0;
-    int32_t y = current_state.y - current_state.y0;
-    int stx = current_state.stx;
-    int sty = current_state.sty;
-    int32_t stxu = def.steps_per_unit[stx];
-    int32_t styu = def.steps_per_unit[sty];
-    cx[stx] += FIXED_ENCODE(x) / stxu;
-    cx[sty] += FIXED_ENCODE(y) / styu;
     moves_set_position(cx);
 
     if (len <= 0)
     {
+        shell_send_string("debug: finish ");
+        for (i = 0; i < 3; i++)
+        {
+            shell_print_dec(current_state.steps[i]);
+            shell_send_char(' ');
+        }
+        shell_send_string("\n\r");
         //shell_send_string("debug: arc finished\n\r");
         def.line_finished();
         return -1;
@@ -246,6 +243,13 @@ int arc_move_to(arc_plan *plan)
     {
         arc_pre_calculate(plan);
     }
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        current_state.start[i] = position.pos[i];
+        current_state.steps[i] = 0;
+    }
+    
     /*shell_send_string("debug: num segments: ");
     shell_print_dec(current_plan->num_segments);
     shell_send_string("\n\r");*/
