@@ -10,3 +10,4 @@ void serial_sender_send_char(char c);
 
 void serial_sender_char_transmitted(void);
 
+void serial_sender_init(serial_sender_cbs callbacks);

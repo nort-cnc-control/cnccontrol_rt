@@ -152,6 +152,10 @@ static void shell_line_received(const char *cmd)
 
 static void init_shell(void)
 {
+    serial_sender_cbs sscbs = {
+        .transmit_char = transmit_char,
+    };
+    serial_sender_init(sscbs);
     shell_cbs cbs = {
         .line_received = shell_line_received,
         .send_char = serial_sender_send_char,
