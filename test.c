@@ -2,6 +2,7 @@
 #include <arc.h>
 #include <planner.h>
 #include <control.h>
+#include <shell.h>
 #include "config.h"
 
 static void set_dir(int coord, int dir)
@@ -71,7 +72,6 @@ static void init_steppers(void)
 
 void test_arc(void)
 {
- 	init_steppers();
 	fixed x[3] = {FIXED_ENCODE(20), 0, 0};
 	planner_arc_to(x, 0, XY, 0, 100, 100, 100, 1, 0);
 	int l;
@@ -80,8 +80,18 @@ void test_arc(void)
 	} while (l > 0);
 }
 
+void send_char(char c)
+{
+	putchar(c);
+}
+
 int main(void)
 {
+	shell_cbs cbs = {
+		.send_char = send_char,
+	};
+	shell_init(cbs);
+ 	init_steppers();
 	test_arc();	
 	return 0;
 }
