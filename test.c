@@ -86,7 +86,7 @@ static void init_steppers(void)
 void test_arc_half_round(void)
 {
     steps[0] = 0;
-    steps[1] = -4000;
+    steps[1] = 0;
     steps[2] = 0;
 
     double s = 10;
@@ -97,14 +97,15 @@ void test_arc_half_round(void)
 	int l;
 	do {
 		l = moves_step_tick();
-        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+//      printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
 	} while (l > 0);
+    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
 void test_arc_quart(void)
 {
     steps[0] = 0;
-    steps[1] = -4000;
+    steps[1] = 0;
     steps[2] = 0;
     double s = 10;
 	double x[3] = {s, s, 0};
@@ -114,8 +115,9 @@ void test_arc_quart(void)
 	int l;
 	do {
 		l = moves_step_tick();
-        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+//      printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
 	} while (l > 0);
+    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
 
@@ -131,7 +133,7 @@ int main(void)
 	};
 	shell_init(cbs);
  	init_steppers();
-	//test_arc_half_round();
+	test_arc_half_round();
     test_arc_quart();	
 	return 0;
 }

@@ -76,7 +76,7 @@ static void start_segment(arc_segment *s)
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
     current_state.segment = s;
-    shell_send_string("seg: ");
+    /*shell_send_string("seg: ");
     shell_print_dec(s->start[0]);
     shell_send_char(' ');
     shell_print_dec(s->start[1]);
@@ -84,7 +84,7 @@ static void start_segment(arc_segment *s)
     shell_print_dec(s->finish[0]);
     shell_send_char(' ');
     shell_print_dec(s->finish[1]);
-    shell_send_char('\n');
+    shell_send_char('\n');*/
     if (s->go_x)
     {
         current_state.x0 = s->start[0];
