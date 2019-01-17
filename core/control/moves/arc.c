@@ -511,14 +511,15 @@ static void arc_segment_reverse(arc_segment *a)
 
 static void make_arc_cw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t a, int32_t b)
 {
+    arc_segment revs[5];
     int i;
     make_arc_ccw(arc, ex, ey, sx, sy, a, b);
-    for (i = 0; i <= arc->num_segments / 2; i++)
-    {
-        arc_segment t = arc->segments[i];
-        arc->segments[i] = arc->segments[arc->num_segments - i - 1];
-        arc->segments[arc->num_segments - i - 1] = t;
-    }
+    for (i = 0; i < arc->num_segments; i++)
+        revs[i] = arc->segments[arc->num_segments - i - 1];
+
+    for (i = 0; i < arc->num_segments; i++)
+        arc->segments[i] = revs[i];
+
     for (i = 0; i < arc->num_segments; i++)
     {
         arc_segment_reverse(&(arc->segments[i]));
