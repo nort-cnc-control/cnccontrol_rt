@@ -8,7 +8,7 @@
 #define MICRO_STEP 8
 #define MM_PER_ROUND 4.0
 
-#define FEED_MAX 1000
+#define FEED_MAX 800
 #define FEED_ES_TRAVEL 800
 #define FEED_ES_PRECISE 30
 #define FEED_PROBE_TRAVEL 200

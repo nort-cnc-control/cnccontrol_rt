@@ -36,6 +36,7 @@ typedef struct {
     void *check_break_data;
 
     // Pre-calculated data
+    double len;            // arc length
     uint32_t steps;        // total amount of steps
     uint32_t acc_steps;    // steps on acceleration
     uint32_t dec_steps;    // steps on deceleration

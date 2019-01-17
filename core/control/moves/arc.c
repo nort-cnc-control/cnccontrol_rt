@@ -202,6 +202,9 @@ int arc_step_tick(void)
     // Check if we have reached the end
     if (len <= 0)
     {
+        /*shell_send_string("Real total: ");
+        shell_print_dec(current_state.acc.step);
+        shell_send_string("\n\r");*/
         def.line_finished();
         return -1;
     }
@@ -215,7 +218,7 @@ int arc_step_tick(void)
     }
 
     // Calculate delay
-    int step_delay = feed2delay(current_state.acc.feed, len);
+    int step_delay = feed2delay(current_state.acc.feed, current_plan->len / current_plan->steps);
     acceleration_process(&current_state.acc, step_delay);
     return step_delay;
 }
@@ -588,7 +591,7 @@ void arc_pre_calculate(arc_plan *arc)
     }
 
     int total_steps = arc->steps;
-    double cosa = -center[0] * (delta[0] - center[0]) / (radius * radius);
+    double cosa = (-center[0] * (delta[0] - center[0]) - center[1] * (delta[1] - center[1])) / (radius * radius);
     double angle = acos(cosa);
     if (cw)
     {
@@ -614,9 +617,23 @@ void arc_pre_calculate(arc_plan *arc)
             // small arc
         }
     }
-    double arclen = radius * angle;
-    arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arclen, arc->steps);
-    arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arclen, arc->steps);
-
+    arc->len = radius * angle;
+    arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arc->len, arc->steps);
+    arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arc->len, arc->steps);
+    if (arc->acc_steps + arc->dec_steps > arc->steps)
+    {
+        int32_t d = (arc->acc_steps + arc->dec_steps - arc->steps) / 2;
+        arc->acc_steps -= d;
+        arc->dec_steps -= d;
+        if (arc->acc_steps + arc->dec_steps < arc->steps)
+            arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
+    }
+    /*shell_send_string("total: ");
+    shell_print_dec(arc->steps);
+    shell_send_string(" acc: ");
+    shell_print_dec(arc->acc_steps);
+    shell_send_string(" dec: ");
+    shell_print_dec(arc->dec_steps);
+    shell_send_string("\n\r");*/
     arc->ready = 1;
 }

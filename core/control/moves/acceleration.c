@@ -21,21 +21,9 @@ void acceleration_process(acceleration_state *state, int32_t step_delay)
             {
                 state->type = STATE_GO;
                 state->feed = state->target_feed;
-                /*shell_send_string("debug: going ");
-                shell_print_fixed(state->feed);
-                shell_send_string("\n\r");*/
             }
             else
             {
-                /*shell_send_string("debug: decing ");
-                shell_print_dec(state->step);
-                shell_send_string("\n\rtotal: ");
-                shell_print_dec(state->total_steps);
-                shell_send_string("\n\racc: ");
-
-                shell_print_dec(state->acc_steps);
-                shell_send_string("\n\r");*/
-                
                 state->type = STATE_DEC;
             }
         }

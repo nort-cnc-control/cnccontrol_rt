@@ -128,7 +128,7 @@ int line_step_tick(void)
     }
 
     /* Calculating delay */
-    int step_delay = feed2delay(current_state.acc.feed, len);
+    int step_delay = feed2delay(current_state.acc.feed, current_plan->len / current_plan->steps);
     acceleration_process(&current_state.acc, step_delay);
     return step_delay;
 }
