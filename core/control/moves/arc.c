@@ -158,7 +158,7 @@ static double make_step(void)
         current_state.dir[current_state.sty] = -1;
         def.set_dir(current_state.sty, 0);
         def.make_step(current_state.sty);
-        return current_state.step_str;
+        return current_state.step_hyp;
     }
     else if (abs( SQR(fy + one) - y2) < abs(SQR(fy) - y2))
     {
@@ -168,7 +168,7 @@ static double make_step(void)
         current_state.dir[current_state.sty] = 1;
         def.set_dir(current_state.sty, 1);
         def.make_step(current_state.sty);
-        return current_state.step_str;
+        return current_state.step_hyp;
     }
     //shell_send_char('0');
     current_state.dir[current_state.sty] = 0;
