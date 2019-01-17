@@ -3,7 +3,9 @@
 #include "common.h"
 #include <moves.h>
 #include <print.h>
+#include <stdlib.h>
 #include <shell.h>
+#include <acceleration.h>
 
 #define SQR(a) ((a) * (a))
 static const double one = 1;
@@ -48,7 +50,6 @@ static struct
     double start[3];
     int32_t steps[3];
     int32_t dir[3];
-    double feed;
     int segment_id;
     arc_segment *segment;
     int32_t x0;
@@ -64,6 +65,8 @@ static struct
     int y;
     double step_str;
     double step_hyp;
+
+    acceleration_state acc;
 } current_state;
 
 static void start_segment(arc_segment *s)
@@ -123,6 +126,9 @@ static double make_step(void)
     {
         return -1;
     }
+
+    current_state.acc.step += 1;
+
     current_state.x += current_state.dx;
     def.make_step(current_state.stx);
     current_state.steps[current_state.stx] += current_state.dx;
@@ -209,7 +215,8 @@ int arc_step_tick(void)
     }
 
     // Calculate delay
-    int step_delay = feed2delay(current_state.feed, len);
+    int step_delay = feed2delay(current_state.acc.feed, len);
+    acceleration_process(&current_state.acc, step_delay);
     return step_delay;
 }
 
@@ -227,16 +234,25 @@ int arc_move_to(arc_plan *plan)
         current_state.steps[i] = 0;
     }
 
+    current_state.acc.acceleration = current_plan->acceleration;
+    current_state.acc.feed = current_plan->feed0;
+    current_state.acc.target_feed = current_plan->feed;
+    current_state.acc.end_feed = current_plan->feed1;
+    current_state.acc.type = STATE_ACC;
+    current_state.acc.step = 0;
+    current_state.acc.total_steps = current_plan->steps;
+    current_state.acc.acc_steps = current_plan->acc_steps;
+    current_state.acc.dec_steps = current_plan->dec_steps;
+    
     current_state.segment_id = 0;
     start_segment(&(current_plan->segments[0]));
-    current_state.feed = current_plan->feed;
     def.line_started();
     return -E_OK;
 }
 
 // Pre-calculating
 
-static void build_arc_segment(arc_segment *segment, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t x_s, int32_t y_s, int32_t a, int32_t b)
+static int build_arc_segment(arc_segment *segment, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t x_s, int32_t y_s, int32_t a, int32_t b)
 {
     segment->go_x = 0;
     segment->go_y = 0;
@@ -273,18 +289,25 @@ static void build_arc_segment(arc_segment *segment, int32_t sx, int32_t sy, int3
     {
         // Error!
     }
+    if (segment->go_x)
+        return abs(ex - sx);
+    else if (segment->go_y)
+        return abs(ey - sy);
+    return -1;
 }
 
 static int build_arc_bottom_ccw(arc_plan *arc, int32_t x_s, int32_t y_s, int32_t ex, int32_t ey, int32_t a, int32_t b)
 {
     if (ey <= -y_s)
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return 1;
     }
     else
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, x_s, -y_s, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, x_s, -y_s, x_s, y_s, a, b);
+        arc->steps += steps;
         return 0;
     }
 }
@@ -293,12 +316,14 @@ static int build_arc_top_ccw(arc_plan *arc, int32_t x_s, int32_t y_s, int32_t ex
 {
     if (ey >= y_s)
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return 1;
     }
     else
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, -x_s, y_s, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, -x_s, y_s, x_s, y_s, a, b);
+        arc->steps += steps;
         return 0;
     }
 }
@@ -307,12 +332,14 @@ static int build_arc_right_ccw(arc_plan *arc, int32_t x_s, int32_t y_s, int32_t 
 {
     if (ex >= x_s)
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return 1;
     }
     else
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, x_s, y_s, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, x_s, y_s, x_s, y_s, a, b);
+        arc->steps += steps;
         return 0;
     }
 }
@@ -321,12 +348,14 @@ static int build_arc_left_ccw(arc_plan *arc, int32_t x_s, int32_t y_s, int32_t e
 {
     if (ex <= -x_s)
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return 1;
     }
     else
     {
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, -x_s, -y_s, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, -x_s, -y_s, x_s, y_s, a, b);
+        arc->steps += steps;
         return 0;
     }
 }
@@ -342,12 +371,14 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         // Start from right
         if (ex >= x_s && ey >= sy)
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            arc->steps += steps;
             return;
         }
         else
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, x_s, y_s, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, x_s, y_s, x_s, y_s, a, b);
+            arc->steps += steps;
         }
 
         if (build_arc_top_ccw(arc, x_s, y_s, ex, ey, a, b))
@@ -357,7 +388,8 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         if (build_arc_bottom_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
 
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return;
     }
     if (sx <= -x_s)
@@ -365,12 +397,14 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         // Start from left
         if (ex <= -x_s && ey <= sy)
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            arc->steps += steps;
             return;
         }
         else
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, -x_s, -y_s, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, -x_s, -y_s, x_s, y_s, a, b);
+            arc->steps += steps;
         }
 
         if (build_arc_bottom_ccw(arc, x_s, y_s, ex, ey, a, b))
@@ -380,7 +414,8 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         if (build_arc_top_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
 
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return;
     }
     if (sy >= y_s)
@@ -388,12 +423,14 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         // Start from top
         if (ey >= y_s && ex <= sx)
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            arc->steps += steps;
             return;
         }
         else
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, -x_s, y_s, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, -x_s, y_s, x_s, y_s, a, b);
+            arc->steps += steps;
         }
 
         if (build_arc_left_ccw(arc, x_s, y_s, ex, ey, a, b))
@@ -403,7 +440,8 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         if (build_arc_right_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
 
-        build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return;
     }
     if (sy <= -y_s)
@@ -411,12 +449,14 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         // Start from bottom
         if (ey <= -y_s && ex >= sx)
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
+            arc->steps += steps;
             return;
         }
         else
         {
-            build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, x_s, -y_s, x_s, y_s, a, b);
+            int steps = build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, x_s, -y_s, x_s, y_s, a, b);
+            arc->steps += steps;
         }
 
         if (build_arc_right_ccw(arc, x_s, y_s, ex, ey, a, b))
@@ -426,7 +466,8 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         if (build_arc_left_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
 
-        build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        int steps = build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, ex, ey, x_s, y_s, a, b);
+        arc->steps += steps;
         return;
     }
 
@@ -545,5 +586,37 @@ void arc_pre_calculate(arc_plan *arc)
         arc->segments[i].stx = stx;
         arc->segments[i].sty = sty;
     }
+
+    int total_steps = arc->steps;
+    double cosa = -center[0] * (delta[0] - center[0]) / (radius * radius);
+    double angle = acos(cosa);
+    if (cw)
+    {
+        if (arc->d > 0)
+        {
+            // small arc
+        }
+        else
+        {
+            // big arc
+            angle = 2*3.14159265358 - angle;
+        }
+    }
+    else
+    {
+        if (arc->d > 0)
+        {
+            // big arc
+            angle = 2*3.14159265358 - angle;
+        }
+        else
+        {
+            // small arc
+        }
+    }
+    double arclen = radius * angle;
+    arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arclen, arc->steps);
+    arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arclen, arc->steps);
+
     arc->ready = 1;
 }
