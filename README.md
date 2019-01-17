@@ -3,7 +3,7 @@ License GPLv3
 This is firmware for my stm32 based controller, which executes realtime part of the code for CNC. It supports simplified G-Code commands, and expected to run in pair with control program (https://github.com/vladtcvs/cnccontrol).
 
 Supported commands:
-
+```
 G0/G1 XxxYyyZzz Ffff Tttt Pppp Llll
 X, Y, Z - relative coordinates, mm
 F - feed, mm/min
@@ -24,3 +24,4 @@ G31 - Z probe
 M114 - current coordinates
 
 M119 - endstops and Z-probe status
+```
