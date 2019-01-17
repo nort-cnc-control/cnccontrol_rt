@@ -10,7 +10,7 @@ typedef struct {
     double feed;   // feed of moving
     double feed0;  // initial feed
     double feed1;  // finishing feed
-    uint32_t acceleration; // acceleration
+    double acceleration; // acceleration
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;
 

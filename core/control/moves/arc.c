@@ -5,11 +5,11 @@
 #include <print.h>
 #include <shell.h>
 
-#define SQR(a) ((a)*(a))
+#define SQR(a) ((a) * (a))
 static const double one = 1;
 
 static steppers_definition def;
-void arc_init ( steppers_definition definition )
+void arc_init(steppers_definition definition)
 {
     def = definition;
 }
@@ -68,17 +68,6 @@ static struct
 
 static void start_segment(arc_segment *s)
 {
-    /*
-    shell_send_string("start segment\n\r");
-    shell_print_dec(s->start[0]);
-    shell_send_string("\n\r");
-    shell_print_dec(s->start[1]);
-    shell_send_string("\n\r");
-    shell_print_dec(s->finish[0]);
-    shell_send_string("\n\r");
-    shell_print_dec(s->finish[1]);
-    shell_send_string("\n\r");
-    shell_send_string("*****\n\r");*/
     current_state.dir[0] = 0;
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
@@ -105,13 +94,12 @@ static void start_segment(arc_segment *s)
         current_state.stx = s->sty;
         current_state.sty = s->stx;
     }
-    
+
     if (current_state.x1 > current_state.x0)
         current_state.dx = 1;
     else
         current_state.dx = -1;
 
-    
     current_state.dir[current_state.stx] = current_state.dx;
 
     current_state.x = current_state.x0;
@@ -119,20 +107,12 @@ static void start_segment(arc_segment *s)
 
     double step_x = one / def.steps_per_unit[current_state.stx];
     double step_y = one / def.steps_per_unit[current_state.sty];
-    
+
     current_state.step_str = step_x;
     current_state.step_hyp = sqrt(SQR(step_x) + SQR(step_y));
 
     def.set_dir(current_state.stx, current_state.dx >= 0);
 
-    /*shell_send_string("debug: str len = ");
-    shell_print_double(current_state.step_str*100);
-    shell_send_string("\n\r");
-
-    shell_send_string("debug: hyp len = ");
-    shell_print_double(current_state.step_hyp*100);
-    shell_send_string("\n\r");
-*/
     return;
 }
 
@@ -141,7 +121,6 @@ static double make_step(void)
 {
     if (current_state.x == current_state.x1)
     {
-        shell_send_string("debug: unexpected finish\n\r");
         return -1;
     }
     current_state.x += current_state.dx;
@@ -150,7 +129,7 @@ static double make_step(void)
 
     double fy = current_state.y;
     double y2 = fun2(current_state.x, current_state.a, current_state.b);
-    if (abs( SQR(fy - one) - y2) < abs(SQR(fy) - y2))
+    if (abs(SQR(fy - one) - y2) < abs(SQR(fy) - y2))
     {
         //shell_send_char('d');
         current_state.y -= 1;
@@ -160,7 +139,7 @@ static double make_step(void)
         def.make_step(current_state.sty);
         return current_state.step_hyp;
     }
-    else if (abs( SQR(fy + one) - y2) < abs(SQR(fy) - y2))
+    else if (abs(SQR(fy + one) - y2) < abs(SQR(fy) - y2))
     {
         //shell_send_char('i');
         current_state.y += 1;
@@ -175,30 +154,21 @@ static double make_step(void)
     return current_state.step_str;
 }
 
-
 static double plan_tick()
 {
-    int i;
     double len = make_step();
-    /*for (i = 0; i < 3; i++)
+
+    // Set current position
+    double cx[3];
+    int i;
+    for (i = 0; i < 3; i++)
     {
-        shell_print_dec(current_state.steps[i]);
-        shell_send_char(' ');
+        cx[i] = current_state.start[i] + current_state.steps[i] / def.steps_per_unit[i];
     }
-    shell_send_string("\r\n");*/
+    moves_set_position(cx);
 
     if (current_state.x == current_state.x1)
     {
-/*
-	shell_send_string("debug: finish segment: ");
-        for (i = 0; i < 3; i++)
-        {
-            shell_print_dec(current_state.steps[i]);
-            shell_send_char(' ');
-        }
-	shell_send_string("\r\n");
-*/
-        //shell_send_string("debug: segment is finished\n\r");
         // Segment is finished
         int seg = current_state.segment_id;
         seg++;
@@ -212,6 +182,7 @@ static double plan_tick()
             return -1;
         }
     }
+
     return len;
 }
 
@@ -219,30 +190,17 @@ static double plan_tick()
 
 int arc_step_tick(void)
 {
+    // Make step
     double len = plan_tick();
 
-    double cx[3];
-    int i;
-    for (i = 0; i < 3; i++)
-    {
-        cx[i] = current_state.start[i] + current_state.steps[i] / def.steps_per_unit[i];
-    }
-    moves_set_position(cx);
-
+    // Check if we have reached the end
     if (len <= 0)
     {
-        shell_send_string("debug: finish: ");
-        for (i = 0; i < 3; i++)
-        {
-            shell_print_dec(current_state.steps[i]);
-            shell_send_char(' ');
-        }
-        shell_send_string("\n\r");
-        //shell_send_string("debug: arc finished\n\r");
         def.line_finished();
         return -1;
     }
 
+    // Check for endstops
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
     {
         shell_send_string("debug: break\n\r");
@@ -250,8 +208,8 @@ int arc_step_tick(void)
         return -1;
     }
 
-
-    int step_delay = feed2delay(current_state.feed, len, 1);
+    // Calculate delay
+    int step_delay = feed2delay(current_state.feed, len);
     return step_delay;
 }
 
@@ -268,10 +226,7 @@ int arc_move_to(arc_plan *plan)
         current_state.start[i] = position.pos[i];
         current_state.steps[i] = 0;
     }
-    
-    /*shell_send_string("debug: num segments: ");
-    shell_print_dec(current_plan->num_segments);
-    shell_send_string("\n\r");*/
+
     current_state.segment_id = 0;
     start_segment(&(current_plan->segments[0]));
     current_state.feed = current_plan->feed;
@@ -381,12 +336,12 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     arc->num_segments = 0;
     int32_t x_s = imaxx(a, b);
     int32_t y_s = ifun(x_s, a, b);
-    
+
     if (sx >= x_s)
     {
         // Start from right
         if (ex >= x_s && ey >= sy)
-        {    
+        {
             build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
             return;
         }
@@ -401,7 +356,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
             return;
         if (build_arc_bottom_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
-        
+
         build_arc_segment(&arc->segments[arc->num_segments++], x_s, -y_s, ex, ey, x_s, y_s, a, b);
         return;
     }
@@ -409,7 +364,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     {
         // Start from left
         if (ex <= -x_s && ey <= sy)
-        {    
+        {
             build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
             return;
         }
@@ -424,7 +379,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
             return;
         if (build_arc_top_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
-        
+
         build_arc_segment(&arc->segments[arc->num_segments++], -x_s, y_s, ex, ey, x_s, y_s, a, b);
         return;
     }
@@ -432,7 +387,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     {
         // Start from top
         if (ey >= y_s && ex <= sx)
-        {    
+        {
             build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
             return;
         }
@@ -447,7 +402,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
             return;
         if (build_arc_right_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
-        
+
         build_arc_segment(&arc->segments[arc->num_segments++], x_s, y_s, ex, ey, x_s, y_s, a, b);
         return;
     }
@@ -455,7 +410,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     {
         // Start from bottom
         if (ey <= -y_s && ex >= sx)
-        {    
+        {
             build_arc_segment(&arc->segments[arc->num_segments++], sx, sy, ex, ey, x_s, y_s, a, b);
             return;
         }
@@ -470,7 +425,7 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
             return;
         if (build_arc_left_ccw(arc, x_s, y_s, ex, ey, a, b))
             return;
-        
+
         build_arc_segment(&arc->segments[arc->num_segments++], -x_s, -y_s, ex, ey, x_s, y_s, a, b);
         return;
     }
@@ -488,7 +443,7 @@ static void arc_segment_reverse(arc_segment *a)
     a->finish[1] = sy;
 }
 
-static void make_arc_cw( arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t a, int32_t b)
+static void make_arc_cw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int32_t a, int32_t b)
 {
     int i;
     make_arc_ccw(arc, ex, ey, sx, sy, a, b);
@@ -504,7 +459,7 @@ static void make_arc_cw( arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
     }
 }
 
-void arc_pre_calculate ( arc_plan *arc )
+void arc_pre_calculate(arc_plan *arc)
 {
     double delta[2];
 
@@ -512,30 +467,30 @@ void arc_pre_calculate ( arc_plan *arc )
 
     switch (arc->plane)
     {
-        case XY:
-            delta[0] = arc->x[0];
-            delta[1] = arc->x[1];
-            stx = 0;
-            sty = 1;
-            break;
-        case YZ:
-            delta[0] = arc->x[1];
-            delta[1] = arc->x[2];
-            stx = 1;
-            sty = 2;
-            break;
-        case ZX:
-            delta[0] = arc->x[2];
-            delta[1] = arc->x[0];
-            stx = 2;
-            sty = 0;
-            break;
+    case XY:
+        delta[0] = arc->x[0];
+        delta[1] = arc->x[1];
+        stx = 0;
+        sty = 1;
+        break;
+    case YZ:
+        delta[0] = arc->x[1];
+        delta[1] = arc->x[2];
+        stx = 1;
+        sty = 2;
+        break;
+    case ZX:
+        delta[0] = arc->x[2];
+        delta[1] = arc->x[0];
+        stx = 2;
+        sty = 0;
+        break;
     }
     double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
-    double p[2] = { delta[1] / len, -delta[0] / len }; // ortogonal vector
-    
-    double center[2] = { delta[0]/2 + p[0] * arc->d, delta[1]/2 + p[1] * arc->d };
-    double radius = sqrt(SQR(len)/4 + SQR(arc->d));
+    double p[2] = {delta[1] / len, -delta[0] / len}; // ortogonal vector
+
+    double center[2] = {delta[0] / 2 + p[0] * arc->d, delta[1] / 2 + p[1] * arc->d};
+    double radius = sqrt(SQR(len) / 4 + SQR(arc->d));
 
     int32_t start[2];
     int32_t finish[2];
@@ -543,36 +498,36 @@ void arc_pre_calculate ( arc_plan *arc )
     int cw = arc->cw;
     switch (arc->plane)
     {
-        case XY:
-            a = radius * def.steps_per_unit[0];
-            b = radius * def.steps_per_unit[1];
-            start[0] = -center[0] * def.steps_per_unit[0];
-            start[1] = -center[1] * def.steps_per_unit[1];
-            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[0];
-            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[1];
-            if (!def.xy_right)
-                cw = !cw;
-            break;
-        case YZ:
-            a = radius * def.steps_per_unit[1];
-            b = radius * def.steps_per_unit[2];
-            start[0] = -center[0] * def.steps_per_unit[1];
-            start[1] = -center[1] * def.steps_per_unit[2];
-            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[1];
-            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[2];
-            if (!def.yz_right)
-                cw = !cw;
-            break;
-        case ZX:
-            a = radius * def.steps_per_unit[2];
-            b = radius * def.steps_per_unit[0];
-            start[0] = -center[0] * def.steps_per_unit[2];
-            start[1] = -center[1] * def.steps_per_unit[0];
-            finish[0] = (delta[0] - center[0]) * def.steps_per_unit[2];
-            finish[1] = (delta[1] - center[1]) * def.steps_per_unit[0];
-            if (!def.zx_right)
-                cw = !cw;
-            break;
+    case XY:
+        a = radius * def.steps_per_unit[0];
+        b = radius * def.steps_per_unit[1];
+        start[0] = -center[0] * def.steps_per_unit[0];
+        start[1] = -center[1] * def.steps_per_unit[1];
+        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[0];
+        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[1];
+        if (!def.xy_right)
+            cw = !cw;
+        break;
+    case YZ:
+        a = radius * def.steps_per_unit[1];
+        b = radius * def.steps_per_unit[2];
+        start[0] = -center[0] * def.steps_per_unit[1];
+        start[1] = -center[1] * def.steps_per_unit[2];
+        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[1];
+        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[2];
+        if (!def.yz_right)
+            cw = !cw;
+        break;
+    case ZX:
+        a = radius * def.steps_per_unit[2];
+        b = radius * def.steps_per_unit[0];
+        start[0] = -center[0] * def.steps_per_unit[2];
+        start[1] = -center[1] * def.steps_per_unit[0];
+        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[2];
+        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[0];
+        if (!def.zx_right)
+            cw = !cw;
+        break;
     }
 
     if (cw)
@@ -592,4 +547,3 @@ void arc_pre_calculate ( arc_plan *arc )
     }
     arc->ready = 1;
 }
-
