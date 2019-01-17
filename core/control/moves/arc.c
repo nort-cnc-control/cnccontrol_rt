@@ -179,7 +179,7 @@ static double plan_tick()
     int i;
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start[i] + current_state.steps[i] / def.steps_per_unit[i];
+        cx[i] = current_state.start[i] + ((double)current_state.steps[i]) / def.steps_per_unit[i];
     }
     moves_set_position(cx);
 
