@@ -194,9 +194,10 @@ static double plan_tick()
         shell_send_string("(");
         shell_print_dec(current_state.y1);
         shell_send_string(")\n\r");*/
+#ifdef TEST_BUILD
         assert(current_state.x == current_state.x1);
         assert(current_state.y == current_state.y1);
-
+#endif
         // Segment is finished
         int seg = current_state.segment_id;
         seg++;

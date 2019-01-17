@@ -24,6 +24,7 @@ if ( BUILD_TYPE STREQUAL "target")
     add_dependencies(controller.bin controller.elf)
 else()
     add_executable(test test.c)
+    set(CMAKE_C_FLAGS "-O0 -DTEST_BUILD")
     target_link_libraries(test control err gcode m shell)
 endif ()
 
