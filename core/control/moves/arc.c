@@ -7,8 +7,9 @@
 #include <shell.h>
 #include <acceleration.h>
 
+#include <assert.h>
+
 #define SQR(a) ((a) * (a))
-static const double one = 1;
 
 static steppers_definition def;
 void arc_init(steppers_definition definition)
@@ -21,7 +22,7 @@ static int32_t imaxx(int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double mx = SQR(fa) / sqrt(SQR(fa) + SQR(fb));
-    return mx;
+    return mx + 0.5;
 }
 
 static double fun2(int32_t x, int32_t a, int32_t b)
@@ -29,7 +30,7 @@ static double fun2(int32_t x, int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double fx = x;
-    return SQR(fb) * (1 - SQR(fx / fa));
+    return SQR(fb) * (1.0 - SQR(fx / fa));
 }
 
 static int32_t ifun(int32_t x, int32_t a, int32_t b)
@@ -37,8 +38,8 @@ static int32_t ifun(int32_t x, int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double fx = x;
-    double fy = fb * sqrt(1 - SQR(fx / fa));
-    return fy;
+    double fy = fb * sqrt(1.0 - SQR(fx / fa));
+    return fy + 0.5;
 }
 
 // Running
@@ -75,6 +76,15 @@ static void start_segment(arc_segment *s)
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
     current_state.segment = s;
+    shell_send_string("seg: ");
+    shell_print_dec(s->start[0]);
+    shell_send_char(' ');
+    shell_print_dec(s->start[1]);
+    shell_send_char(' ');
+    shell_print_dec(s->finish[0]);
+    shell_send_char(' ');
+    shell_print_dec(s->finish[1]);
+    shell_send_char('\n');
     if (s->go_x)
     {
         current_state.x0 = s->start[0];
@@ -108,8 +118,8 @@ static void start_segment(arc_segment *s)
     current_state.x = current_state.x0;
     current_state.y = current_state.y0;
 
-    double step_x = one / def.steps_per_unit[current_state.stx];
-    double step_y = one / def.steps_per_unit[current_state.sty];
+    double step_x = 1.0 / def.steps_per_unit[current_state.stx];
+    double step_y = 1.0 / def.steps_per_unit[current_state.sty];
 
     current_state.step_str = step_x;
     current_state.step_hyp = sqrt(SQR(step_x) + SQR(step_y));
@@ -135,7 +145,7 @@ static double make_step(void)
 
     double fy = current_state.y;
     double y2 = fun2(current_state.x, current_state.a, current_state.b);
-    if (abs(SQR(fy - one) - y2) < abs(SQR(fy) - y2))
+    if (abs(SQR(fy - 1) - y2) < abs(SQR(fy) - y2))
     {
         //shell_send_char('d');
         current_state.y -= 1;
@@ -145,7 +155,7 @@ static double make_step(void)
         def.make_step(current_state.sty);
         return current_state.step_hyp;
     }
-    else if (abs(SQR(fy + one) - y2) < abs(SQR(fy) - y2))
+    else if (abs(SQR(fy + 1) - y2) < abs(SQR(fy) - y2))
     {
         //shell_send_char('i');
         current_state.y += 1;
@@ -175,6 +185,18 @@ static double plan_tick()
 
     if (current_state.x == current_state.x1)
     {
+        /*shell_send_string("x = ");
+        shell_print_dec(current_state.x);
+        shell_send_string("(");
+        shell_print_dec(current_state.x1);
+        shell_send_string(") y = ");
+        shell_print_dec(current_state.y);
+        shell_send_string("(");
+        shell_print_dec(current_state.y1);
+        shell_send_string(")\n\r");*/
+        assert(current_state.x == current_state.x1);
+        assert(current_state.y == current_state.y1);
+
         // Segment is finished
         int seg = current_state.segment_id;
         seg++;
@@ -639,12 +661,5 @@ void arc_pre_calculate(arc_plan *arc)
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
-    /*shell_send_string("total: ");
-    shell_print_dec(arc->steps);
-    shell_send_string(" acc: ");
-    shell_print_dec(arc->acc_steps);
-    shell_send_string(" dec: ");
-    shell_print_dec(arc->dec_steps);
-    shell_send_string("\n\r");*/
     arc->ready = 1;
 }

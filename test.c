@@ -4,12 +4,25 @@
 #include <control.h>
 #include <shell.h>
 #include "config.h"
+#include <math.h>
+
+int dsteps[3] = {0, 0, 0};
+int steps[3];
+double pos[3];
 
 static void set_dir(int coord, int dir)
-{}
+{
+    if (dir == 0)
+        dsteps[coord] = -1;
+    else
+        dsteps[coord] = 1;
+}
 
 static void make_step(int coord)
-{}
+{
+    steps[coord] += dsteps[coord];
+    pos[coord] = steps[coord] / STEPS_PER_MM;
+}
 
 static cnc_endstops get_stops(void)
 {
@@ -70,15 +83,41 @@ static void init_steppers(void)
     init_control(sd);
 }
 
-void test_arc(void)
+void test_arc_half_round(void)
 {
-	double x[3] = {500, 0, 0};
-	planner_arc_to(x, 0, XY, 0, 100, 100, 100, 1, 0);
+    steps[0] = 0;
+    steps[1] = -4000;
+    steps[2] = 0;
+
+    double s = 10;
+    double x[3] = {0, 2*s, 0};
+    int cw = 1;
+    double d = 0;
+	planner_arc_to(x, d, XY, 0, 100, 100, 100, cw, 0);
 	int l;
 	do {
 		l = moves_step_tick();
+        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
 	} while (l > 0);
 }
+
+void test_arc_quart(void)
+{
+    steps[0] = 0;
+    steps[1] = -4000;
+    steps[2] = 0;
+    double s = 10;
+	double x[3] = {s, s, 0};
+    int cw = 1;
+    double d = s/sqrt(2);
+	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
+	int l;
+	do {
+		l = moves_step_tick();
+        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+	} while (l > 0);
+}
+
 
 void send_char(char c)
 {
@@ -92,7 +131,8 @@ int main(void)
 	};
 	shell_init(cbs);
  	init_steppers();
-	test_arc();	
+	//test_arc_half_round();
+    test_arc_quart();	
 	return 0;
 }
 
