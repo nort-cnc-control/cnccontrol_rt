@@ -628,9 +628,10 @@ void arc_pre_calculate(arc_plan *arc)
     int total_steps = arc->steps;
     double cosa = (-center[0] * (delta[0] - center[0]) - center[1] * (delta[1] - center[1])) / (radius * radius);
     double angle = acos(cosa);
+
     if (cw)
     {
-        if (arc->d > 0)
+        if (d > 0)
         {
             // small arc
         }
@@ -642,7 +643,7 @@ void arc_pre_calculate(arc_plan *arc)
     }
     else
     {
-        if (arc->d > 0)
+        if (d > 0)
         {
             // big arc
             angle = 2*3.14159265358 - angle;
