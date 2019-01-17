@@ -508,7 +508,9 @@ void arc_pre_calculate(arc_plan *arc)
     double delta[2];
 
     int stx, sty;
-
+    double d = arc->d;
+    int cw = arc->cw;
+    
     switch (arc->plane)
     {
     case XY:
@@ -516,30 +518,45 @@ void arc_pre_calculate(arc_plan *arc)
         delta[1] = arc->x[1];
         stx = 0;
         sty = 1;
+        if (!def.xy_right)
+        {
+            cw = !cw;
+            d = -d;
+        }
         break;
     case YZ:
         delta[0] = arc->x[1];
         delta[1] = arc->x[2];
         stx = 1;
         sty = 2;
+        if (!def.yz_right)
+        {
+            cw = !cw;
+            d = -d;
+        }
         break;
     case ZX:
         delta[0] = arc->x[2];
         delta[1] = arc->x[0];
         stx = 2;
         sty = 0;
+        if (!def.zx_right)
+        {
+            cw = !cw;
+            d = -d;
+        }
         break;
     }
     double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
     double p[2] = {delta[1] / len, -delta[0] / len}; // ortogonal vector
 
-    double center[2] = {delta[0] / 2 + p[0] * arc->d, delta[1] / 2 + p[1] * arc->d};
-    double radius = sqrt(SQR(len) / 4 + SQR(arc->d));
+    double center[2] = {delta[0] / 2 + p[0] * d, delta[1] / 2 + p[1] * d};
+    double radius = sqrt(SQR(len) / 4 + SQR(d));
 
     int32_t start[2];
     int32_t finish[2];
     int32_t a, b;
-    int cw = arc->cw;
+    
     switch (arc->plane)
     {
     case XY:
@@ -549,8 +566,6 @@ void arc_pre_calculate(arc_plan *arc)
         start[1] = -center[1] * def.steps_per_unit[1];
         finish[0] = (delta[0] - center[0]) * def.steps_per_unit[0];
         finish[1] = (delta[1] - center[1]) * def.steps_per_unit[1];
-        if (!def.xy_right)
-            cw = !cw;
         break;
     case YZ:
         a = radius * def.steps_per_unit[1];
@@ -559,8 +574,6 @@ void arc_pre_calculate(arc_plan *arc)
         start[1] = -center[1] * def.steps_per_unit[2];
         finish[0] = (delta[0] - center[0]) * def.steps_per_unit[1];
         finish[1] = (delta[1] - center[1]) * def.steps_per_unit[2];
-        if (!def.yz_right)
-            cw = !cw;
         break;
     case ZX:
         a = radius * def.steps_per_unit[2];
@@ -569,8 +582,6 @@ void arc_pre_calculate(arc_plan *arc)
         start[1] = -center[1] * def.steps_per_unit[0];
         finish[0] = (delta[0] - center[0]) * def.steps_per_unit[2];
         finish[1] = (delta[1] - center[1]) * def.steps_per_unit[0];
-        if (!def.zx_right)
-            cw = !cw;
         break;
     }
 
