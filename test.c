@@ -138,6 +138,24 @@ void test_arc_quart_2(void)
     printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
+void test_arc_quart_3(void)
+{
+    steps[0] = 0;
+    steps[1] = 0;
+    steps[2] = 0;
+    double s = 100;
+	double x[3] = {s, s, 0};
+    int cw = 1;
+    double d = s/sqrt(2);
+	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
+	int l;
+	do {
+		l = moves_step_tick();
+        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+	} while (l > 0);
+    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+}
+
 
 void send_char(char c)
 {
@@ -153,7 +171,8 @@ int main(void)
  	init_steppers();
 	//test_arc_half_round();
     //test_arc_quart();
-    test_arc_quart_2();
+    //test_arc_quart_2();
+    test_arc_quart_3();
 	return 0;
 }
 

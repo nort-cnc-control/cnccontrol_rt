@@ -22,7 +22,7 @@ static int32_t imaxx(int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double mx = SQR(fa) / sqrt(SQR(fa) + SQR(fb));
-    return mx + 0.5;
+    return round(mx);
 }
 
 static double fun2(int32_t x, int32_t a, int32_t b)
@@ -39,7 +39,7 @@ static int32_t ifun(int32_t x, int32_t a, int32_t b)
     double fb = b;
     double fx = x;
     double fy = fb * sqrt(1.0 - SQR(fx / fa));
-    return fy + 0.5;
+    return round(fy);
 }
 
 // Running
@@ -185,7 +185,7 @@ static double plan_tick()
 
     if (current_state.x == current_state.x1)
     {
-        /*shell_send_string("x = ");
+/*        shell_send_string("x = ");
         shell_print_dec(current_state.x);
         shell_send_string("(");
         shell_print_dec(current_state.x1);
@@ -584,28 +584,28 @@ void arc_pre_calculate(arc_plan *arc)
     switch (arc->plane)
     {
     case XY:
-        a = radius * def.steps_per_unit[0];
-        b = radius * def.steps_per_unit[1];
-        start[0] = -center[0] * def.steps_per_unit[0];
-        start[1] = -center[1] * def.steps_per_unit[1];
-        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[0];
-        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[1];
+        a = round(radius * def.steps_per_unit[0]);
+        b = round(radius * def.steps_per_unit[1]);
+        start[0] = round(-center[0] * def.steps_per_unit[0]);
+        start[1] = round(-center[1] * def.steps_per_unit[1]);
+        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[0]);
+        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[1]);
         break;
     case YZ:
-        a = radius * def.steps_per_unit[1];
-        b = radius * def.steps_per_unit[2];
-        start[0] = -center[0] * def.steps_per_unit[1];
-        start[1] = -center[1] * def.steps_per_unit[2];
-        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[1];
-        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[2];
+        a = round(radius * def.steps_per_unit[1]);
+        b = round(radius * def.steps_per_unit[2]);
+        start[0] = round(-center[0] * def.steps_per_unit[1]);
+        start[1] = round(-center[1] * def.steps_per_unit[2]);
+        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[1]);
+        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[2]);
         break;
     case ZX:
-        a = radius * def.steps_per_unit[2];
-        b = radius * def.steps_per_unit[0];
-        start[0] = -center[0] * def.steps_per_unit[2];
-        start[1] = -center[1] * def.steps_per_unit[0];
-        finish[0] = (delta[0] - center[0]) * def.steps_per_unit[2];
-        finish[1] = (delta[1] - center[1]) * def.steps_per_unit[0];
+        a = round(radius * def.steps_per_unit[2]);
+        b = round(radius * def.steps_per_unit[0]);
+        start[0] = round(-center[0] * def.steps_per_unit[2]);
+        start[1] = round(-center[1] * def.steps_per_unit[0]);
+        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[2]);
+        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[0]);
         break;
     }
 
