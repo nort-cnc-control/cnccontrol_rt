@@ -667,5 +667,10 @@ void arc_pre_calculate(arc_plan *arc)
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
+    shell_send_string("debug: acc = ");
+    shell_print_dec(arc->acc_steps);
+    shell_send_string(" dec = ");
+    shell_print_dec(arc->dec_steps);
+    shell_send_string("\n\r");
     arc->ready = 1;
 }
