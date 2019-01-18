@@ -109,7 +109,6 @@ static void line_error(void)
     line_finished();
 }
 
-
 void init_planner(steppers_definition pd,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),

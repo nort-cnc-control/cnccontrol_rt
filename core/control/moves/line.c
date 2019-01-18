@@ -123,7 +123,7 @@ int line_step_tick(void)
     if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
     {
         current_state.is_moving = 0;
-        def.line_finished();
+        def.line_error();
         return -1;
     }
 

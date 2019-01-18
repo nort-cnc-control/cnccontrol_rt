@@ -236,7 +236,7 @@ int arc_step_tick(void)
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
     {
         shell_send_string("debug: break\n\r");
-        def.line_finished();
+        def.line_error();
         return -1;
     }
 
