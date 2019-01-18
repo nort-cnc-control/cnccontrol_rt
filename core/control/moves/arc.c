@@ -653,14 +653,17 @@ void arc_pre_calculate(arc_plan *arc)
             // small arc
         }
     }
+    shell_send_string("debug: angle = ");
+    shell_print_fixed(angle * 180 / 3.1415926535);
+    shell_send_string("\n\r");
     arc->len = radius * angle;
     arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arc->len, arc->steps);
     arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arc->len, arc->steps);
     if (arc->acc_steps + arc->dec_steps > arc->steps)
     {
-        int32_t d = (arc->acc_steps + arc->dec_steps - arc->steps) / 2;
-        arc->acc_steps -= d;
-        arc->dec_steps -= d;
+        int32_t ds = (arc->acc_steps + arc->dec_steps - arc->steps) / 2;
+        arc->acc_steps -= ds;
+        arc->dec_steps -= ds;
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
