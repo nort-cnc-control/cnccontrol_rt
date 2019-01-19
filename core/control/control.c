@@ -18,8 +18,13 @@ static void cb_send_completed(int nid)
     send_completed(nid);
 }
 
+static void cb_send_dropped(int nid)
+{
+    send_dropped(nid);
+}
+
 void init_control(steppers_definition pd)
 {
-    init_planner(pd, cb_send_queued, cb_send_started, cb_send_completed);
+    init_planner(pd, cb_send_queued, cb_send_started, cb_send_completed, cb_send_dropped);
 }
 

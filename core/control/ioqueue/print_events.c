@@ -14,6 +14,17 @@ void send_queued(int nid)
     shell_send_string("\r\n");
 }
 
+void send_dropped(int nid)
+{
+    int q = empty_slots();
+    shell_send_string("dropped");
+    shell_send_string(" N:");
+    shell_print_dec(nid);
+    shell_send_string(" Q:");
+    shell_print_dec(q);
+    shell_send_string("\r\n");
+}
+
 void send_started(int nid)
 {
     int q = empty_slots();

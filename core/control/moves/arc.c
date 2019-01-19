@@ -667,10 +667,21 @@ void arc_pre_calculate(arc_plan *arc)
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
-    shell_send_string("debug: acc = ");
+    /*shell_send_string("debug: acc = ");
     shell_print_dec(arc->acc_steps);
     shell_send_string(" dec = ");
     shell_print_dec(arc->dec_steps);
-    shell_send_string("\n\r");
+    shell_send_string("\n\r");*/
+    if (arc->acc_steps < 0 || arc->dec_steps < 0)
+    {
+        // We can not perform such moving!
+        shell_send_string("debug: arc impossible to move!\n\r");
+        if (arc->acc_steps < 0)
+            arc->acc_steps = 0;
+        if (arc->dec_steps < 0)
+            arc->dec_steps = 0;
+                
+    }
+    
     arc->ready = 1;
 }

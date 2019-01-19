@@ -1,6 +1,6 @@
 #include <serial_sender.h>
 
-#define BUFLEN 256
+#define BUFLEN 512
 
 static char outbuf[BUFLEN];
 static volatile int outlen;

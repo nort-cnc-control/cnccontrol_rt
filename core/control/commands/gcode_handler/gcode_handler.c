@@ -4,6 +4,7 @@
 #include <print_events.h>
 #include <print_status.h>
 #include <planner.h>
+#include <shell.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -146,7 +147,7 @@ static int handle_g_command(gcode_frame_t *frame)
             }
             else
             {
-                send_error(nid, "problem with planning line");
+                send_error(nid, "problem with planning arc");
                 return res;
             }
             break;
@@ -212,6 +213,9 @@ int execute_g_command(const char *command)
 
     if ((rc = parse_cmdline(command, &frame)) < 0) {
         send_error(-1, "parse error");
+        shell_send_string("error: ");
+        shell_send_string(command);
+        shell_send_string("\n\r");
         return rc;
     }
 

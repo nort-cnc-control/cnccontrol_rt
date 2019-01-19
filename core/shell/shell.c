@@ -2,7 +2,7 @@
 #include <string.h>
 #include "shell.h"
 
-#define BUFLEN 256
+#define BUFLEN 512
 
 static char inbuf[BUFLEN];
 static volatile uint8_t inlen;

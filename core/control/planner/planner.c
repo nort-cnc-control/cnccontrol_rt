@@ -4,6 +4,8 @@
 #include "planner.h"
 #include <math.h>
 #include <err.h>
+#include <shell.h>
+#include <print.h>
 
 #define QUEUE_SIZE 20
 
@@ -15,7 +17,8 @@ static volatile int search_begin;
 static void (*finish_action)(void);
 
 typedef enum {
-    ACTION_LINE = 0,
+    ACTION_NONE = 0,
+    ACTION_LINE,
     ACTION_ARC,
     ACTION_FUNCTION,
 } action_type;
@@ -39,9 +42,11 @@ static int plan_last = 0;
 static void (*ev_send_started)(int nid);
 static void (*ev_send_completed)(int nid);
 static void (*ev_send_queued)(int nid);
+static void (*ev_send_dropped)(int nid);
 
 static void pop_cmd(void)
 {
+    memset(&plan[plan_cur], 0, sizeof(action_plan));
     plan_cur++;
     plan_cur %= QUEUE_SIZE;
 }
@@ -54,14 +59,16 @@ static void line_started(void)
 
 static void get_cmd(void)
 {
-    int res;
     action_plan *cp = &plan[plan_cur];
 
     if (plan_last == plan_cur)
     {
+        shell_send_string("debug: planner is empty\n\r");
         return;
     }
 
+    int res;
+    
     if (cp->ns)
         ev_send_started(cp->nid);
     switch (cp->type) {
@@ -91,6 +98,9 @@ static void get_cmd(void)
         pop_cmd();
         get_cmd();
         break;
+    case ACTION_NONE:
+        shell_send_string("debug: ACTION_NONE\n\r");
+        break;
     }
 }
 
@@ -112,11 +122,13 @@ static void line_error(void)
 void init_planner(steppers_definition pd,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),
-                  void (*arg_send_completed)(int nid))
+                  void (*arg_send_completed)(int nid),
+                  void (*arg_send_dropped)(int nid))
 {
     ev_send_started = arg_send_started;
     ev_send_completed = arg_send_completed;
     ev_send_queued = arg_send_queued;
+    ev_send_dropped = arg_send_dropped;
     plan_cur = plan_last = 0;
     search_begin = 0;
     finish_action = NULL;
@@ -142,7 +154,7 @@ int used_slots(void)
 
 int empty_slots(void)
 {
-    return QUEUE_SIZE - used_slots() - 1;
+    return QUEUE_SIZE - used_slots() - 2;
 }
 
 static int break_on_endstops(int32_t *dx, void *user_data)
@@ -166,7 +178,7 @@ static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *us
     action_plan *cur;
 
     if (x[0] == 0 && x[1] == 0 && x[2] == 0)
-        return empty_slots();
+        return 0;
 
     cur = &plan[plan_last];
     cur->type = ACTION_LINE;
@@ -195,7 +207,7 @@ static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *us
     cur->line.dec_steps = -1;
     plan_last++;
     plan_last %= QUEUE_SIZE;
-    return empty_slots();
+    return 1;
 }
 
 int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc, int nid)
@@ -205,10 +217,17 @@ int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc,
         return -E_NOMEM;
     }
 
-    _planner_line_to(x, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
-    ev_send_queued(nid);
-    if (used_slots() == 1) {
-        get_cmd();
+    int res = _planner_line_to(x, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    if (res)
+    {
+        ev_send_queued(nid);
+        if (used_slots() == 1) {
+            get_cmd();
+        }
+    }
+    else
+    {
+        ev_send_dropped(nid);
     }
     return empty_slots();
 }
@@ -219,7 +238,7 @@ static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (
     action_plan *cur;
 
     if (x[0] == 0 && x[1] == 0 && x[2] == 0)
-        return empty_slots();
+        return 0;
 
     cur = &plan[plan_last];
     cur->type = ACTION_ARC;
@@ -251,7 +270,7 @@ static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (
     cur->arc.dec_steps = -1;
     plan_last++;
     plan_last %= QUEUE_SIZE;
-    return empty_slots();
+    return 1;
 }
 
 
@@ -262,10 +281,17 @@ int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, 
         return -E_NOMEM;
     }
 
-    _planner_arc_to(x, d, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
-    ev_send_queued(nid);
-    if (used_slots() == 1) {
-        get_cmd();
+    int res = _planner_arc_to(x, d, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    if (res)
+    {
+        ev_send_queued(nid);
+        if (used_slots() == 1) {
+            get_cmd();
+        }
+    }
+    else
+    {
+        ev_send_dropped(nid);
     }
     return empty_slots();
 }
