@@ -365,6 +365,14 @@ void planner_find_begin(int rx, int ry, int rz, int nid)
     srx = rx;
     sry = ry;
     srz = rz;
+    if (rz) {
+        double x[3] = {0, 0, -def.size[2]};
+        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
+        x[2] = 2;
+        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
+        x[2] = -10;
+        _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
+    } 
     if (rx) {
         double x[3] = {-def.size[0], 0, 0};
         _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 1, 0);
@@ -382,14 +390,6 @@ void planner_find_begin(int rx, int ry, int rz, int nid)
         x[1] = -10;
         _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
         f = 0;
-    }
-    if (rz) {
-        double x[3] = {0, 0, -def.size[2]};
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        x[2] = 2;
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        x[2] = -10;
-        _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
     }
     _planner_function(set_pos_0, nid, 0, 1);
 
