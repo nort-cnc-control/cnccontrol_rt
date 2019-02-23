@@ -5,6 +5,7 @@
 #include <print_status.h>
 #include <planner.h>
 #include <shell.h>
+#include <print.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -37,7 +38,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 1: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-	        int32_t acc = def.acc_default;
+	    int32_t acc = def.acc_default;
             double x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -64,7 +65,6 @@ static int handle_g_command(gcode_frame_t *frame)
                     break;
                 }
             }
-
             int res = planner_line_to(x, f, feed0, feed1, acc, nid);
             if (res >= 0)
             {
@@ -86,7 +86,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 3: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-	        int32_t acc = def.acc_default;
+	    int32_t acc = def.acc_default;
             double x[3] = {0, 0, 0};
             int plane = XY;
             double d = 0;

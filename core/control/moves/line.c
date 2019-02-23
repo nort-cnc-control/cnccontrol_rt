@@ -16,6 +16,8 @@ static line_plan *current_plan;
 
 static struct
 {
+    int8_t dir[3];
+    int32_t steps[3];
     int32_t err[3];
     int is_moving;
 
@@ -42,8 +44,15 @@ int line_move_to(line_plan *plan)
     }
 
     for (i = 0; i < 3; i++)
+    {
+	if (current_plan->s[i] > 0) 
+            current_state.dir[i] = 1;
+	else if (current_plan->s[i] < 0)
+            current_state.dir[i] = -1;
+	else 
+            current_state.dir[i] = 0;
         def.set_dir(i, current_plan->s[i] >= 0);
-
+    }
     if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
         return -E_NEXT;
 
@@ -79,6 +88,8 @@ static double make_step(void)
     }
     /* Bresenham */
     def.make_step(current_plan->maxi);
+    current_state.steps[current_plan->maxi] += current_state.dir[current_plan->maxi];
+    
     for (i = 0; i < 3; i++)
     {
         if (i == current_plan->maxi)
@@ -88,18 +99,17 @@ static double make_step(void)
         {
             current_state.err[i] -= (int32_t)current_plan->steps;
             def.make_step(i);
+            current_state.steps[i] += current_state.dir[i];
         }
     }
 
     current_state.acc.step++;
     double len = current_plan->len / current_state.acc.total_steps;
 
-    // Set current position
     double cx[3];
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start_pos[i] +
-                current_plan->x[i] * current_state.acc.step / current_state.acc.total_steps;
+        cx[i] = current_state.start_pos[i] + ((double)current_state.steps[i]) / def.steps_per_unit[i];
     }
     moves_set_position(cx);
 
@@ -154,7 +164,7 @@ static void bresenham_plan(line_plan *plan)
 void line_pre_calculate(line_plan *line)
 {
     int j;
-    int64_t l = 0;
+    double l = 0;
     for (j = 0; j < 3; j++)
     {
         l += SQR(line->x[j]);
