@@ -63,8 +63,10 @@ static void get_cmd(void)
 
     if (plan_last == plan_cur)
     {
+#if DEBUG
         shell_send_string("debug: planner is empty\n\r");
-        return;
+#endif
+	return;
     }
 
     int res;

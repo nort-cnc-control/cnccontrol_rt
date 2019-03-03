@@ -1,5 +1,7 @@
 #pragma once
 
+#define DEBUG 0
+
 #define SIZE_X 224.0
 #define SIZE_Y 324.0
 #define SIZE_Z 105.0
@@ -19,7 +21,7 @@
 #define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
 
-#define SHELL_BAUDRATE 38400
+#define SHELL_BAUDRATE 9600
 
 #define XY_RIGHT 0
 #define YZ_RIGHT 1

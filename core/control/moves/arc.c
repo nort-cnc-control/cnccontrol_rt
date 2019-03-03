@@ -225,18 +225,22 @@ int arc_step_tick(void)
     // Check if we have reached the end
     if (len <= 0)
     {
-        /*shell_send_string("Real total: ");
+#if DEBUG
+        shell_send_string("Real total: ");
         shell_print_dec(current_state.acc.step);
-        shell_send_string("\n\r");*/
-        def.line_finished();
+        shell_send_string("\n\r");
+#endif
+	def.line_finished();
         return -1;
     }
 
     // Check for endstops
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
     {
+#if DEBUG
         shell_send_string("debug: break\n\r");
-        def.line_error();
+#endif
+	def.line_error();
         return -1;
     }
 
@@ -653,9 +657,11 @@ void arc_pre_calculate(arc_plan *arc)
             // small arc
         }
     }
+#if DEBUG
     shell_send_string("debug: angle = ");
     shell_print_fixed(angle * 180 / 3.1415926535);
     shell_send_string("\n\r");
+#endif
     arc->len = radius * angle;
     arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arc->len, arc->steps);
     arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arc->len, arc->steps);
@@ -667,11 +673,13 @@ void arc_pre_calculate(arc_plan *arc)
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
-    /*shell_send_string("debug: acc = ");
+#if DEBUG
+    shell_send_string("debug: acc = ");
     shell_print_dec(arc->acc_steps);
     shell_send_string(" dec = ");
     shell_print_dec(arc->dec_steps);
-    shell_send_string("\n\r");*/
+    shell_send_string("\n\r");
+#endif
     if (arc->acc_steps < 0 || arc->dec_steps < 0)
     {
         // We can not perform such moving!
@@ -685,3 +693,4 @@ void arc_pre_calculate(arc_plan *arc)
     
     arc->ready = 1;
 }
+
