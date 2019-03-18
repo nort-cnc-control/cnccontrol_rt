@@ -295,8 +295,16 @@ static cnc_endstops get_stops(void)
     return stops;
 }
 
+static void reboot(void)
+{
+    SCB_AIRCR = (0x5FA<<16)|(1 << 2);
+    for (;;)
+        ;
+}
+
 void config_steppers(steppers_definition *sd)
 {
+    sd->reboot         = reboot;
     sd->set_dir        = set_dir;
     sd->make_step      = make_step;
     sd->get_endstops   = get_stops;

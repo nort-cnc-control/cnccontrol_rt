@@ -194,6 +194,8 @@ static int handle_g_command(gcode_frame_t *frame)
         case 119:
             print_endstops(nid);
             return -E_OK;
+	case 999:
+            def.reboot();
         default:
             send_error(nid, "unknown command");
             return -E_INCORRECT;

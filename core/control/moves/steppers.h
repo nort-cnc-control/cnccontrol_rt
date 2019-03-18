@@ -11,6 +11,7 @@ typedef struct {
 
 typedef struct
 {
+    void (*reboot)(void);
     void (*set_dir)(int i, int dir);
     void (*make_step)(int i);
     void (*line_started)(void);
@@ -33,3 +34,4 @@ typedef struct
         int zx_right : 1;
     };
 } steppers_definition;
+

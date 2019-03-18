@@ -10,13 +10,13 @@
 #define MICRO_STEP 8
 #define MM_PER_ROUND 4.0
 
-#define FEED_MAX 800
+#define FEED_MAX 1000
 #define FEED_ES_TRAVEL 800
 #define FEED_ES_PRECISE 30
 #define FEED_PROBE_TRAVEL 200
 #define FEED_PROBE_PRECISE 20
 #define FEED_BASE 5
-#define ACC 60
+#define ACC 50
 
 #define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
 #define STEPS_PER_MM ((STEPS_PER_ROUND) / (MM_PER_ROUND))
