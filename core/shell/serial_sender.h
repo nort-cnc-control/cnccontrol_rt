@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
     void (*transmit_char)(char c);
@@ -11,3 +12,5 @@ void serial_sender_send_char(char c);
 void serial_sender_char_transmitted(void);
 
 void serial_sender_init(serial_sender_cbs callbacks);
+
+bool serial_sender_completed(void);

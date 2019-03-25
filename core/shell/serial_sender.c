@@ -49,3 +49,7 @@ void serial_sender_char_transmitted(void)
     }
 }
 
+bool serial_sender_completed(void)
+{
+    return (outlen == 0);
+}

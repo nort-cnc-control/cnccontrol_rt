@@ -6,6 +6,7 @@
 #include <planner.h>
 #include <shell.h>
 #include <print.h>
+#include <serial_sender.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -38,7 +39,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 1: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-	    int32_t acc = def.acc_default;
+            int32_t acc = def.acc_default;
             double x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -86,7 +87,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 3: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-	    int32_t acc = def.acc_default;
+	        int32_t acc = def.acc_default;
             double x[3] = {0, 0, 0};
             int plane = XY;
             double d = 0;
@@ -194,7 +195,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 119:
             print_endstops(nid);
             return -E_OK;
-	case 999:
+        case 999:
             def.reboot();
         default:
             send_error(nid, "unknown command");
