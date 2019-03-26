@@ -45,14 +45,14 @@ int line_move_to(line_plan *plan)
 
     for (i = 0; i < 3; i++)
     {
-	if (current_plan->s[i] > 0) 
+        if (current_plan->s[i] > 0) 
             current_state.dir[i] = 1;
-	else if (current_plan->s[i] < 0)
+        else if (current_plan->s[i] < 0)
             current_state.dir[i] = -1;
-	else 
+        else 
             current_state.dir[i] = 0;
         def.set_dir(i, current_plan->s[i] >= 0);
-	current_state.steps[i] = 0;
+        current_state.steps[i] = 0;
     }
     if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
         return -E_NEXT;
