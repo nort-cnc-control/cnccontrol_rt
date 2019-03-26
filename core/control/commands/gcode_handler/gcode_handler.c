@@ -154,34 +154,6 @@ static int handle_g_command(gcode_frame_t *frame)
             break;
         }
 
-        case 28: {
-            int i;
-            int rx = 0, ry = 0, rz = 0;
-            for (i = 1; i < ncmds; i++) {
-                switch (cmds[i].type) {
-                case 'X':
-                    rx = 1;
-                    break;
-                case 'Y':
-                    ry = 1;
-                    break;
-                case 'Z':
-                    rz = 1;
-                    break;
-                }
-            }
-            if (!rx && !ry && !rz) {
-                rx = 1;
-                ry = 1;
-                rz = 1;
-            }
-
-            planner_find_begin(rx, ry, rz, nid);
-            return -E_OK;
-        }
-        case 30:
-            planner_z_probe(nid);
-            return -E_OK;
         default:
             send_error(nid, "unknown command");
             return -E_INCORRECT;
@@ -194,6 +166,25 @@ static int handle_g_command(gcode_frame_t *frame)
             return -E_OK;
         case 119:
             print_endstops(nid);
+            return -E_OK;
+        case 995:
+            enable_break_on_probe(false);
+            send_ok(nid);
+            return -E_OK;
+        case 996:
+            enable_break_on_probe(true);
+            send_ok(nid);
+            return -E_OK;
+        case 997: {
+            double x[3] = {0};
+            moves_set_position(x);
+            moves_reset();
+            send_ok(nid);
+            return -E_OK;
+        }
+        case 998:
+            moves_reset();
+            send_ok(nid);
             return -E_OK;
         case 999:
             def.reboot();

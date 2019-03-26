@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <moves.h>
 #include <arc.h>
+#include <stdbool.h>
 
 int empty_slots(void);
 
@@ -18,11 +19,8 @@ int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, 
 
 int planner_function(void (*f)(void), int nid);
 
-void planner_z_probe(int nid);
-
-void planner_find_begin(int rx, int ry, int rz, int nid);
-
 void planner_pre_calculate(void);
 
-extern steppers_definition def;
+void enable_break_on_probe(bool en);
 
+extern steppers_definition def;

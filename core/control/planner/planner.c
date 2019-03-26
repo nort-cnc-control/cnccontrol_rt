@@ -9,7 +9,7 @@
 #include <print.h>
 #include <stdlib.h>
 
-#define QUEUE_SIZE 30
+#define QUEUE_SIZE 10
 
 steppers_definition def;
 extern cnc_position position;
@@ -31,8 +31,8 @@ typedef struct {
     int ne;
     action_type type;
     union {
-        line_plan *line;
-        arc_plan *arc;
+        line_plan line;
+        arc_plan arc;
         void (*f)(void);
     };
 } action_plan;
@@ -40,6 +40,8 @@ typedef struct {
 static action_plan plan[QUEUE_SIZE];
 static int plan_cur = 0;
 static int plan_last = 0;
+
+static bool break_on_probe = false;
 
 static void (*ev_send_started)(int nid);
 static void (*ev_send_completed)(int nid);
@@ -77,7 +79,7 @@ static void get_cmd(void)
         ev_send_started(cp->nid);
     switch (cp->type) {
     case ACTION_LINE:
-        res = moves_line_to(cp->line);
+        res = moves_line_to(&(cp->line));
         if (res == -E_NEXT)
         {
             if (cp->ne)
@@ -87,7 +89,7 @@ static void get_cmd(void)
         }
         break;
     case ACTION_ARC:
-        res = moves_arc_to(cp->arc);
+        res = moves_arc_to(&(cp->arc));
         if (res == -E_NEXT)
         {
             if (cp->ne)
@@ -114,16 +116,6 @@ static void line_finished(void)
     action_plan *cp = &plan[plan_cur];
     if (cp->ne)
         ev_send_completed(cp->nid);
-    if (cp->arc != NULL)
-    {
-        free(cp->arc);
-        cp->arc = NULL; 
-    }
-    if (cp->line != NULL)
-    {
-        free(cp->line);
-        cp->line = NULL; 
-    }
     def.line_finished();
     pop_cmd();
     get_cmd();
@@ -184,6 +176,9 @@ static int break_on_endstops(int32_t *dx, void *user_data)
     if (endstops.stop_z && dx[2] < 0)
         return 1;
 
+    if (break_on_probe && endstops.probe_z && dx[2] >= 0)
+        return 1;
+
     return 0;
 }
 
@@ -200,27 +195,26 @@ static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *us
     cur->nid = nid;
     cur->ne = ne;
     cur->ns = ns;
-    cur->line = malloc(sizeof(line_plan));
     if (cbr != NULL)
     {
-        cur->line->check_break = cbr;
-        cur->line->check_break_data = usr_data;
+        cur->line.check_break = cbr;
+        cur->line.check_break_data = usr_data;
     }
     else
     {
-        cur->line->check_break = break_on_endstops;
-        cur->line->check_break_data = x;
+        cur->line.check_break = break_on_endstops;
+        cur->line.check_break_data = x;
     }
-    cur->line->x[0] = x[0];
-    cur->line->x[1] = x[1];
-    cur->line->x[2] = x[2];
-    cur->line->feed = feed;
-    cur->line->feed0 = f0;
-    cur->line->feed1 = f1;
-    cur->line->acceleration = acc;
-    cur->line->len = -1;
-    cur->line->acc_steps = -1;
-    cur->line->dec_steps = -1;
+    cur->line.x[0] = x[0];
+    cur->line.x[1] = x[1];
+    cur->line.x[2] = x[2];
+    cur->line.feed = feed;
+    cur->line.feed0 = f0;
+    cur->line.feed1 = f1;
+    cur->line.acceleration = acc;
+    cur->line.len = -1;
+    cur->line.acc_steps = -1;
+    cur->line.dec_steps = -1;
     plan_last++;
     plan_last %= QUEUE_SIZE;
     return 1;
@@ -261,30 +255,29 @@ static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (
     cur->nid = nid;
     cur->ne = ne;
     cur->ns = ns;
-    cur->line = malloc(sizeof(arc_plan));
     if (cbr != NULL)
     {
-        cur->arc->check_break = cbr;
-        cur->arc->check_break_data = usr_data;
+        cur->arc.check_break = cbr;
+        cur->arc.check_break_data = usr_data;
     }
     else
     {
-        cur->arc->check_break = break_on_endstops;
-        cur->arc->check_break_data = x;
+        cur->arc.check_break = break_on_endstops;
+        cur->arc.check_break_data = x;
     }
-    cur->arc->x[0] = x[0];
-    cur->arc->x[1] = x[1];
-    cur->arc->x[2] = x[2];
-    cur->arc->d = d;
-    cur->arc->cw = cw;
-    cur->arc->plane = plane;
-    cur->arc->feed = feed;
-    cur->arc->feed0 = f0;
-    cur->arc->feed1 = f1;
-    cur->arc->acceleration = acc;
-    cur->arc->ready = 0;
-    cur->arc->acc_steps = -1;
-    cur->arc->dec_steps = -1;
+    cur->arc.x[0] = x[0];
+    cur->arc.x[1] = x[1];
+    cur->arc.x[2] = x[2];
+    cur->arc.d = d;
+    cur->arc.cw = cw;
+    cur->arc.plane = plane;
+    cur->arc.feed = feed;
+    cur->arc.feed0 = f0;
+    cur->arc.feed1 = f1;
+    cur->arc.acceleration = acc;
+    cur->arc.ready = 0;
+    cur->arc.acc_steps = -1;
+    cur->arc.dec_steps = -1;
     plan_last++;
     plan_last %= QUEUE_SIZE;
     return 1;
@@ -341,92 +334,11 @@ int planner_function(void (*f)(void), int nid)
 
 static int srx, sry, srz;
 
-void set_pos_0(void)
+void enable_break_on_probe(bool en)
 {
-    if (srx)
-        position.pos[0] = 0;
-    if (sry)
-        position.pos[1] = 0;
-    if (srz)
-        position.pos[2] = 0;
+    break_on_probe = en;
 }
 
-static int break_on_probe(int32_t *dx, void *user_data)
-{
-    cnc_endstops endstops = def.get_endstops();
-    if (endstops.probe_z && dx[2] > 0)
-        return 1;
-
-    return 0;
-}
-
-void planner_z_probe(int nid)
-{
-    double x[3] = {0, 0, def.size[2]};
-    _planner_line_to(x, break_on_probe, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 1, 0);
-    _planner_function(moves_reset, nid, 0, 0);
-    x[2] = -1;
-    _planner_line_to(x, NULL, NULL, def.probe_travel, 0, 0, def.acc_default, nid, 0, 0);
-    _planner_function(moves_reset, nid, 0, 0);
-    x[2] = 2;
-    _planner_line_to(x, break_on_probe, NULL, def.probe_precise, 0, 0, def.acc_default, nid, 0, 1);
-    _planner_function(moves_reset, nid, 0, 0);
-    ev_send_queued(nid);
-    if (used_slots() == 3) {
-        get_cmd();
-    }
-}
-
-void planner_find_begin(int rx, int ry, int rz, int nid)
-{
-    int s = (used_slots() == 0);
-    int f = 1;
-    srx = rx;
-    sry = ry;
-    srz = rz;
-    if (rz) {
-        double x[3] = {0, 0, -def.size[2]};
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[2] = 2;
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[2] = -10;
-        _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        f = 0;
-    } 
-    if (rx) {
-        double x[3] = {-def.size[0], 0, 0};
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[0] = 2;
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[0] = -10;
-        _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        f = 0;
-    }
-    if (ry) {
-        double x[3] = {0, -def.size[1], 0};
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, f, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[1] = 2;
-        _planner_line_to(x, NULL, NULL, def.es_travel, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        x[1] = -10;
-        _planner_line_to(x, NULL, NULL, def.es_precise, 0, 0, def.acc_default, nid, 0, 0);
-        _planner_function(moves_reset, nid, 0, 0);
-        f = 0;
-    }
-    _planner_function(set_pos_0, nid, 0, 1);
-    _planner_function(moves_reset, nid, 0, 0);
-        
-    ev_send_queued(nid);
-    if (s)
-        get_cmd();
-}
 
 void planner_pre_calculate(void)
 {
@@ -438,15 +350,15 @@ void planner_pre_calculate(void)
         switch(p->type)
         {
             case ACTION_LINE:
-                if (p->line->len < 0)
+                if (p->line.len < 0)
                 {
-                    line_pre_calculate(p->line);
+                    line_pre_calculate(&(p->line));
                 }
                 break;
             case ACTION_ARC:
-                if (p->arc->ready == 0)
+                if (p->arc.ready == 0)
                 {
-                    arc_pre_calculate(p->arc);
+                    arc_pre_calculate(&(p->arc));
                 }
                 break;
             default:

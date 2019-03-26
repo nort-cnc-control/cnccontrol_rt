@@ -69,8 +69,8 @@ int moves_line_to(line_plan *plan)
 int moves_arc_to(arc_plan *plan)
 {
     int i;
-    for (i = 0; i < 3; i++)
-        plan->x[i] += state.delta[i];
+    //for (i = 0; i < 3; i++)
+    //    plan->x[i] += state.delta[i];
     add_move(plan->x);
     current_move_type = MOVE_ARC;
     return arc_move_to(plan);
