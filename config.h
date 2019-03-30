@@ -23,6 +23,3 @@
 
 #define SHELL_BAUDRATE 9600
 
-#define XY_RIGHT 0
-#define YZ_RIGHT 1
-#define ZX_RIGHT 0

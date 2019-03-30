@@ -546,33 +546,18 @@ void arc_pre_calculate(arc_plan *arc)
         delta[1] = arc->x[1];
         stx = 0;
         sty = 1;
-        if (!def.xy_right)
-        {
-            cw = !cw;
-            d = -d;
-        }
         break;
     case YZ:
         delta[0] = arc->x[1];
         delta[1] = arc->x[2];
         stx = 1;
         sty = 2;
-        if (!def.yz_right)
-        {
-            cw = !cw;
-            d = -d;
-        }
         break;
     case ZX:
         delta[0] = arc->x[2];
         delta[1] = arc->x[0];
         stx = 2;
         sty = 0;
-        if (!def.zx_right)
-        {
-            cw = !cw;
-            d = -d;
-        }
         break;
     }
     double len = sqrt(SQR(delta[0]) + SQR(delta[1]));

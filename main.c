@@ -31,9 +31,6 @@ static void init_steppers(void)
             SIZE_Z,
         },
         .acc_default = ACC,
-        .xy_right = XY_RIGHT,
-        .yz_right = YZ_RIGHT,
-        .zx_right = ZX_RIGHT,
     };
     config_steppers(&sd);
     init_control(sd);
