@@ -80,11 +80,19 @@ static void init_steppers(void)
     init_control(sd);
 }
 
-void test_arc_half_round(void)
+void test_init(void)
 {
+    pos[0] = 0;
+    pos[1] = 0;
+    pos[2] = 0;
     steps[0] = 0;
     steps[1] = 0;
     steps[2] = 0;
+}
+
+void test_arc_half_round(void)
+{
+    test_init();
 
     double s = 10;
     double x[3] = {0, 2*s, 0};
@@ -101,9 +109,7 @@ void test_arc_half_round(void)
 
 void test_arc_quart(void)
 {
-    steps[0] = 0;
-    steps[1] = 0;
-    steps[2] = 0;
+    test_init();
     double s = 10;
 	double x[3] = {s, s, 0};
     int cw = 1;
@@ -119,9 +125,7 @@ void test_arc_quart(void)
 
 void test_arc_quart_2(void)
 {
-    steps[0] = 0;
-    steps[1] = 0;
-    steps[2] = 0;
+    test_init();
     double s = 10;
 	double x[3] = {-s, -s, 0};
     int cw = 0;
@@ -130,16 +134,14 @@ void test_arc_quart_2(void)
 	int l;
 	do {
 		l = moves_step_tick();
-        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
 	} while (l > 0);
     printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
 void test_arc_quart_3(void)
 {
-    steps[0] = 0;
-    steps[1] = 0;
-    steps[2] = 0;
+    test_init();
     double s = 100;
 	double x[3] = {s, s, 0};
     int cw = 1;
@@ -148,11 +150,27 @@ void test_arc_quart_3(void)
 	int l;
 	do {
 		l = moves_step_tick();
-        printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
 	} while (l > 0);
     printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
+void test_helix_1(void)
+{
+    test_init();
+    double s = 100;
+    double h = 10;
+	double x[3] = {s, s, h};
+    int cw = 1;
+    double d = s/sqrt(2);
+	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
+	int l;
+	do {
+		l = moves_step_tick();
+        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
+        printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+	} while (l > 0);
+}
 
 void send_char(char c)
 {
@@ -169,7 +187,8 @@ int main(void)
 	//test_arc_half_round();
     //test_arc_quart();
     //test_arc_quart_2();
-    test_arc_quart_3();
+    //test_arc_quart_3();
+    test_helix_1();
 	return 0;
 }
 
