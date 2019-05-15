@@ -134,6 +134,13 @@ static double make_step(void)
 {
     if (current_state.x == current_state.x1)
     {
+#if DEBUG
+        shell_send_string("end: x == x1\n\r");
+        shell_print_dec(current_state.x);
+        shell_send_string(" ");
+        shell_print_dec(current_state.x0);
+        shell_send_string("\n\r");
+#endif
         return -1;
     }
 
@@ -185,6 +192,7 @@ static double plan_tick()
 
     if (current_state.x == current_state.x1)
     {
+        //shell_send_string("Finish segment\n\r");
 /*        shell_send_string("x = ");
         shell_print_dec(current_state.x);
         shell_send_string("(");
@@ -205,9 +213,14 @@ static double plan_tick()
         {
             current_state.segment_id = seg;
             start_segment(&current_plan->segments[seg]);
+            if (len < 0)
+                return 0;
         }
         else
         {
+#if DEBUG
+            shell_send_string("Last segment reached\n\r");
+#endif
             return -1;
         }
     }
@@ -223,14 +236,14 @@ int arc_step_tick(void)
     double len = plan_tick();
 
     // Check if we have reached the end
-    if (len <= 0)
+    if (len < 0)
     {
 #if DEBUG
         shell_send_string("Real total: ");
         shell_print_dec(current_state.acc.step);
         shell_send_string("\n\r");
 #endif
-	def.line_finished();
+	    def.line_finished();
         return -1;
     }
 
@@ -240,7 +253,7 @@ int arc_step_tick(void)
 #if DEBUG
         shell_send_string("debug: break\n\r");
 #endif
-	def.line_error();
+	    def.line_error();
         return -1;
     }
 
@@ -500,7 +513,6 @@ static void make_arc_ccw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int3
         arc->steps += steps;
         return;
     }
-
     // Error!
 }
 
@@ -560,6 +572,15 @@ void arc_pre_calculate(arc_plan *arc)
         sty = 0;
         break;
     }
+
+#if DEBUG
+    shell_send_string("ARC: ");
+    shell_print_fixed(delta[0]);
+    shell_send_string(", ");
+    shell_print_fixed(delta[1]);
+    shell_send_string("\r\n");
+#endif
+
     double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
     double p[2] = {delta[1] / len, -delta[0] / len}; // ortogonal vector
 
@@ -675,7 +696,13 @@ void arc_pre_calculate(arc_plan *arc)
             arc->dec_steps = 0;
                 
     }
-    
+#if DEBUG
+    shell_send_string("Num of segments: ");
+    shell_print_dec(arc->num_segments);
+    shell_send_string("\n\rSteps: ");
+    shell_print_dec(arc->steps);
+    shell_send_string("\n\r");
+#endif
     arc->ready = 1;
 }
 
