@@ -76,6 +76,11 @@ static int handle_g_command(gcode_frame_t *frame)
                 send_error(nid, "no space in buffer");
                 return res;
             }
+            else if (res == -E_LOCKED)
+            {
+                send_error(nid, "system is locked");
+                return res;
+            }
             else
             {
                 send_error(nid, "problem with planning line");
@@ -146,6 +151,11 @@ static int handle_g_command(gcode_frame_t *frame)
                 send_error(nid, "no space in buffer");
                 return res;
             }
+            else if (res == -E_LOCKED)
+            {
+                send_error(nid, "system is locked");
+                return res;
+            }
             else
             {
                 send_error(nid, "problem with planning arc");
@@ -166,6 +176,10 @@ static int handle_g_command(gcode_frame_t *frame)
             return -E_OK;
         case 119:
             print_endstops(nid);
+            return -E_OK;
+        case 800:
+            planner_unlock();
+            send_ok(nid);
             return -E_OK;
         case 995:
             enable_break_on_probe(false);

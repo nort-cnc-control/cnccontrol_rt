@@ -16,6 +16,8 @@ extern cnc_position position;
 
 static volatile int search_begin;
 
+static volatile int locked = 1;
+
 static void (*finish_action)(void);
 
 typedef enum {
@@ -222,6 +224,11 @@ static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *us
 
 int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc, int nid)
 {
+    if (planner_is_locked())
+    {
+        return -E_LOCKED;
+    }
+
     if (empty_slots() == 0)
     {
         return -E_NOMEM;
@@ -286,6 +293,11 @@ static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (
 
 int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid)
 {
+    if (planner_is_locked())
+    {
+        return -E_LOCKED;
+    }
+
     if (empty_slots() == 0)
     {
         return -E_NOMEM;
@@ -365,4 +377,14 @@ void planner_pre_calculate(void)
                 break;
         }
     }
+}
+
+void planner_unlock(void)
+{
+    locked = 0;
+}
+
+int planner_is_locked(void)
+{
+    return locked;
 }
