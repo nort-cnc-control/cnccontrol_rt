@@ -60,6 +60,8 @@ static void pop_cmd(void)
 
 static void line_started(void)
 {
+    if (locked)
+        return;
     def.line_started();
 }
 
@@ -115,6 +117,10 @@ static void get_cmd(void)
 
 static void line_finished(void)
 {
+    if (locked)
+    {
+        return;
+    }
     action_plan *cp = &plan[plan_cur];
     if (cp->ne)
         ev_send_completed(cp->nid);
@@ -377,6 +383,14 @@ void planner_pre_calculate(void)
                 break;
         }
     }
+}
+
+void planner_lock(void)
+{
+    locked = 1;
+    plan_cur = plan_last;
+    moves_break();
+    def.line_finished();
 }
 
 void planner_unlock(void)

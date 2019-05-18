@@ -28,6 +28,11 @@ static void add_move(double x[3])
     }
 }
 
+void moves_break(void)
+{
+    current_move_type = MOVE_NONE;
+}
+
 void moves_reset(void)
 {
     int i;

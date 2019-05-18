@@ -29,6 +29,8 @@ int moves_step_tick(void);
 
 void moves_reset(void);
 
+void moves_break(void);
+
 void moves_set_position(double x[3]);
 
 extern cnc_position position;

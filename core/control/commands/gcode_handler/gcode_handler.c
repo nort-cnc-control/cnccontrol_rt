@@ -7,6 +7,7 @@
 #include <shell.h>
 #include <print.h>
 #include <serial_sender.h>
+#include <string.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -24,6 +25,7 @@ static int handle_g_command(gcode_frame_t *frame)
     if (nid == -1)
     {
         send_error(-1, "No command number specified");
+        planner_lock();
         return -E_INCORRECT;
     }
     if (ncmds == 0)
@@ -74,6 +76,7 @@ static int handle_g_command(gcode_frame_t *frame)
             else if (res == -E_NOMEM)
             {
                 send_error(nid, "no space in buffer");
+                planner_lock();
                 return res;
             }
             else if (res == -E_LOCKED)
@@ -84,6 +87,7 @@ static int handle_g_command(gcode_frame_t *frame)
             else
             {
                 send_error(nid, "problem with planning line");
+                planner_lock();
                 return res;
             }
             break;
@@ -149,6 +153,7 @@ static int handle_g_command(gcode_frame_t *frame)
             else if (res == -E_NOMEM)
             {
                 send_error(nid, "no space in buffer");
+                planner_lock();
                 return res;
             }
             else if (res == -E_LOCKED)
@@ -159,6 +164,7 @@ static int handle_g_command(gcode_frame_t *frame)
             else
             {
                 send_error(nid, "problem with planning arc");
+                planner_lock();
                 return res;
             }
             break;
@@ -166,6 +172,7 @@ static int handle_g_command(gcode_frame_t *frame)
 
         default:
             send_error(nid, "unknown command");
+            planner_lock();
             return -E_INCORRECT;
         }
         break;
@@ -204,13 +211,16 @@ static int handle_g_command(gcode_frame_t *frame)
             def.reboot();
         default:
             send_error(nid, "unknown command");
+            planner_lock();
             return -E_INCORRECT;
         }
         break;
     default:
         send_error(nid, "unknown command");
+        planner_lock();
         return -E_INCORRECT;
     }
+    planner_lock();
     return -E_INCORRECT;
 }
 
@@ -219,7 +229,28 @@ int execute_g_command(const char *command)
     gcode_frame_t frame;
     int rc;
 
+    if (strlen(command) < 1)
+    {
+        planner_lock();
+        send_error(-1, "parse error");
+        return -E_INCORRECT;
+    }
+
+    unsigned int crc = command[0];
+    unsigned int sum = 0;
+    command++;
+    for (const char *p = command; *p != 0; p++)
+        sum += *p;
+    sum &= 0xFF;
+    if (sum != crc)
+    {
+        planner_lock();
+        send_error(-1, "CRC error");
+        return -E_INCORRECT;
+    }
+    
     if ((rc = parse_cmdline(command, &frame)) < 0) {
+        planner_lock();
         send_error(-1, "parse error");
         shell_send_string("error: ");
         shell_send_string(command);

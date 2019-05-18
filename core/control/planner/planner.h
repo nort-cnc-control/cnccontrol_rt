@@ -25,6 +25,8 @@ void enable_break_on_probe(bool en);
 
 void planner_unlock(void);
 
+void planner_lock(void);
+
 int planner_is_locked(void);
 
 extern steppers_definition def;
