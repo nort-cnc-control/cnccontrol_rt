@@ -14,9 +14,10 @@ This is firmware for my stm32 based controller, which executes realtime part of 
 ### Command format
 
 ```
-Nn Gg....
+[CRC]Nn Gg....
 ```
 
+[CRC] - 1 byte, sum of other message bytes
 Line numbering (N) is mandatory.
 
 ```
@@ -49,6 +50,8 @@ Attention! see config.h and specify XY_RIGHT, YZ_RIGHT, ZX_RIGHT for your CNC. I
 
 - M114 - current coordinates
 - M119 - endstops and Z-probe status
+- M800 - unlock movements
+- M801 - lock movements, =True on start
 - M995 - disable break on probe
 - M996 - enable break on probe
 - M997 - set current posiiton to 0, 0, 0 and forget residual delta

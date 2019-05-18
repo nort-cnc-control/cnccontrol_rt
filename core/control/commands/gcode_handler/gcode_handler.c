@@ -188,6 +188,10 @@ static int handle_g_command(gcode_frame_t *frame)
             planner_unlock();
             send_ok(nid);
             return -E_OK;
+        case 801:
+            planner_lock();
+            send_ok(nid);
+            return -E_OK;
         case 995:
             enable_break_on_probe(false);
             send_ok(nid);
