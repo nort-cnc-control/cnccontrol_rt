@@ -47,20 +47,11 @@ void shell_char_received(char c)
     case '\n':
     case '\r':
         inbuf[inlen] = 0;
-        inlen = 0;
         if (echo)
             shell_send_string("\r\n");
         if (cbs.line_received)
-            cbs.line_received(inbuf);
-        break;
-    case '\b':
-    case 0x7F:
-        if (inlen > 0)
-        {
-            inlen--;
-            if (echo)
-                shell_send_char('\b');
-        }
+            cbs.line_received(inbuf, inlen);
+        inlen = 0;
         break;
     default:
         add_char(c);

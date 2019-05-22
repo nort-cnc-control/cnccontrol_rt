@@ -145,9 +145,9 @@ static void transmit_char(char data)
     USART_DR(USART1) = data;
 }
 
-static void shell_line_received(const char *cmd)
+static void shell_line_received(const char *cmd, size_t len)
 {
-    execute_g_command(cmd);
+    execute_g_command(cmd, len);
 }
 
 static void init_shell(void)

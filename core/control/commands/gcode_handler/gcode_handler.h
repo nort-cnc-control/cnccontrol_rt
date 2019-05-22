@@ -1,4 +1,7 @@
 
 #pragma once
 
-int execute_g_command(const char *command);
+#include <stdint.h>
+#include <unistd.h>
+
+int execute_g_command(const char *command, size_t len);

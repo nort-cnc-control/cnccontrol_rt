@@ -228,12 +228,12 @@ static int handle_g_command(gcode_frame_t *frame)
     return -E_INCORRECT;
 }
 
-int execute_g_command(const char *command)
+int execute_g_command(const char *command, size_t len)
 {
     gcode_frame_t frame;
     int rc;
 
-    if (strlen(command) < 1)
+    if (len < 1)
     {
         planner_lock();
         send_error(-1, "parse error");
@@ -243,8 +243,11 @@ int execute_g_command(const char *command)
     unsigned int crc = command[0];
     unsigned int sum = 0;
     command++;
-    for (const char *p = command; *p != 0; p++)
-        sum += *p;
+    len--;
+    for (int i = 0; i < len; i++)
+    {
+        sum += command[i];
+    }
     sum &= 0xFF;
     if (sum != crc)
     {

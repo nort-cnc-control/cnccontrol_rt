@@ -1,7 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+#include <unistd.h>
+
 typedef struct {
-    void (*line_received)(const char *line);
+    void (*line_received)(const char *line, size_t len);
     void (*send_char)(char c);
 } shell_cbs;
 
