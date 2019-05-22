@@ -117,15 +117,15 @@ static void get_cmd(void)
 
 static void line_finished(void)
 {
-    if (locked)
-    {
-        return;
-    }
     action_plan *cp = &plan[plan_cur];
     if (cp->ne)
         ev_send_completed(cp->nid);
     def.line_finished();
     pop_cmd();
+
+    if (locked)
+        return;
+    
     get_cmd();
 }
 

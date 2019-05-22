@@ -22,9 +22,26 @@ void shell_echo_enable(int enable_echo)
     echo = enable_echo;
 }
 
+static void add_char(char c)
+{
+    if ((inlen < BUFLEN - 1)) {
+        inbuf[inlen++] = c;
+        if (echo)
+            shell_send_char(c);
+    } else {
+        if (echo)
+            shell_send_char('^');
+    }
+}
 
 void shell_char_received(char c)
 {
+    if (inlen == 0)
+    {
+        // CRC
+        add_char(c);
+        return;
+    }
     switch (c)
     {
     case '\n':
@@ -46,14 +63,7 @@ void shell_char_received(char c)
         }
         break;
     default:
-        if ((inlen < BUFLEN - 1)) {
-            inbuf[inlen++] = c;
-            if (echo)
-                shell_send_char(c);
-        } else {
-            if (echo)
-                shell_send_char('^');
-        }
+        add_char(c);
         break;
     }
 }

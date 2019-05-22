@@ -2,6 +2,9 @@
 #include "arc.h"
 #include "moves.h"
 
+#include <shell.h>
+#include <print.h>
+
 static enum {
     MOVE_NONE = 0,
     MOVE_LINE,
@@ -64,9 +67,20 @@ void moves_init(steppers_definition definition)
 int moves_line_to(line_plan *plan)
 {
     int i;
-    for (i = 0; i < 3; i++)
-        plan->x[i] += state.delta[i];
+#if DEBUG
+    shell_send_string("debug: delta = ");
+    shell_print_fixed(state.delta[0]);
+    shell_send_char(' ');
+    shell_print_fixed(state.delta[1]);
+    shell_send_char(' ');
+    shell_print_fixed(state.delta[2]);
+    shell_send_char('\n');
+#endif
     add_move(plan->x);
+    for (i = 0; i < 3; i++)
+    {
+        plan->x[i] = state.target[i] - position.pos[i];
+    }
     current_move_type = MOVE_LINE;
     return line_move_to(plan);
 }
@@ -74,9 +88,11 @@ int moves_line_to(line_plan *plan)
 int moves_arc_to(arc_plan *plan)
 {
     int i;
-    for (i = 0; i < 3; i++)
-        plan->x[i] += state.delta[i];
     add_move(plan->x);
+    for (i = 0; i < 3; i++)
+    {
+        plan->x[i] = state.target[i] - position.pos[i];
+    }
     current_move_type = MOVE_ARC;
     return arc_move_to(plan);
 }
