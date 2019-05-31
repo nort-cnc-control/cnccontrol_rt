@@ -10,4 +10,5 @@ enum {
     E_UNKNOWN = 4,
     E_NOMEM = 5,
     E_LOCKED = 6,
+    E_CRC = 7,
 };

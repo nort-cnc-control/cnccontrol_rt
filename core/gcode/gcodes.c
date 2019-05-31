@@ -167,19 +167,47 @@ static int parse_element(const char **str, gcode_cmd_t *cmd)
     return E_OK;
 }
 
-int parse_cmdline(const char *str, gcode_frame_t *frame)
+int parse_cmdline(const unsigned char *str, gcode_frame_t *frame)
 {
     int i = 0, rc;
-    while (*str != 0 && i < MAX_CMDS)
+    const unsigned char *str0 = str;
+    int finish = 0;
+    while (*str != 0 && i < MAX_CMDS && !finish)
     {
-        if ((rc = parse_element(&str, &(frame->cmds[i]))) < 0) {
+        if ((rc = parse_element(&str, &(frame->cmds[i]))) < 0)
+        {
             return rc;
         }
-        if (frame->cmds[i].type == 0)
-            break;
-        i++;
+        switch (frame->cmds[i].type)
+        {
+            case '*':
+            {
+                int sum = 0;
+                int crc = frame->cmds[i].val_i;
+                while (*str0 != '*')
+                {
+                    sum += (*str0);
+                    str0++;
+                }
+                if (sum != crc)
+                {
+                    return -E_CRC;
+                }
+                finish = 1;
+                break;
+            }
+            case 0:
+            {
+                finish = 1;
+                break;
+            }
+            default:
+            {
+                i++;
+                break;
+            }
+        }
     }
     frame->num  = i;
-    return E_OK;
+    return -E_OK;
 }
-

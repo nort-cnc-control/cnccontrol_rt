@@ -233,37 +233,20 @@ int execute_g_command(const char *command, size_t len)
     gcode_frame_t frame;
     int rc;
 
-    if (len < 1)
+    rc = parse_cmdline(command, &frame);
+    switch (rc)
     {
-        planner_lock();
-        send_error(-1, "parse error");
-        return -E_INCORRECT;
+        case -E_CRC:
+            send_error(-1, "CRC error");
+            return rc;
+        case -E_OK:
+            return handle_g_command(&frame);
+        default:
+            planner_lock();
+            send_error(-1, "parse error");
+            shell_send_string("error: ");
+            shell_send_string(command);
+            shell_send_string("\n\r");
+            return rc;
     }
-
-    unsigned int crc = command[0];
-    unsigned int sum = 0;
-    command++;
-    len--;
-    for (int i = 0; i < len; i++)
-    {
-        sum += command[i];
-    }
-    sum &= 0xFF;
-    if (sum != crc)
-    {
-        planner_lock();
-        send_error(-1, "CRC error");
-        return -E_INCORRECT;
-    }
-    
-    if ((rc = parse_cmdline(command, &frame)) < 0) {
-        planner_lock();
-        send_error(-1, "parse error");
-        shell_send_string("error: ");
-        shell_send_string(command);
-        shell_send_string("\n\r");
-        return rc;
-    }
-
-    return handle_g_command(&frame);
 }

@@ -36,12 +36,6 @@ static void add_char(char c)
 
 void shell_char_received(char c)
 {
-    if (inlen == 0)
-    {
-        // CRC
-        add_char(c);
-        return;
-    }
     switch (c)
     {
     case '\n':

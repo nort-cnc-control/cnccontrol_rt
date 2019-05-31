@@ -19,4 +19,4 @@ typedef struct {
     gcode_cmd_t cmds[MAX_CMDS];
 } gcode_frame_t;
 
-int parse_cmdline(const char *str, gcode_frame_t *frame);
+int parse_cmdline(const unsigned char *str, gcode_frame_t *frame);

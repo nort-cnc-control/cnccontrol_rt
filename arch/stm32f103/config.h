@@ -23,3 +23,4 @@
 
 #define SHELL_BAUDRATE 9600
 
+#define LOCK_ON_CRC_ERROR 0
