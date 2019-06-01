@@ -1,9 +1,7 @@
 #include "line.h"
 #include "arc.h"
 #include "moves.h"
-
-#include <shell.h>
-#include <print.h>
+#include <shell_print.h>
 
 static enum {
     MOVE_NONE = 0,

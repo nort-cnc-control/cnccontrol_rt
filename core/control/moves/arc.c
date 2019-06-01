@@ -2,9 +2,8 @@
 #include <math.h>
 #include "common.h"
 #include <moves.h>
-#include <print.h>
 #include <stdlib.h>
-#include <shell.h>
+#include <shell_print.h>
 #include <acceleration.h>
 
 #include <assert.h>

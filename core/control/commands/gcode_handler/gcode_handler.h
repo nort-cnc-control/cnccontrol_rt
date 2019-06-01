@@ -4,4 +4,4 @@
 #include <stdint.h>
 #include <unistd.h>
 
-int execute_g_command(const char *command, size_t len);
+int execute_g_command(const unsigned char *command, size_t len);

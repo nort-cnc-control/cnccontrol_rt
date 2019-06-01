@@ -1,8 +1,5 @@
 #include <math.h>
-
-#include <print.h>
-#include <shell.h>
-
+#include <shell_print.h>
 #include "common.h"
 #include "line.h"
 #include "moves.h"

@@ -1,8 +1,6 @@
 #include "config.h"
 
-#include <shell.h>
-#include <print.h>
-
+#include <shell_print.h>
 #include <moves.h>
 #include <planner.h>
 #include <control.h>
@@ -40,7 +38,7 @@ int main(void)
 {
     hardware_setup();
     init_steppers();
-    shell_send_string("Hello\r\n");
+    shell_send_string("Hello");
     while (1) {
         planner_pre_calculate();
     }
