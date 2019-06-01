@@ -4,9 +4,7 @@
 #include <print_events.h>
 #include <print_status.h>
 #include <planner.h>
-#include <shell.h>
-#include <print.h>
-#include <serial_sender.h>
+#include <shell_print.h>
 #include <string.h>
 
 static int handle_g_command(gcode_frame_t *frame)
@@ -228,7 +226,7 @@ static int handle_g_command(gcode_frame_t *frame)
     return -E_INCORRECT;
 }
 
-int execute_g_command(const char *command, size_t len)
+int execute_g_command(const unsigned char *command, size_t len)
 {
     gcode_frame_t frame;
     int rc;

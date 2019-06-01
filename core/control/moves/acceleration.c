@@ -1,7 +1,6 @@
 #include <acceleration.h>
 #include <common.h>
-#include <print.h>
-#include <shell.h>
+#include <shell_print.h>
 
 void acceleration_process(acceleration_state *state, int32_t step_delay)
 {

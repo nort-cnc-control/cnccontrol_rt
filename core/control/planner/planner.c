@@ -5,8 +5,7 @@
 #include "planner.h"
 #include <math.h>
 #include <err.h>
-#include <shell.h>
-#include <print.h>
+#include <shell_print.h>
 #include <stdlib.h>
 
 #define QUEUE_SIZE 10

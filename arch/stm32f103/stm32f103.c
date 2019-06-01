@@ -9,9 +9,10 @@
 
 #include "config.h"
 
-#include <serial_sender.h>
-#include <shell.h>
-#include <print.h>
+#include <serial_io.h>
+#include <shell_print.h>
+#include <shell_read.h>
+
 #include <control.h>
 #include <moves.h>
 #include <planner.h>
@@ -83,23 +84,6 @@ static void step_timer_setup(void)
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
 }
 
-
-void usart1_isr(void)
-{
-    /* Check if we were called because of RXNE. */
-    if (USART_SR(USART1) & USART_SR_RXNE) {
-        /* Retrieve the data from the peripheral. */
-        char data = usart_recv(USART1);
-        shell_char_received(data);
-    }
-
-    if (USART_SR(USART1) & USART_SR_TC) {
-        USART_SR(USART1) &= ~USART_SR_TC;
-        serial_sender_char_transmitted();
-    }
-}
-
-
 static void gpio_setup(void)
 {
     /* Set GPIO (in GPIO port C) to 'output push-pull'. */
@@ -140,31 +124,45 @@ static void gpio_setup(void)
 }
 
 
-static void transmit_char(char data)
+/******** SHELL ******************/
+
+static void transmit_char(unsigned char data)
 {
     USART_DR(USART1) = data;
 }
 
-static void shell_line_received(const char *cmd, size_t len)
+static serial_io_cbs scbs = {
+    .transmit_char = transmit_char,
+};
+
+void usart1_isr(void)
 {
-    execute_g_command(cmd, len);
+    /* Check if we were called because of RXNE. */
+    if (USART_SR(USART1) & USART_SR_RXNE)
+    {
+        /* Retrieve the data from the peripheral. */
+        unsigned char data = usart_recv(USART1);
+        serial_io_char_received(data);
+    }
+
+    if (USART_SR(USART1) & USART_SR_TC)
+    {
+        USART_SR(USART1) &= ~USART_SR_TC;
+        serial_io_char_transmitted();
+    }
 }
 
 static void init_shell(void)
 {
-    serial_sender_cbs sscbs = {
-        .transmit_char = transmit_char,
-    };
-    serial_sender_init(sscbs);
-    shell_cbs cbs = {
-        .line_received = shell_line_received,
-        .send_char = serial_sender_send_char,
-    };
-    shell_init(cbs);
-    shell_echo_enable(0);
+    // configure serial_io to use this hardware
+    serial_io_init(&scbs);
+
+    // configure shell to use serial_io
+    shell_print_init(&serial_io_shell_cbs);
+    shell_read_init(&serial_io_shell_cbs);
 }
 
-
+/************* END SHELL ****************/
 
 static volatile int moving;
 

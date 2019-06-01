@@ -2,12 +2,12 @@
 #include <gcodes.h>
 #include <stdio.h>
 
-static int islast(char c)
+static int islast(unsigned char c)
 {
     return c == 0 || c == ';' || c == '\n';
 }
 
-static int read_int(const char **str, int32_t *val)
+static int read_int(const unsigned char **str, int32_t *val)
 {
     if ((**str >= '0' && **str <= '9') || **str == '-') {
         int32_t v = 0;
@@ -28,7 +28,7 @@ static int read_int(const char **str, int32_t *val)
     return -E_BADNUM;
 }
 
-static uint8_t hex_decode(char c)
+static uint8_t hex_decode(unsigned char c)
 {
     if (c >= '0' && c <= '9')
         return c - '0';
@@ -39,7 +39,7 @@ static uint8_t hex_decode(char c)
     return 0xFF;
 }
 
-static uint8_t is_hex(char c)
+static uint8_t is_hex(unsigned char c)
 {
     if (c >= '0' && c <= '9')
         return 1;
@@ -50,7 +50,7 @@ static uint8_t is_hex(char c)
     return 0;
 }
 
-static int read_hex(const char **str, int32_t *val)
+static int read_hex(const unsigned char **str, int32_t *val)
 {
     if (is_hex(**str)) {
         int32_t v = 0;
@@ -65,7 +65,7 @@ static int read_hex(const char **str, int32_t *val)
     return -E_BADNUM;
 }
 
-static int read_fixed(const char **str, int32_t *val)
+static int read_fixed(const unsigned char **str, int32_t *val)
 {
     if ((**str >= '0' && **str <= '9') || **str == '-' || **str == '.') {
         int8_t minus = 1;
@@ -103,7 +103,7 @@ static int read_fixed(const char **str, int32_t *val)
     return -E_BADNUM;
 }
 
-static int parse_element(const char **str, gcode_cmd_t *cmd)
+static int parse_element(const unsigned char **str, gcode_cmd_t *cmd)
 {
     if (str == NULL || *str == NULL)
         return -E_NULL;

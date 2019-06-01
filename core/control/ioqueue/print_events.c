@@ -1,50 +1,37 @@
-
-#include "print.h"
-#include "shell.h"
+#include <stdio.h>
+#include <shell_print.h>
 #include <planner.h>
 
 void send_queued(int nid)
 {
+    char buf[128];
     int q = empty_slots();
-    shell_send_string("queued");
-    shell_send_string(" N:");
-    shell_print_dec(nid);
-    shell_send_string(" Q:");
-    shell_print_dec(q);
-    shell_send_string("\r\n");
+    snprintf(buf, 128, "queued N: %i Q: %i", nid, q);
+    shell_send_string(buf);
 }
 
 void send_dropped(int nid)
 {
+    char buf[128];
     int q = empty_slots();
-    shell_send_string("dropped");
-    shell_send_string(" N:");
-    shell_print_dec(nid);
-    shell_send_string(" Q:");
-    shell_print_dec(q);
-    shell_send_string("\r\n");
+    snprintf(buf, 128, "dropped N: %i Q: %i", nid, q);
+    shell_send_string(buf);
 }
 
 void send_started(int nid)
 {
+    char buf[128];
     int q = empty_slots();
-    shell_send_string("started");
-    shell_send_string(" N:");
-    shell_print_dec(nid);
-    shell_send_string(" Q:");
-    shell_print_dec(q);
-    shell_send_string("\r\n");
+    snprintf(buf, 128, "started N: %i Q: %i", nid, q);
+    shell_send_string(buf);
 }
 
 void send_completed(int nid)
 {
+    char buf[128];
     int q = empty_slots();
-    shell_send_string("completed");
-    shell_send_string(" N:");
-    shell_print_dec(nid);
-    shell_send_string(" Q:");
-    shell_print_dec(q);
-    shell_send_string("\r\n");
+    snprintf(buf, 128, "completed N: %i Q: %i", nid, q);
+    shell_send_string(buf);
 }
 
 void send_ok(int nid)
@@ -56,11 +43,8 @@ void send_ok(int nid)
 
 void send_error(int nid, const char *err)
 {
-    int q = empty_slots();
-    shell_send_string("error");
-    shell_send_string(" N:");
-    shell_print_dec(nid);
-    shell_send_string(" ");
-    shell_send_string(err);
-    shell_send_string("\r\n");
+    char buf[128];
+    snprintf(buf, 128, "error N: %i %s", nid, err);
+    buf[127] = 0;
+    shell_send_string(buf);
 }

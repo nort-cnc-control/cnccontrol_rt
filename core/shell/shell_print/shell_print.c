@@ -1,0 +1,77 @@
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <err.h>
+#include <shell_print.h>
+
+#define NUMBUF 4
+
+static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
+static int outpos, outlast, sended;
+
+static shell_cbs *cbs;
+
+static void buffer_sended(void)
+{
+    outlast = sended;
+    if (outpos == -1)
+    {
+        outpos = outlast;
+    }
+    if ((sended + 1) % NUMBUF != outpos)
+    {
+        sended = (sended + 1) % NUMBUF;
+        cbs->send_buffer(outbuf[sended], SHELL_BUFLEN);
+    }
+}
+
+void shell_print_init(shell_cbs *cb)
+{
+    cbs = cb;
+    outpos = 0;
+    outlast = NUMBUF - 1;
+    cbs->register_sended_cb(buffer_sended);
+}
+
+void shell_send_string(const char *str)
+{
+    if (outpos != -1)
+    {
+        int first = ((outlast + 1) % NUMBUF == outpos);
+        int pos = outpos;
+        strncpy(outbuf[pos], str, SHELL_BUFLEN);
+
+        if (outpos != outlast)
+        {
+            outpos = (outpos + 1) % NUMBUF;
+        }
+        else
+        {
+            outpos = -1;
+        }
+
+        if (first)
+        {
+            sended = pos;
+            cbs->send_buffer(outbuf[pos], SHELL_BUFLEN);
+        }
+    }
+    else
+    {
+        /* No free slots */
+    }
+}
+
+void shell_send_result(int res, const char *ans)
+{
+    unsigned char buf[SHELL_BUFLEN];
+    if (ans == NULL)
+        ans = "";
+
+    if (res == -E_OK)
+        snprintf(buf, SHELL_BUFLEN, "ok %s", ans);
+    else
+        snprintf(buf, SHELL_BUFLEN, "ERROR (%i): %s", res, ans);
+    buf[SHELL_BUFLEN-1] = 0;
+    shell_send_string(buf);
+}
