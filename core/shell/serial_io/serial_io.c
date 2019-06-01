@@ -1,5 +1,5 @@
 #include <serial_io.h>
-
+#include <string.h>
 
 static struct
 {
@@ -11,7 +11,7 @@ static struct
 static unsigned char inbuf[BUFLEN];
 static int inlen;
 
-static const unsigned char *outbuf;
+static unsigned char outbuf[BUFLEN + 2];
 static int outlen;
 static int outpos;
 
@@ -80,9 +80,12 @@ void serial_io_char_transmitted(void)
 
 static void send_buffer(const unsigned char *buf, size_t len)
 {
-    outbuf = buf;
+    memcpy(outbuf, buf, len);
+    outbuf[len] = '\n';
+    outbuf[len+1] = '\r';
     outlen = len;
     outpos = 0;
+    serial_io_start_transmit();
 }
 
 static void register_received_cb(void (*f)(const unsigned char *, size_t))
