@@ -236,10 +236,19 @@ static void make_tick(void)
 void tim2_isr(void)
 {
     if (TIM_SR(TIM2) & TIM_SR_UIF) {
+        // next step of movement
+        // it can set STEP pins active (low)
         TIM_SR(TIM2) &= ~TIM_SR_UIF;
         make_tick();
     }
     else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
+        // set STEP pins not active (high) at the end of STEP
+        // ______     _______
+        //       |___|
+        //
+        //           ^
+        //           |
+        //           here
         TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
         end_step();
     }
@@ -247,39 +256,39 @@ void tim2_isr(void)
 
 static void line_started(void)
 {
+    // PC13 has LED. Enable it
     gpio_clear(GPIOC, GPIO13);
 
-    gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO3);
-    gpio_set(GPIOA, GPIO6);
+    // Set initial STEP state
+    end_step();
     moving = 1;
 
+    // some big enough value, it will be overwritten
     timer_set_period(TIM2, 10000);
     timer_set_counter(TIM2, 0);
     timer_enable_counter(TIM2);
+    // first tick
     make_tick();
 }
 
 static void line_finished(void)
 {
     timer_disable_counter(TIM2);
+
+    // disable LED
     gpio_set(GPIOC, GPIO13);
 
-    gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO3);
-    gpio_set(GPIOA, GPIO6);
+    // initial STEP state
+    end_step();
     moving = 0;
 }
 
 static void line_error(void)
 {
-    int i;
+    // temporary do same things as in finished case
     timer_disable_counter(TIM2);
     gpio_set(GPIOC, GPIO13);
-
-    gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO3);
-    gpio_set(GPIOA, GPIO6);
+    end_step();
     moving = 0;
 }
 
