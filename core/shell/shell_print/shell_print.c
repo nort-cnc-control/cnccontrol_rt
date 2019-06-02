@@ -4,7 +4,7 @@
 #include <err.h>
 #include <shell_print.h>
 
-#define NUMBUF 4
+#define NUMBUF 12
 
 static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
 static volatile int outpos, outlast, sended;
