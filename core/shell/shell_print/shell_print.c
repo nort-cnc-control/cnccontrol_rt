@@ -8,11 +8,16 @@
 
 static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
 static volatile int outpos, outlast, sended;
-static int inited;
 static shell_cbs *cbs;
 
 static void buffer_sended(void)
 {
+    if (sended == -1)
+    {
+        /* Error */
+        return;
+    }
+
     if (outpos == -1)
     {
         outpos = sended;
@@ -34,6 +39,7 @@ void shell_print_init(shell_cbs *cb)
     cbs = cb;
     outpos = 0;
     outlast = NUMBUF - 1;
+    sended = -1;
     cbs->register_sended_cb(buffer_sended);
 }
 
