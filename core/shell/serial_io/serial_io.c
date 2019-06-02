@@ -33,6 +33,7 @@ void serial_io_init(serial_io_cbs *callbacks)
     cbs = callbacks;
     opts.rdy = 1;
     outpos = 0;
+    outlen = 0;
 }
 
 void serial_io_char_received(unsigned char c)
@@ -70,7 +71,8 @@ void serial_io_char_transmitted(void)
         outpos++;
         cbs->transmit_char(outbuf[p]);
     }
-    else {
+    else
+    {
         outlen = 0;
         outpos = 0;
         opts.rdy = 1;
@@ -80,10 +82,11 @@ void serial_io_char_transmitted(void)
 
 static void send_buffer(const unsigned char *buf, size_t len)
 {
-    memcpy(outbuf, buf, len);
+    strncpy(outbuf, buf, len);
+    len = strlen(outbuf);
     outbuf[len] = '\n';
     outbuf[len+1] = '\r';
-    outlen = len;
+    outlen = len + 2;
     outpos = 0;
     serial_io_start_transmit();
 }

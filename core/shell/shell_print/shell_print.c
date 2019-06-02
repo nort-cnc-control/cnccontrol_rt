@@ -7,16 +7,20 @@
 #define NUMBUF 4
 
 static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
-static int outpos, outlast, sended;
-
+static volatile int outpos, outlast, sended;
+static int inited;
 static shell_cbs *cbs;
 
 static void buffer_sended(void)
 {
-    outlast = sended;
     if (outpos == -1)
     {
-        outpos = outlast;
+        outpos = sended;
+        outlast = sended;
+    }
+    else
+    {
+        outlast = sended;
     }
     if ((sended + 1) % NUMBUF != outpos)
     {
@@ -48,12 +52,13 @@ void shell_send_string(const char *str)
         else
         {
             outpos = -1;
+            outlast = -1;
         }
 
         if (first)
         {
             sended = pos;
-            cbs->send_buffer(outbuf[pos], SHELL_BUFLEN);
+            cbs->send_buffer(outbuf[sended], SHELL_BUFLEN);
         }
     }
     else
