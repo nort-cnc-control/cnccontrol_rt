@@ -2,7 +2,9 @@
 #include <arc.h>
 #include <planner.h>
 #include <control.h>
-#include <shell.h>
+#include <shell_print.h>
+#include <shell_read.h>
+#include <test_io.h>
 #include "config.h"
 #include <math.h>
 
@@ -172,23 +174,18 @@ void test_helix_1(void)
 	} while (l > 0);
 }
 
-void send_char(char c)
-{
-	putchar(c);
-}
-
 int main(void)
 {
-	shell_cbs cbs = {
-		.send_char = send_char,
-	};
-	shell_init(cbs);
- 	init_steppers();
+	shell_print_init(&test_io_shell_cbs);
+    shell_read_init(&test_io_shell_cbs);
+ 	
+    shell_send_string("Hello");
+
+    init_steppers();
 	//test_arc_half_round();
     //test_arc_quart();
     //test_arc_quart_2();
     //test_arc_quart_3();
-    test_helix_1();
+    //test_helix_1();
 	return 0;
 }
-
