@@ -1,3 +1,6 @@
 [submodule "libopencm3"]
 	path = arch/stm32f103/libopencm3
 	url = https://github.com/libopencm3/libopencm3
+[submodule "core/shell/serial_rdp/rdpos"]
+	path = core/shell/serial_rdp/rdpos
+	url = https://github.com/vladtcvs/rdpos
