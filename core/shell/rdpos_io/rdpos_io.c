@@ -12,14 +12,33 @@ static struct rdpos_connection_s sconn;
 
 //****************** SERIAL ************************
 
+static uint8_t serial_outbuf[RDP_MAX_SEGMENT_SIZE];
+static int serial_outpos = 0;
+static int serial_outlast = 0;
+
 static struct
 {
     uint8_t rdy : 1;
+    uint8_t connected : 1;
 } opts;
 
 static void send_serial(void *arg, const void *data, size_t len)
 {
-
+    int i;
+    if (len == 0)
+        return;
+    const uint8_t *buf = data;
+    for (i = 0; i < len; i++)
+    {
+        serial_outbuf[serial_outlast] = buf[i];
+        serial_outlast = (serial_outlast + 1) % sizeof(serial_outbuf);
+    }
+    if (opts.rdy)
+    {
+        opts.rdy = 0;
+        cb_byte_transmit(serial_outbuf[serial_outpos]);
+        serial_outpos = (serial_outpos + 1) % sizeof(serial_outbuf);
+    }
 }
 
 static void byte_received(unsigned char c)
@@ -29,6 +48,13 @@ static void byte_received(unsigned char c)
 
 static void byte_transmitted(void)
 {
+    if (serial_outpos == serial_outlast)
+    {
+        opts.rdy = 1;
+        return;
+    }
+    cb_byte_transmit(serial_outbuf[serial_outpos]);
+    serial_outpos = (serial_outpos + 1) % sizeof(serial_outbuf);
 }
 
 static void register_byte_transmit(void (*f)(uint8_t))
@@ -45,8 +71,6 @@ struct serial_cbs_s rdpos_io_serial_cbs = {
 
 //**************** END SERIAL ***********************
 
-
-
 //***************** RDPOS *****************************
 
 static uint8_t rdp_recv_buf[RDP_MAX_SEGMENT_SIZE];
@@ -55,10 +79,12 @@ static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE];
 
 void connected(struct rdp_connection_s *conn)
 {
+    opts.connected = 1;
 }
 
 void closed(struct rdp_connection_s *conn)
 {
+    opts.connected = 0;
 }
 
 void data_send_completed(struct rdp_connection_s *conn)
