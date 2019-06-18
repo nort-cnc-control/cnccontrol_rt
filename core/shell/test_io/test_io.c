@@ -20,7 +20,7 @@ static void register_sended_cb(void (*f)(void))
     cb_sended = f;
 }
 
-shell_cbs test_io_shell_cbs = {
+struct shell_cbs_s test_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,

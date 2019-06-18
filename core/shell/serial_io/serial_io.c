@@ -17,8 +17,8 @@ static int outpos;
 
 static void (*cb_line_received)(const unsigned char *, size_t);
 static void (*cb_sended)(void);
+static void (*cb_byte_transmit)(uint8_t b);
 
-static serial_io_cbs *cbs;
 
 static void add_char(char c)
 {
@@ -28,15 +28,14 @@ static void add_char(char c)
     }
 }
 
-void serial_io_init(serial_io_cbs *callbacks)
+void serial_io_init(void)
 {
-    cbs = callbacks;
     opts.rdy = 1;
     outpos = 0;
     outlen = 0;
 }
 
-void serial_io_char_received(unsigned char c)
+static void serial_io_char_received(unsigned char c)
 {
     switch (c)
     {
@@ -59,17 +58,19 @@ static void serial_io_start_transmit(void)
     {
         outpos = 1;
         opts.rdy = 0;
-        cbs->transmit_char(outbuf[0]);
+        if (cb_byte_transmit)
+            cb_byte_transmit(outbuf[0]);
     }
 }
 
-void serial_io_char_transmitted(void)
+static void serial_io_char_transmitted(void)
 {
     if (outbuf[outpos] && outpos < outlen)
     {
         int p = outpos;
         outpos++;
-        cbs->transmit_char(outbuf[p]);
+        if (cb_byte_transmit)
+            cb_byte_transmit(outbuf[p]);
     }
     else
     {
@@ -101,8 +102,20 @@ static void register_sended_cb(void (*f)(void))
     cb_sended = f;
 }
 
-shell_cbs serial_io_shell_cbs = {
+static void register_byte_transmit(void (*f)(unsigned char))
+{
+    cb_byte_transmit = f;
+}
+
+
+struct shell_cbs_s serial_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
+};
+
+struct serial_cbs_s serial_io_serial_cbs = {
+    .register_byte_transmit = register_byte_transmit,
+    .byte_received = serial_io_char_received,
+    .byte_transmitted = serial_io_char_transmitted,
 };

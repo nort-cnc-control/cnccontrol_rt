@@ -8,7 +8,7 @@
 
 static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
 static volatile int outpos, outlast, sended;
-static shell_cbs *cbs;
+static struct shell_cbs_s *cbs;
 
 static void buffer_sended(void)
 {
@@ -28,7 +28,7 @@ static void buffer_sended(void)
     }
 }
 
-void shell_print_init(shell_cbs *cb)
+void shell_print_init(struct shell_cbs_s *cb)
 {
     cbs = cb;
     outpos = 0;

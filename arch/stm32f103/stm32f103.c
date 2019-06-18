@@ -22,6 +22,13 @@
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
 
+
+// *************** CONFIGURABLE PART **********
+static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
+static void (*init_serial_shell)(void) = serial_io_init;
+// ********************************************
+
 static void clock_setup(void)
 {
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -131,10 +138,6 @@ static void transmit_char(unsigned char data)
     USART_DR(USART1) = data;
 }
 
-static serial_io_cbs scbs = {
-    .transmit_char = transmit_char,
-};
-
 void usart1_isr(void)
 {
     /* Check if we were called because of RXNE. */
@@ -142,24 +145,27 @@ void usart1_isr(void)
     {
         /* Retrieve the data from the peripheral. */
         unsigned char data = usart_recv(USART1);
-        serial_io_char_received(data);
+        serial_cbs->byte_received(data);
     }
 
     if (USART_SR(USART1) & USART_SR_TC)
     {
         USART_SR(USART1) &= ~USART_SR_TC;
-        serial_io_char_transmitted();
+        serial_cbs->byte_transmitted();
     }
 }
 
 static void init_shell(void)
 {
     // configure serial_io to use this hardware
-    serial_io_init(&scbs);
+    init_serial_shell();
 
-    // configure shell to use serial_io
-    shell_print_init(&serial_io_shell_cbs);
-    shell_read_init(&serial_io_shell_cbs);
+    // configure serial
+    serial_cbs->register_byte_transmit(transmit_char);
+
+    // configure shell
+    shell_print_init(shell_cbs);
+    shell_read_init(shell_cbs);
 }
 
 /************* END SHELL ****************/

@@ -4,4 +4,4 @@
 #include <stdbool.h>
 #include <shell_base.h>
 
-extern shell_cbs test_io_shell_cbs;
+extern struct shell_cbs_s test_io_shell_cbs;
