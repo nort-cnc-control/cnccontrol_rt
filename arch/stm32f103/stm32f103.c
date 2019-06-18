@@ -10,6 +10,7 @@
 #include "config.h"
 
 #include <serial_io.h>
+#include <rdpos_io.h>
 #include <shell_print.h>
 #include <shell_read.h>
 
@@ -21,6 +22,16 @@
 #define FCPU 72000000UL
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
+#define TIMEOUT_TIMER_STEP 1000UL
+
+// *************** CONFIGURABLE PART **********
+static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
+static void (*init_serial_shell)(void) = rdpos_io_init;
+
+static int shell_cfg = 0;
+
+// ********************************************
 
 static void clock_setup(void)
 {
@@ -34,8 +45,11 @@ static void clock_setup(void)
     /* Enable clocks for GPIO port A (for GPIO_USART1_TX) and USART1. */
     rcc_periph_clock_enable(RCC_USART1);
 
-    /* Enable TIM2 clock */
+    /* Enable TIM2 clock for steps*/
     rcc_periph_clock_enable(RCC_TIM2);
+
+    /* Enable TIM3 clock for connection timeouts */
+    rcc_periph_clock_enable(RCC_TIM3);
 }
 
 static void usart_setup(int baudrate)
@@ -82,6 +96,28 @@ static void step_timer_setup(void)
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
+}
+
+static void timeout_timer_setup(void)
+{
+    rcc_periph_reset_pulse(RST_TIM3);
+
+    timer_set_prescaler(TIM3, PSC);
+    timer_direction_up(TIM3);
+    timer_disable_preload(TIM3);
+    timer_update_on_overflow(TIM3);
+    timer_enable_update_event(TIM3);
+    timer_continuous_mode(TIM3);
+
+    nvic_enable_irq(NVIC_TIM3_IRQ);
+    timer_enable_irq(TIM3, TIM_DIER_UIE);
+
+    // set time step 10 ms
+    const float t0 = TIMEOUT_TIMER_STEP / 1e6;
+    const int n = t0 * FTIMER;
+    timer_set_period(TIM3, n);
+    timer_set_counter(TIM3, 0);
+    timer_enable_counter(TIM3);
 }
 
 static void gpio_setup(void)
@@ -131,35 +167,55 @@ static void transmit_char(unsigned char data)
     USART_DR(USART1) = data;
 }
 
-static serial_io_cbs scbs = {
-    .transmit_char = transmit_char,
-};
+int blink = 0;
+int do_blink(void)
+{
+    if (blink)
+    {
+        gpio_set(GPIOC, GPIO13);
+        blink = 0;
+    }
+    else
+    {
+        gpio_clear(GPIOC, GPIO13);
+        blink = 1;
+    }
+    return 0;
+}
+
 
 void usart1_isr(void)
 {
+
+    if (USART_SR(USART1) & USART_SR_TC)
+    {
+        USART_SR(USART1) &= ~USART_SR_TC;
+        serial_cbs->byte_transmitted();
+    }
+
     /* Check if we were called because of RXNE. */
     if (USART_SR(USART1) & USART_SR_RXNE)
     {
         /* Retrieve the data from the peripheral. */
         unsigned char data = usart_recv(USART1);
-        serial_io_char_received(data);
+        serial_cbs->byte_received(data); 
     }
 
-    if (USART_SR(USART1) & USART_SR_TC)
-    {
-        USART_SR(USART1) &= ~USART_SR_TC;
-        serial_io_char_transmitted();
-    }
 }
 
 static void init_shell(void)
 {
     // configure serial_io to use this hardware
-    serial_io_init(&scbs);
+    init_serial_shell();
 
-    // configure shell to use serial_io
-    shell_print_init(&serial_io_shell_cbs);
-    shell_read_init(&serial_io_shell_cbs);
+    // configure serial
+    serial_cbs->register_byte_transmit(transmit_char);
+
+    // configure shell
+    shell_print_init(shell_cbs);
+    shell_read_init(shell_cbs);
+
+    shell_cfg = 1;
 }
 
 /************* END SHELL ****************/
@@ -249,6 +305,15 @@ void tim2_isr(void)
         //           here
         TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
         end_step();
+    }
+}
+
+void tim3_isr(void)
+{
+    if (TIM_SR(TIM3) & TIM_SR_UIF) {
+        TIM_SR(TIM3) &= ~TIM_SR_UIF;
+        if (shell_cfg)
+            rdpos_io_clock(TIMEOUT_TIMER_STEP);
     }
 }
 
@@ -345,7 +410,6 @@ void hardware_setup(void)
     init_shell();
     step_timer_setup();
     usart_setup(SHELL_BAUDRATE);
-
+    timeout_timer_setup();
     gpio_set(GPIOC, GPIO13);
 }
-

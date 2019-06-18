@@ -3,11 +3,16 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <shell_base.h>
+#include <stdbool.h>
 
-#define SHELL_BUFLEN 128
+#define SHELL_BUFLEN 80
 
-void shell_print_init(shell_cbs *callbacks);
+void shell_print_init(struct shell_cbs_s *callbacks);
 
 void shell_send_string(const char *str);
 
 void shell_print_answer(int res, const char *ans);
+
+bool shell_connected(void);
+
+void shell_reset(void);

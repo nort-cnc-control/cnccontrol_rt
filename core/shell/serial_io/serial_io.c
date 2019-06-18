@@ -1,5 +1,6 @@
 #include <serial_io.h>
 #include <string.h>
+#include <stdbool.h>
 
 static struct
 {
@@ -12,13 +13,13 @@ static unsigned char inbuf[BUFLEN];
 static int inlen;
 
 static unsigned char outbuf[BUFLEN + 2];
-static int outlen;
+static int outlast;
 static int outpos;
 
 static void (*cb_line_received)(const unsigned char *, size_t);
 static void (*cb_sended)(void);
+static void (*cb_byte_transmit)(uint8_t b);
 
-static serial_io_cbs *cbs;
 
 static void add_char(char c)
 {
@@ -28,15 +29,14 @@ static void add_char(char c)
     }
 }
 
-void serial_io_init(serial_io_cbs *callbacks)
+void serial_io_init(void)
 {
-    cbs = callbacks;
     opts.rdy = 1;
     outpos = 0;
-    outlen = 0;
+    outlast = 0;
 }
 
-void serial_io_char_received(unsigned char c)
+static void serial_io_char_received(unsigned char c)
 {
     switch (c)
     {
@@ -57,24 +57,27 @@ static void serial_io_start_transmit(void)
 {
     if (opts.rdy == 1)
     {
-        outpos = 1;
         opts.rdy = 0;
-        cbs->transmit_char(outbuf[0]);
+        int p = outpos;
+        outpos += 1;
+        outpos %= sizeof(outbuf);
+        if (cb_byte_transmit)
+            cb_byte_transmit(outbuf[p]);
     }
 }
 
-void serial_io_char_transmitted(void)
+static void serial_io_char_transmitted(void)
 {
-    if (outbuf[outpos] && outpos < outlen)
+    if (outpos != outlast)
     {
         int p = outpos;
-        outpos++;
-        cbs->transmit_char(outbuf[p]);
+        outpos += 1;
+        outpos %= sizeof(outbuf);
+        if (cb_byte_transmit)
+            cb_byte_transmit(outbuf[p]);
     }
     else
     {
-        outlen = 0;
-        outpos = 0;
         opts.rdy = 1;
         cb_sended();
     }
@@ -82,13 +85,22 @@ void serial_io_char_transmitted(void)
 
 static void send_buffer(const unsigned char *buf, size_t len)
 {
-    strncpy(outbuf, buf, len);
-    len = strlen(outbuf);
-    outbuf[len] = '\n';
-    outbuf[len+1] = '\r';
-    outlen = len + 2;
-    outpos = 0;
-    serial_io_start_transmit();
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        outbuf[outlast] = buf[i];
+        outlast += 1;
+        outlast %= sizeof(outbuf);
+    }
+    outbuf[outlast] = '\n';
+    outlast += 1;
+    outlast %= sizeof(outbuf);
+    outbuf[outlast] = '\r';
+    outlast += 1;
+    outlast %= sizeof(outbuf);
+
+    if (opts.rdy == 1)
+        serial_io_start_transmit();
 }
 
 static void register_received_cb(void (*f)(const unsigned char *, size_t))
@@ -101,8 +113,30 @@ static void register_sended_cb(void (*f)(void))
     cb_sended = f;
 }
 
-shell_cbs serial_io_shell_cbs = {
+static void register_byte_transmit(void (*f)(unsigned char))
+{
+    cb_byte_transmit = f;
+}
+
+static void register_connected_cb(void (*f)(void))
+{
+    f();
+}
+
+static void register_disconnected_cb(void (*f)(void))
+{
+}
+
+struct shell_cbs_s serial_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
+    .register_connected_cb = register_connected_cb,
+    .register_disconnected_cb = register_disconnected_cb,
+};
+
+struct serial_cbs_s serial_io_serial_cbs = {
+    .register_byte_transmit = register_byte_transmit,
+    .byte_received = serial_io_char_received,
+    .byte_transmitted = serial_io_char_transmitted,
 };

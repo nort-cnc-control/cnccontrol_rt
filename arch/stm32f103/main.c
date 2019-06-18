@@ -38,11 +38,16 @@ int main(void)
 {
     hardware_setup();
     init_steppers();
-    shell_send_string("Hello");
-    while (1) {
-        planner_pre_calculate();
+    while (true)
+    {
+        while (!shell_connected())
+            ;
+        planner_lock();
+        moves_reset();
+        shell_send_string("Hello");
+        while (shell_connected())
+            planner_pre_calculate();
     }
 
     return 0;
 }
-

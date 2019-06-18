@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stddef.h>
 #include <err.h>
 #include <gcodes.h>
@@ -169,9 +170,13 @@ static int handle_g_command(gcode_frame_t *frame)
         }
 
         default:
-            send_error(nid, "unknown command");
+        {
+            char buf[60];
+            snprintf(buf, 60, "unknown command G%i", cmds[0].val_i);
+            send_error(nid, buf);
             planner_lock();
             return -E_INCORRECT;
+        }
         }
         break;
     case 'M':
@@ -211,16 +216,27 @@ static int handle_g_command(gcode_frame_t *frame)
             return -E_OK;
         case 999:
             def.reboot();
+            // for debug cases
+            send_ok(nid);
+            return -E_OK;
         default:
-            send_error(nid, "unknown command");
+        {
+            char buf[60];
+            snprintf(buf, 60, "unknown command M%i", cmds[0].val_i);
+            send_error(nid, buf);
             planner_lock();
             return -E_INCORRECT;
         }
+        }
         break;
     default:
-        send_error(nid, "unknown command");
+    {
+        char buf[60];
+        snprintf(buf, 60, "unknown command %c%i", cmds[0].type, cmds[0].val_i);
+        send_error(nid, buf);
         planner_lock();
         return -E_INCORRECT;
+    }
     }
     planner_lock();
     return -E_INCORRECT;
@@ -231,7 +247,7 @@ int execute_g_command(const unsigned char *command, size_t len)
     gcode_frame_t frame;
     int rc;
 
-    rc = parse_cmdline(command, &frame);
+    rc = parse_cmdline(command, len, &frame);
     switch (rc)
     {
         case -E_CRC:
@@ -240,11 +256,13 @@ int execute_g_command(const unsigned char *command, size_t len)
         case -E_OK:
             return handle_g_command(&frame);
         default:
+        {
             planner_lock();
-            send_error(-1, "parse error");
-            shell_send_string("error: ");
-            shell_send_string(command);
-            shell_send_string("\n\r");
+            char buf[60];
+            snprintf(buf, 60, "parse error: %.*s", len, command);
+            buf[59] = 0;
+            send_error(-1, buf);
             return rc;
+        }
     }
 }
