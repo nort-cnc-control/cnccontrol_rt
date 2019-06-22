@@ -10,6 +10,7 @@
 #include "config.h"
 
 #include <serial_io.h>
+#include <rdpos_io.h>
 #include <shell_print.h>
 #include <shell_read.h>
 
@@ -21,12 +22,49 @@
 #define FCPU 72000000UL
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
-
+#define TIMEOUT_TIMER_STEP 10000UL
 
 // *************** CONFIGURABLE PART **********
-static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
-static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
-static void (*init_serial_shell)(void) = serial_io_init;
+static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
+static void (*init_serial_shell)(void) = rdpos_io_init;
+
+static int wait_ack_time;
+static bool wait_ack_flag;
+static int wait_close_time;
+static bool wait_close_flag;
+
+static void wait_ack(bool wait)
+{
+    if (wait)
+    {
+        wait_ack_time = 0;
+        wait_ack_flag = true;
+    }
+    else
+    {
+        wait_ack_flag = false;
+    }
+}
+
+static void wait_close(bool wait)
+{
+    if (wait)
+    {
+        wait_close_time = 0;
+        wait_close_flag = true;
+    }
+    else
+    {
+        wait_close_flag = false;
+    }
+}
+
+static void init_shell_aux(void)
+{
+    rdpos_io_register_timeout_handlers(wait_ack, wait_close);
+}
+
 // ********************************************
 
 static void clock_setup(void)
@@ -41,8 +79,11 @@ static void clock_setup(void)
     /* Enable clocks for GPIO port A (for GPIO_USART1_TX) and USART1. */
     rcc_periph_clock_enable(RCC_USART1);
 
-    /* Enable TIM2 clock */
+    /* Enable TIM2 clock for steps*/
     rcc_periph_clock_enable(RCC_TIM2);
+
+    /* Enable TIM3 clock for connection timeouts */
+    rcc_periph_clock_enable(RCC_TIM3);
 }
 
 static void usart_setup(int baudrate)
@@ -89,6 +130,28 @@ static void step_timer_setup(void)
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
+}
+
+static void timeout_timer_setup(void)
+{
+    rcc_periph_reset_pulse(RST_TIM3);
+
+    timer_set_prescaler(TIM3, PSC);
+    timer_direction_up(TIM3);
+    timer_disable_preload(TIM3);
+    timer_update_on_overflow(TIM3);
+    timer_enable_update_event(TIM3);
+    timer_continuous_mode(TIM3);
+
+    nvic_enable_irq(NVIC_TIM3_IRQ);
+    timer_enable_irq(TIM3, TIM_DIER_UIE);
+
+    // set time step 10 ms
+    const float t0 = TIMEOUT_TIMER_STEP / 1e6;
+    const int n = t0 * FTIMER;
+    timer_set_period(TIM3, n);
+    timer_set_counter(TIM3, 0);
+    timer_enable_counter(TIM3);
 }
 
 static void gpio_setup(void)
@@ -166,6 +229,9 @@ static void init_shell(void)
     // configure shell
     shell_print_init(shell_cbs);
     shell_read_init(shell_cbs);
+
+    // configure specific
+    init_shell_aux();
 }
 
 /************* END SHELL ****************/
@@ -257,6 +323,33 @@ void tim2_isr(void)
         end_step();
     }
 }
+
+void tim3_isr(void)
+{
+    if (TIM_SR(TIM3) & TIM_SR_UIF) {
+        // timeouts
+
+        if (wait_ack_flag)
+        {
+            wait_ack_time += TIMEOUT_TIMER_STEP;
+            if (wait_ack_time >= RDP_RESEND_TIMEOUT)
+            {
+                wait_ack_time = 0;
+                rdpos_io_retry();
+            }
+        }
+        if (wait_close_flag)
+        {
+            wait_close_time += TIMEOUT_TIMER_STEP;
+            if (wait_close_time >= RDP_CLOSE_TIMEOUT)
+            {
+                wait_close_flag = 0;
+                rdpos_io_close();
+            }
+        }
+    }
+}
+
 
 static void line_started(void)
 {
@@ -350,6 +443,7 @@ void hardware_setup(void)
     gpio_setup();
     init_shell();
     step_timer_setup();
+    timeout_timer_setup();
     usart_setup(SHELL_BAUDRATE);
 
     gpio_set(GPIOC, GPIO13);

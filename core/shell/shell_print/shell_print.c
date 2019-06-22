@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <err.h>
 #include <shell_print.h>
+#include <stdbool.h>
 
 #define NUMBUF 12
 
@@ -79,4 +80,11 @@ void shell_send_result(int res, const char *ans)
         snprintf(buf, SHELL_BUFLEN, "ERROR (%i): %s", res, ans);
     buf[SHELL_BUFLEN-1] = 0;
     shell_send_string(buf);
+}
+
+bool shell_connected(void)
+{
+    if (cbs->connected)
+        return cbs->connected();
+    return false;
 }

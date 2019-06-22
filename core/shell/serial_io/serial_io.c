@@ -1,5 +1,6 @@
 #include <serial_io.h>
 #include <string.h>
+#include <stdbool.h>
 
 static struct
 {
@@ -107,11 +108,17 @@ static void register_byte_transmit(void (*f)(unsigned char))
     cb_byte_transmit = f;
 }
 
+static bool is_connected(void)
+{
+    return true;
+}
+
 
 struct shell_cbs_s serial_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
+    .connected = is_connected,
 };
 
 struct serial_cbs_s serial_io_serial_cbs = {

@@ -9,6 +9,7 @@ static void (*cb_sended)(void);
 static void (*cb_byte_transmit)(uint8_t b);
 
 static struct rdpos_connection_s sconn;
+static struct rdp_connection_s * const conn = &sconn.rdp_conn;
 
 //****************** SERIAL ************************
 
@@ -20,6 +21,8 @@ static struct
 {
     uint8_t rdy : 1;
     uint8_t connected : 1;
+    uint8_t ack_wait : 1;
+    uint8_t close_wait : 1;
 } opts;
 
 static void send_serial(void *arg, const void *data, size_t len)
@@ -77,14 +80,21 @@ static uint8_t rdp_recv_buf[RDP_MAX_SEGMENT_SIZE];
 static uint8_t rdp_outbuf[RDP_MAX_SEGMENT_SIZE];
 static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE];
 
+static void (*retry_cb)(bool);
+static void (*close_cb)(bool);
+
 void connected(struct rdp_connection_s *conn)
 {
     opts.connected = 1;
+    opts.close_wait = 0;
 }
 
 void closed(struct rdp_connection_s *conn)
 {
     opts.connected = 0;
+    opts.close_wait = 0;
+    if (close_cb)
+        close_cb(false);
 }
 
 void data_send_completed(struct rdp_connection_s *conn)
@@ -101,14 +111,23 @@ void data_received(struct rdp_connection_s *conn, const uint8_t *data, size_t le
 
 void ack_wait_start(struct rdp_connection_s *conn, uint32_t id)
 {
+    opts.ack_wait = 1;
+    if (retry_cb)
+        retry_cb(true);
 }
 
 void ack_wait_completed(struct rdp_connection_s *conn, uint32_t id)
 {
+    opts.ack_wait = 0;
+    if (retry_cb)
+        retry_cb(false);
 }
 
 void close_wait_start(struct rdp_connection_s *conn)
 {
+    opts.close_wait = 1;
+    if (close_cb)
+        close_cb(true);
 }
 
 static struct rdpos_buffer_set_s bufs = {
@@ -134,19 +153,36 @@ static struct rdpos_cbs_s rdpos_cbs = {
     .send_fn = send_serial,
 };
 
-static struct rdp_connection_s * const conn = &sconn.rdp_conn;
-
 void rdpos_io_init(void)
 {
+    opts.close_wait = 0;
+    opts.ack_wait = 0;
+    opts.connected = 0;
+    opts.rdy = 1;
     rdpos_init_connection(&sconn, &bufs, &rdp_cbs, &rdpos_cbs);
     rdp_listen(conn, 1);
+}
+
+void rdpos_io_retry(void)
+{
+    rdp_retry(conn);
+}
+
+void rdpos_io_close(void)
+{
+    rdp_final_close(conn);
+}
+
+void rdpos_io_register_timeout_handlers(void (*retry)(bool), void (*close)(bool))
+{
+    retry_cb = retry;
+    close_cb = close;
 }
 
 //****************** END RDPOS *********************
 
 
 //**************** SHELL ****************************
-
 
 static void send_buffer(const unsigned char *buf, size_t len)
 {
@@ -163,10 +199,16 @@ static void register_sended_cb(void (*f)(void))
     cb_sended = f;
 }
 
+static bool is_connected(void)
+{
+    return opts.connected;
+}
+
 struct shell_cbs_s rdpos_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
+    .connected = is_connected,
 };
 
 //**************** END SHELL **************************
