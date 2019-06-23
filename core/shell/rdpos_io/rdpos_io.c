@@ -95,6 +95,7 @@ static void closed(struct rdp_connection_s *conn)
     opts.close_wait = 0;
     if (close_cb)
         close_cb(false);
+    rdp_listen(conn, 1);
 }
 
 static void data_send_completed(struct rdp_connection_s *conn)

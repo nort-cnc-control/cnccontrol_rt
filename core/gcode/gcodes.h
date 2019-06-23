@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-
+#include <stddef.h>
 #include <err.h>
 
 #define MAX_CMDS 10
@@ -19,4 +19,4 @@ typedef struct {
     gcode_cmd_t cmds[MAX_CMDS];
 } gcode_frame_t;
 
-int parse_cmdline(const unsigned char *str, gcode_frame_t *frame);
+int parse_cmdline(const unsigned char *str, size_t len, gcode_frame_t *frame);

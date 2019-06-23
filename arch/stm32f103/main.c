@@ -45,8 +45,6 @@ int main(void)
         planner_lock();
         moves_reset();
         shell_send_string("Hello");
-        shell_send_string("Welcome");
-        shell_send_string("Welcome2");
         while (shell_connected())
             planner_pre_calculate();
     }

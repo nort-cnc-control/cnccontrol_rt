@@ -7,8 +7,10 @@ static int islast(unsigned char c)
     return c == 0 || c == ';' || c == '\n';
 }
 
-static int read_int(const unsigned char **str, int32_t *val)
+static int read_int(const unsigned char **str, const unsigned char *end, int32_t *val)
 {
+    if (*str >= end)
+        return -E_BADNUM;
     if ((**str >= '0' && **str <= '9') || **str == '-') {
         int32_t v = 0;
         int8_t minus = 1;
@@ -16,7 +18,9 @@ static int read_int(const unsigned char **str, int32_t *val)
             minus = -1;
             (*str)++;
         }
-        while (**str >= '0' && **str <= '9') {
+        if (*str >= end)
+            return -E_BADNUM;
+        while (**str >= '0' && **str <= '9' && *str < end) {
             v *= 10;
             v += (**str - '0');
             (*str)++;
@@ -50,11 +54,13 @@ static uint8_t is_hex(unsigned char c)
     return 0;
 }
 
-static int read_hex(const unsigned char **str, int32_t *val)
+static int read_hex(const unsigned char **str, const unsigned char *end, int32_t *val)
 {
+    if (*str >= end)
+        return -E_BADNUM;
     if (is_hex(**str)) {
         int32_t v = 0;
-        while (is_hex(**str)) {
+        while (is_hex(**str) && *str < end) {
             v *= 16;
             v += hex_decode(**str);
             (*str)++;
@@ -65,8 +71,10 @@ static int read_hex(const unsigned char **str, int32_t *val)
     return -E_BADNUM;
 }
 
-static int read_fixed(const unsigned char **str, int32_t *val)
+static int read_fixed(const unsigned char **str, const unsigned char *end, int32_t *val)
 {
+    if (*str >= end)
+        return -E_BADNUM;
     if ((**str >= '0' && **str <= '9') || **str == '-' || **str == '.') {
         int8_t minus = 1;
         int32_t v = 0;
@@ -74,7 +82,9 @@ static int read_fixed(const unsigned char **str, int32_t *val)
             minus = -1;
             (*str)++;
         }
-        while (**str >= '0' && **str <= '9') {
+        if (*str >= end)
+            return -E_BADNUM;
+        while (**str >= '0' && **str <= '9' && *str < end) {
             v *= 10;
             v += (**str - '0');
             (*str)++;
@@ -84,7 +94,7 @@ static int read_fixed(const unsigned char **str, int32_t *val)
             uint8_t s = 0;
             uint8_t ns = 0;
             (*str)++;
-            while (**str >= '0' && **str <= '9') {
+            while (**str >= '0' && **str <= '9' && *str < end) {
                 if (ns < 2) {
                     s *= 10;
                     s += (**str - '0');
@@ -103,15 +113,15 @@ static int read_fixed(const unsigned char **str, int32_t *val)
     return -E_BADNUM;
 }
 
-static int parse_element(const unsigned char **str, gcode_cmd_t *cmd)
+static int parse_element(const unsigned char **str, const unsigned char *end, gcode_cmd_t *cmd)
 {
-    if (str == NULL || *str == NULL)
+    if (str == NULL || *str == NULL || *str >= end)
         return -E_NULL;
 
     while (**str == ' ')
         (*str)++;
 
-    if (islast(**str)) {
+    if (islast(**str) || *str >= end) {
         cmd->type = 0;
         return E_OK;
     }
@@ -130,8 +140,15 @@ static int parse_element(const unsigned char **str, gcode_cmd_t *cmd)
     case 'S':
         cmd->type = **str;
         (*str)++;
-        if (read_int(str, &(cmd->val_i)))
+        if (*str < end)
+        {
+            if (read_int(str, end, &(cmd->val_i)))
+                return -E_BADNUM;
+        }
+        else
+        {
             return -E_BADNUM;
+        }
         break;
     case 'X':
     case 'Y':
@@ -144,17 +161,23 @@ static int parse_element(const unsigned char **str, gcode_cmd_t *cmd)
     case 'K':
         cmd->type = **str;
         (*str)++;
-        if (**str == ' ' || **str == '\n' || **str == 0) {
-            cmd->val_f = 0;
-            break;
+        if (*str < end)
+        {
+            if (**str == ' ' || **str == '\n' || **str == 0) {
+                return -E_BADNUM;
+            }
+            if (read_fixed(str, end, &(cmd->val_f)))
+                return -E_BADNUM;
         }
-        if (read_fixed(str, &(cmd->val_f)))
+        else
+        {
             return -E_BADNUM;
+        }
         break;
     case '*':
         cmd->type = '*';
         (*str)++;
-        if (read_hex(str, &(cmd->val_i)))
+        if (read_hex(str, end, &(cmd->val_i)))
             return -E_BADNUM;
 
         break;
@@ -167,14 +190,14 @@ static int parse_element(const unsigned char **str, gcode_cmd_t *cmd)
     return E_OK;
 }
 
-int parse_cmdline(const unsigned char *str, gcode_frame_t *frame)
+int parse_cmdline(const unsigned char *str, size_t len, gcode_frame_t *frame)
 {
     int i = 0, rc;
-    const unsigned char *str0 = str;
+    const unsigned char *str0 = str, *end = str + len;
     int finish = 0;
-    while (*str != 0 && i < MAX_CMDS && !finish)
+    while (*str != 0 && i < MAX_CMDS && !finish && str < end)
     {
-        if ((rc = parse_element(&str, &(frame->cmds[i]))) < 0)
+        if ((rc = parse_element(&str, end, &(frame->cmds[i]))) < 0)
         {
             return rc;
         }
