@@ -29,6 +29,8 @@ static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
 static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
 static void (*init_serial_shell)(void) = rdpos_io_init;
 
+static int shell_cfg = 0;
+
 // ********************************************
 
 static void clock_setup(void)
@@ -164,7 +166,7 @@ static void transmit_char(unsigned char data)
 {
     USART_DR(USART1) = data;
 }
-
+/*
 int blink = 0;
 int do_blink(void)
 {
@@ -180,7 +182,7 @@ int do_blink(void)
     }
     return 0;
 }
-
+*/
 
 void usart1_isr(void)
 {
@@ -210,6 +212,8 @@ static void init_shell(void)
     // configure shell
     shell_print_init(shell_cbs);
     shell_read_init(shell_cbs);
+
+    shell_cfg = 1;
 }
 
 /************* END SHELL ****************/
@@ -305,14 +309,16 @@ void tim2_isr(void)
 void tim3_isr(void)
 {
     if (TIM_SR(TIM3) & TIM_SR_UIF) {
-        rdpos_io_clock(TIMEOUT_TIMER_STEP);
+        TIM_SR(TIM3) &= ~TIM_SR_UIF;
+        if (shell_cfg)
+            rdpos_io_clock(TIMEOUT_TIMER_STEP);
     }
 }
 
 static void line_started(void)
 {
     // PC13 has LED. Enable it
-    //gpio_clear(GPIOC, GPIO13);
+    gpio_clear(GPIOC, GPIO13);
 
     // Set initial STEP state
     end_step();
@@ -331,7 +337,7 @@ static void line_finished(void)
     timer_disable_counter(TIM2);
 
     // disable LED
-    //gpio_set(GPIOC, GPIO13);
+    gpio_set(GPIOC, GPIO13);
 
     // initial STEP state
     end_step();
@@ -342,7 +348,7 @@ static void line_error(void)
 {
     // temporary do same things as in finished case
     timer_disable_counter(TIM2);
-    //gpio_set(GPIOC, GPIO13);
+    gpio_set(GPIOC, GPIO13);
     end_step();
     moving = 0;
 }
@@ -402,8 +408,6 @@ void hardware_setup(void)
     init_shell();
     step_timer_setup();
     usart_setup(SHELL_BAUDRATE);
+    timeout_timer_setup();
     gpio_set(GPIOC, GPIO13);
-
-//    timeout_timer_setup();    
 }
-
