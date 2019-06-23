@@ -5,7 +5,7 @@
 #include <shell_print.h>
 #include <stdbool.h>
 
-#define NUMBUF 12
+#define NUMBUF 10
 
 static unsigned char outbuf[NUMBUF][SHELL_BUFLEN];
 static volatile int outpos, outlast, sended;
@@ -22,10 +22,10 @@ static void buffer_sended(void)
     {
         outlast = sended;
     }
-    if ((sended + 1) % NUMBUF != outpos)
+    if ((outlast + 1) % NUMBUF != outpos)
     {
         sended = (sended + 1) % NUMBUF;
-        cbs->send_buffer(outbuf[sended], SHELL_BUFLEN);
+        cbs->send_buffer(outbuf[sended], strlen(outbuf[sended]));
     }
 }
 
@@ -59,7 +59,7 @@ void shell_send_string(const char *str)
         if (first)
         {
             sended = pos;
-            cbs->send_buffer(outbuf[sended], SHELL_BUFLEN);
+            cbs->send_buffer(outbuf[sended], strlen(outbuf[sended]));
         }
     }
     else

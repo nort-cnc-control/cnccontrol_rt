@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <gcode_handler.h>
 #include <shell_read.h>
+#include <shell_print.h>
 
 static void command_received(const unsigned char *cmd, size_t len)
 {

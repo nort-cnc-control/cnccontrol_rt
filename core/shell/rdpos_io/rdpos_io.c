@@ -83,13 +83,13 @@ static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE];
 static void (*retry_cb)(bool);
 static void (*close_cb)(bool);
 
-void connected(struct rdp_connection_s *conn)
+static void connected(struct rdp_connection_s *conn)
 {
     opts.connected = 1;
     opts.close_wait = 0;
 }
 
-void closed(struct rdp_connection_s *conn)
+static void closed(struct rdp_connection_s *conn)
 {
     opts.connected = 0;
     opts.close_wait = 0;
@@ -97,37 +97,16 @@ void closed(struct rdp_connection_s *conn)
         close_cb(false);
 }
 
-void data_send_completed(struct rdp_connection_s *conn)
+static void data_send_completed(struct rdp_connection_s *conn)
 {
     if (cb_sended)
         cb_sended();
 }
 
-void data_received(struct rdp_connection_s *conn, const uint8_t *data, size_t len)
+static void data_received(struct rdp_connection_s *conn, const uint8_t *data, size_t len)
 {
     if (cb_line_received)
         cb_line_received(data, len);
-}
-
-void ack_wait_start(struct rdp_connection_s *conn, uint32_t id)
-{
-    opts.ack_wait = 1;
-    if (retry_cb)
-        retry_cb(true);
-}
-
-void ack_wait_completed(struct rdp_connection_s *conn, uint32_t id)
-{
-    opts.ack_wait = 0;
-    if (retry_cb)
-        retry_cb(false);
-}
-
-void close_wait_start(struct rdp_connection_s *conn)
-{
-    opts.close_wait = 1;
-    if (close_cb)
-        close_cb(true);
 }
 
 static struct rdpos_buffer_set_s bufs = {
@@ -144,9 +123,6 @@ static struct rdp_cbs_s rdp_cbs = {
     .closed = closed,
     .data_send_completed = data_send_completed,
     .data_received = data_received,
-    .ack_wait_start = ack_wait_start,
-    .ack_wait_completed = ack_wait_completed,
-    .close_wait_start = close_wait_start,
 };
 
 static struct rdpos_cbs_s rdpos_cbs = {
@@ -163,20 +139,9 @@ void rdpos_io_init(void)
     rdp_listen(conn, 1);
 }
 
-void rdpos_io_retry(void)
+void rdpos_io_clock(int dt)
 {
-    rdp_retry(conn);
-}
-
-void rdpos_io_close(void)
-{
-    rdp_final_close(conn);
-}
-
-void rdpos_io_register_timeout_handlers(void (*retry)(bool), void (*close)(bool))
-{
-    retry_cb = retry;
-    close_cb = close;
+    rdp_clock(conn, dt);
 }
 
 //****************** END RDPOS *********************

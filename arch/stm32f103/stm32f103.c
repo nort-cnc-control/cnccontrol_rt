@@ -22,48 +22,12 @@
 #define FCPU 72000000UL
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
-#define TIMEOUT_TIMER_STEP 10000UL
+#define TIMEOUT_TIMER_STEP 1000UL
 
 // *************** CONFIGURABLE PART **********
 static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
 static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
 static void (*init_serial_shell)(void) = rdpos_io_init;
-
-static int wait_ack_time;
-static bool wait_ack_flag;
-static int wait_close_time;
-static bool wait_close_flag;
-
-static void wait_ack(bool wait)
-{
-    if (wait)
-    {
-        wait_ack_time = 0;
-        wait_ack_flag = true;
-    }
-    else
-    {
-        wait_ack_flag = false;
-    }
-}
-
-static void wait_close(bool wait)
-{
-    if (wait)
-    {
-        wait_close_time = 0;
-        wait_close_flag = true;
-    }
-    else
-    {
-        wait_close_flag = false;
-    }
-}
-
-static void init_shell_aux(void)
-{
-    rdpos_io_register_timeout_handlers(wait_ack, wait_close);
-}
 
 // ********************************************
 
@@ -201,6 +165,23 @@ static void transmit_char(unsigned char data)
     USART_DR(USART1) = data;
 }
 
+int blink = 0;
+int do_blink(void)
+{
+    if (blink)
+    {
+        gpio_set(GPIOC, GPIO13);
+        blink = 0;
+    }
+    else
+    {
+        gpio_clear(GPIOC, GPIO13);
+        blink = 1;
+    }
+    return 0;
+}
+
+
 void usart1_isr(void)
 {
     /* Check if we were called because of RXNE. */
@@ -208,7 +189,7 @@ void usart1_isr(void)
     {
         /* Retrieve the data from the peripheral. */
         unsigned char data = usart_recv(USART1);
-        serial_cbs->byte_received(data);
+        serial_cbs->byte_received(data); 
     }
 
     if (USART_SR(USART1) & USART_SR_TC)
@@ -229,9 +210,6 @@ static void init_shell(void)
     // configure shell
     shell_print_init(shell_cbs);
     shell_read_init(shell_cbs);
-
-    // configure specific
-    init_shell_aux();
 }
 
 /************* END SHELL ****************/
@@ -327,34 +305,14 @@ void tim2_isr(void)
 void tim3_isr(void)
 {
     if (TIM_SR(TIM3) & TIM_SR_UIF) {
-        // timeouts
-
-        if (wait_ack_flag)
-        {
-            wait_ack_time += TIMEOUT_TIMER_STEP;
-            if (wait_ack_time >= RDP_RESEND_TIMEOUT)
-            {
-                wait_ack_time = 0;
-                rdpos_io_retry();
-            }
-        }
-        if (wait_close_flag)
-        {
-            wait_close_time += TIMEOUT_TIMER_STEP;
-            if (wait_close_time >= RDP_CLOSE_TIMEOUT)
-            {
-                wait_close_flag = 0;
-                rdpos_io_close();
-            }
-        }
+        rdpos_io_clock(TIMEOUT_TIMER_STEP);
     }
 }
-
 
 static void line_started(void)
 {
     // PC13 has LED. Enable it
-    gpio_clear(GPIOC, GPIO13);
+    //gpio_clear(GPIOC, GPIO13);
 
     // Set initial STEP state
     end_step();
@@ -373,7 +331,7 @@ static void line_finished(void)
     timer_disable_counter(TIM2);
 
     // disable LED
-    gpio_set(GPIOC, GPIO13);
+    //gpio_set(GPIOC, GPIO13);
 
     // initial STEP state
     end_step();
@@ -384,7 +342,7 @@ static void line_error(void)
 {
     // temporary do same things as in finished case
     timer_disable_counter(TIM2);
-    gpio_set(GPIOC, GPIO13);
+    //gpio_set(GPIOC, GPIO13);
     end_step();
     moving = 0;
 }
@@ -443,9 +401,9 @@ void hardware_setup(void)
     gpio_setup();
     init_shell();
     step_timer_setup();
-    timeout_timer_setup();
     usart_setup(SHELL_BAUDRATE);
-
     gpio_set(GPIOC, GPIO13);
+
+//    timeout_timer_setup();    
 }
 

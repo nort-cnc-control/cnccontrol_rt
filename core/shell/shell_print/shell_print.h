@@ -5,7 +5,7 @@
 #include <shell_base.h>
 #include <stdbool.h>
 
-#define SHELL_BUFLEN 128
+#define SHELL_BUFLEN 80
 
 void shell_print_init(struct shell_cbs_s *callbacks);
 
