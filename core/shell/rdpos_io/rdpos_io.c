@@ -5,7 +5,7 @@
 
 static void (*cb_line_received)(const unsigned char *, size_t);
 static void (*cb_sended)(void);
-
+static void (*cb_serial_reset)(void);
 static void (*cb_byte_transmit)(uint8_t b);
 
 static struct rdpos_connection_s sconn;
@@ -65,7 +65,13 @@ static void register_byte_transmit(void (*f)(uint8_t))
     cb_byte_transmit = f;
 }
 
+static void register_reset(void (*f)(void))
+{
+    cb_serial_reset = f;
+}
+
 struct serial_cbs_s rdpos_io_serial_cbs = {
+    .register_reset = register_reset,
     .register_byte_transmit = register_byte_transmit,
     .byte_received = byte_received,
     .byte_transmitted = byte_transmitted,
@@ -80,9 +86,6 @@ static uint8_t rdp_recv_buf[RDP_MAX_SEGMENT_SIZE];
 static uint8_t rdp_outbuf[RDP_MAX_SEGMENT_SIZE];
 static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE];
 
-static void (*retry_cb)(bool);
-static void (*close_cb)(bool);
-
 static void connected(struct rdp_connection_s *conn)
 {
     opts.connected = 1;
@@ -93,8 +96,8 @@ static void closed(struct rdp_connection_s *conn)
 {
     opts.connected = 0;
     opts.close_wait = 0;
-    if (close_cb)
-        close_cb(false);
+    if (cb_serial_reset)
+        cb_serial_reset();
     rdp_listen(conn, 1);
 }
 

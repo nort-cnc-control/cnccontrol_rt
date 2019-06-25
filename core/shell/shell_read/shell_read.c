@@ -6,7 +6,8 @@
 
 static void command_received(const unsigned char *cmd, size_t len)
 {
-    execute_g_command(cmd, len);
+    shell_send_string("Received");
+    //execute_g_command(cmd, len);
 }
 
 void shell_read_init(struct shell_cbs_s *cbs)
