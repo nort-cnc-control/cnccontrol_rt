@@ -10,6 +10,8 @@
 #include <pthread.h>
 #include <termios.h>
 #include <fcntl.h>
+#include <time.h>
+#include <signal.h>
 
 int dsteps[3] = {0, 0, 0};
 int steps[3];
@@ -41,19 +43,32 @@ static cnc_endstops get_stops(void)
     return stops;
 }
 
+timer_t tick_timer;
+
 static void line_started(void)
 {
     printf("Line started\n");
+    struct itimerspec tinterval = {
+        .it_value = {
+            .tv_sec = 0,
+            .tv_nsec = 1000,
+        }
+    };
+    timer_settime(tick_timer, 0, &tinterval, NULL);
 }
 
 static void line_finished(void)
 {
     printf("Line finished\n");
+    struct itimerspec interval = {};
+    timer_settime(tick_timer, 0, &interval, NULL);
 }
 
 static void line_error(void)
 {
     printf("Line error\n");
+    struct itimerspec interval = {};
+    timer_settime(tick_timer, 0, &interval, NULL);
 }
 
 void config_steppers(steppers_definition *sd)
@@ -101,6 +116,23 @@ void test_init(void)
     steps[2] = 0;
 }
 
+static void make_tick(union sigval sig)
+{
+    int delay_us = moves_step_tick();
+    if (delay_us <= 0)
+    {
+        return;
+    }
+    struct itimerspec interval = {
+        .it_value = {
+            .tv_sec = delay_us / 1000000UL,
+            .tv_nsec = (delay_us % 1000000UL) * 1000,
+        }
+    };
+    timer_settime(tick_timer, 0, &interval, NULL);
+}
+
+/* Shell */
 pthread_cond_t connected_flag;
 
 static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
@@ -132,6 +164,13 @@ void *receive(void *arg)
     return NULL;
 }
 
+void rdpclock(union sigval sig)
+{
+    rdpos_io_clock(1000);
+}
+
+/* Shell */
+
 pthread_t tid; /* идентификатор потока */
 
 int main(int argc, const char **argv)
@@ -150,15 +189,43 @@ int main(int argc, const char **argv)
 
     shell_print_init(&rdpos_io_shell_cbs);
     shell_read_init(&rdpos_io_shell_cbs);
- 	
+
     serial_cbs->register_byte_transmit(transmit_char);
 
     pthread_create(&tid, NULL, receive, &fd);
+
+    /* Create timer */
+    timer_t timer;
+    struct sigevent sevt = {
+        .sigev_notify = SIGEV_THREAD,
+        .sigev_notify_function = rdpclock,
+    };
+    timer_create(CLOCK_REALTIME, &sevt, &timer);
+    struct itimerspec interval = {
+        .it_interval = {
+            .tv_sec = 0,
+            .tv_nsec = 1000000UL,
+        },
+        .it_value = {
+            .tv_sec = 0,
+            .tv_nsec = 1000000UL,
+        }
+    };
+    timer_settime(timer, 0, &interval, NULL);
+    /* Finish create timer */
+
     usleep(100000);
 
     test_init();
     init_steppers();
-	
+    
+    struct sigevent stevt = {
+        .sigev_notify = SIGEV_THREAD,
+        .sigev_notify_function = make_tick,
+    };
+    timer_create(CLOCK_REALTIME, &stevt, &tick_timer);
+    
+
     while (true)
     {
         while (!shell_connected())
@@ -172,6 +239,8 @@ int main(int argc, const char **argv)
             planner_pre_calculate();
             usleep(1000);
         }
+        planner_lock();
+        moves_reset();
         printf("Disconnected\n");
     }
     

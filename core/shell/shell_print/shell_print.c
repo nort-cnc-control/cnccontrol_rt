@@ -30,6 +30,24 @@ static void buffer_sended(void)
     }
 }
 
+static bool connected = false;
+
+void on_connect(void)
+{
+    outpos = 0;
+    outlast = NUMBUF - 1;
+    sended = -1;
+    connected = true;
+}
+
+void on_disconnect(void)
+{
+    outpos = 0;
+    outlast = NUMBUF - 1;
+    sended = -1;
+    connected = false;
+}
+
 void shell_print_init(struct shell_cbs_s *cb)
 {
     cbs = cb;
@@ -37,6 +55,8 @@ void shell_print_init(struct shell_cbs_s *cb)
     outlast = NUMBUF - 1;
     sended = -1;
     cbs->register_sended_cb(buffer_sended);
+    cbs->register_connected_cb(on_connect);
+    cbs->register_disconnected_cb(on_disconnect);
 }
 
 void shell_send_string(const char *str)
@@ -85,7 +105,5 @@ void shell_send_result(int res, const char *ans)
 
 bool shell_connected(void)
 {
-    if (cbs->connected)
-        return cbs->connected();
-    return false;
+    return connected;
 }

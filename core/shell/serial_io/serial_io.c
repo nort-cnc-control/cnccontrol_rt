@@ -108,17 +108,21 @@ static void register_byte_transmit(void (*f)(unsigned char))
     cb_byte_transmit = f;
 }
 
-static bool is_connected(void)
+static void register_connected_cb(void (*f)(void))
 {
-    return true;
+    f();
 }
 
+static void register_disconnected_cb(void (*f)(void))
+{
+}
 
 struct shell_cbs_s serial_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
-    .connected = is_connected,
+    .register_connected_cb = register_connected_cb,
+    .register_disconnected_cb = register_disconnected_cb,
 };
 
 struct serial_cbs_s serial_io_serial_cbs = {

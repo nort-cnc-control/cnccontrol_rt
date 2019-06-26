@@ -14,3 +14,5 @@ void shell_send_string(const char *str);
 void shell_print_answer(int res, const char *ans);
 
 bool shell_connected(void);
+
+void shell_reset(void);

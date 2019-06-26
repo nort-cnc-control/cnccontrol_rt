@@ -6,7 +6,7 @@
 
 static void command_received(const unsigned char *cmd, size_t len)
 {
-    //shell_send_string("Received");
+    printf("Received: %.*s\n", len, cmd);
     execute_g_command(cmd, len);
 }
 

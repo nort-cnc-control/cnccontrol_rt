@@ -5,6 +5,9 @@
 
 static void (*cb_line_received)(const unsigned char *, size_t);
 static void (*cb_sended)(void);
+static void (*cb_connected)(void);
+static void (*cb_disconnected)(void);
+
 static void (*cb_serial_reset)(void);
 static void (*cb_byte_transmit)(uint8_t b);
 
@@ -79,7 +82,6 @@ struct serial_cbs_s rdpos_io_serial_cbs = {
     .byte_transmitted = byte_transmitted,
 };
 
-
 //**************** END SERIAL ***********************
 
 //***************** RDPOS *****************************
@@ -92,6 +94,8 @@ static void connected(struct rdp_connection_s *conn)
 {
     opts.connected = 1;
     opts.close_wait = 0;
+    if (cb_connected)
+        cb_connected();
 }
 
 static void closed(struct rdp_connection_s *conn)
@@ -101,6 +105,8 @@ static void closed(struct rdp_connection_s *conn)
     if (cb_serial_reset)
         cb_serial_reset();
     rdp_listen(conn, 1);
+    if (cb_disconnected)
+        cb_disconnected();   
 }
 
 static void data_send_completed(struct rdp_connection_s *conn)
@@ -170,17 +176,22 @@ static void register_sended_cb(void (*f)(void))
     cb_sended = f;
 }
 
-static bool is_connected(void)
+static void register_connected_cb(void (*f)(void))
 {
-    return opts.connected;
+    cb_connected = f;
+}
+
+static void register_disconnected_cb(void (*f)(void))
+{
+    cb_disconnected = f;
 }
 
 struct shell_cbs_s rdpos_io_shell_cbs = {
     .register_received_cb = register_received_cb,
     .register_sended_cb = register_sended_cb,
     .send_buffer = send_buffer,
-    .connected = is_connected,
+    .register_connected_cb = register_connected_cb,
+    .register_disconnected_cb = register_disconnected_cb,
 };
 
 //**************** END SHELL **************************
-
