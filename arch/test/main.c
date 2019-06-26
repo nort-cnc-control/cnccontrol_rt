@@ -4,9 +4,12 @@
 #include <control.h>
 #include <shell_print.h>
 #include <shell_read.h>
-#include <test_io.h>
+#include <rdpos_io.h>
 #include "config.h"
 #include <math.h>
+#include <pthread.h>
+#include <termios.h>
+#include <fcntl.h>
 
 int dsteps[3] = {0, 0, 0};
 int steps[3];
@@ -39,13 +42,19 @@ static cnc_endstops get_stops(void)
 }
 
 static void line_started(void)
-{}
+{
+    printf("Line started\n");
+}
 
 static void line_finished(void)
-{}
+{
+    printf("Line finished\n");
+}
 
 static void line_error(void)
-{}
+{
+    printf("Line error\n");
+}
 
 void config_steppers(steppers_definition *sd)
 {
@@ -92,100 +101,79 @@ void test_init(void)
     steps[2] = 0;
 }
 
-void test_arc_half_round(void)
-{
-    test_init();
+pthread_cond_t connected_flag;
 
-    double s = 10;
-    double x[3] = {0, 2*s, 0};
-    int cw = 1;
-    double d = 0;
-	planner_arc_to(x, d, XY, 0, 100, 100, 100, cw, 0);
-	int l;
-	do {
-		l = moves_step_tick();
-//      printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
-	} while (l > 0);
-    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
+
+static int fd;
+static int clsd = 0;
+
+static void transmit_char(uint8_t c)
+{
+    write(fd, &c, 1);
+    serial_cbs->byte_transmitted();
 }
 
-void test_arc_quart(void)
+void *receive(void *arg)
 {
-    test_init();
-    double s = 10;
-	double x[3] = {s, s, 0};
-    int cw = 1;
-    double d = s/sqrt(2);
-	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
-	int l;
-	do {
-		l = moves_step_tick();
-//      printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
-	} while (l > 0);
-    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+    printf("Starting recv thread. fd = %i\n", fd);
+    while (!clsd)
+    {
+        unsigned char b;
+        ssize_t n = read(fd, &b, 1);
+        if (n < 1)
+        {
+            usleep(100);
+            continue;
+        }
+        serial_cbs->byte_received(b);
+    }
+    return NULL;
 }
 
-void test_arc_quart_2(void)
-{
-    test_init();
-    double s = 10;
-	double x[3] = {-s, -s, 0};
-    int cw = 0;
-    double d = -s/sqrt(2);
-	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
-	int l;
-	do {
-		l = moves_step_tick();
-        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
-	} while (l > 0);
-    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
-}
+pthread_t tid; /* идентификатор потока */
 
-void test_arc_quart_3(void)
+int main(int argc, const char **argv)
 {
-    test_init();
-    double s = 100;
-	double x[3] = {s, s, 0};
-    int cw = 1;
-    double d = s/sqrt(2);
-	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
-	int l;
-	do {
-		l = moves_step_tick();
-        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
-	} while (l > 0);
-    printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
-}
+    const char *serial_port = argv[1];
+    printf("Opening %s\n", serial_port);
+    
+    fd = open(serial_port, O_RDWR | O_NOCTTY | O_SYNC | O_NDELAY);
+    if (fd <= 0)
+    {
+        printf("Error opening\n");
+        return 0;
+    }
+    printf("Serial opened. fd = %i\n", fd);
+    rdpos_io_init();
 
-void test_helix_1(void)
-{
-    test_init();
-    double s = 100;
-    double h = 10;
-	double x[3] = {s, s, h};
-    int cw = 1;
-    double d = s/sqrt(2);
-	planner_arc_to(x, d, XY, cw, 100, 100, 100, 10, 0);
-	int l;
-	do {
-		l = moves_step_tick();
-        //printf("X: %i %i %i\n", steps[0], steps[1], steps[2]);
-        printf("pos: %lf %lf %lf\n", pos[0], pos[1], pos[2]);
-	} while (l > 0);
-}
-
-int main(void)
-{
-	shell_print_init(&test_io_shell_cbs);
-    shell_read_init(&test_io_shell_cbs);
+    shell_print_init(&rdpos_io_shell_cbs);
+    shell_read_init(&rdpos_io_shell_cbs);
  	
-    shell_send_string("Hello");
+    serial_cbs->register_byte_transmit(transmit_char);
 
+    pthread_create(&tid, NULL, receive, &fd);
+    usleep(100000);
+
+    test_init();
     init_steppers();
-	//test_arc_half_round();
-    //test_arc_quart();
-    //test_arc_quart_2();
-    //test_arc_quart_3();
-    //test_helix_1();
+	
+    while (true)
+    {
+        while (!shell_connected())
+            usleep(1000);
+        printf("Connected\n");
+        planner_lock();
+        moves_reset();
+        shell_send_string("Hello");
+        while (shell_connected())
+        {
+            planner_pre_calculate();
+            usleep(1000);
+        }
+        printf("Disconnected\n");
+    }
+    
 	return 0;
 }

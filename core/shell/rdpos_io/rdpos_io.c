@@ -39,8 +39,9 @@ static void send_serial(void *arg, const void *data, size_t len)
     if (opts.rdy)
     {
         opts.rdy = 0;
-        cb_byte_transmit(serial_outbuf[serial_outpos]);
+        int pos = serial_outpos;
         serial_outpos = (serial_outpos + 1) % sizeof(serial_outbuf);
+        cb_byte_transmit(serial_outbuf[pos]);
     }
 }
 
@@ -56,8 +57,9 @@ static void byte_transmitted(void)
         opts.rdy = 1;
         return;
     }
-    cb_byte_transmit(serial_outbuf[serial_outpos]);
+    int pos = serial_outpos;
     serial_outpos = (serial_outpos + 1) % sizeof(serial_outbuf);
+    cb_byte_transmit(serial_outbuf[pos]);
 }
 
 static void register_byte_transmit(void (*f)(uint8_t))
