@@ -159,6 +159,11 @@ void *receive(void *arg)
             usleep(100);
             continue;
         }
+        /*if (rand() % 100 < 3)
+        {
+            printf("data loss\n");
+            continue;
+        }*/
         serial_cbs->byte_received(b);
     }
     return NULL;

@@ -6,7 +6,8 @@
 
 static void command_received(const unsigned char *cmd, size_t len)
 {
-    printf("Received: %.*s\n", len, cmd);
+    //printf("Received: %.*s\n", len, cmd);
+    //shell_send_string("RCVD");
     execute_g_command(cmd, len);
 }
 
