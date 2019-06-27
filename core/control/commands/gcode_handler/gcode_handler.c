@@ -253,11 +253,13 @@ int execute_g_command(const unsigned char *command, size_t len)
         case -E_OK:
             return handle_g_command(&frame);
         default:
+        {
             planner_lock();
-            send_error(-1, "parse error");
-            shell_send_string("error: ");
-            shell_send_string(command);
-            shell_send_string("\n\r");
+            char buf[60];
+            snprintf(buf, 60, "parse error: %s", command);
+            buf[59] = 0;
+            send_error(-1, buf);
             return rc;
+        }
     }
 }
