@@ -256,7 +256,7 @@ int execute_g_command(const unsigned char *command, size_t len)
         {
             planner_lock();
             char buf[60];
-            snprintf(buf, 60, "parse error: %s", command);
+            snprintf(buf, 60, "parse error: %.*s", len, command);
             buf[59] = 0;
             send_error(-1, buf);
             return rc;
