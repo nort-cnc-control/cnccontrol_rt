@@ -12,7 +12,7 @@ static void (*cb_serial_reset)(void);
 static void (*cb_byte_transmit)(uint8_t b);
 
 static struct rdpos_connection_s sconn;
-static struct rdp_connection_s * const conn = &sconn.rdp_conn;
+static struct rdp_connection_s conn;
 
 //****************** SERIAL ************************
 
@@ -121,39 +121,27 @@ static void data_received(struct rdp_connection_s *conn, const uint8_t *data, si
         cb_line_received(data, len);
 }
 
-static struct rdpos_buffer_set_s bufs = {
-    .rdp_outbuf = rdp_outbuf,
-    .rdp_outbuf_len = RDP_MAX_SEGMENT_SIZE,
-    .rdp_recvbuf = rdp_recv_buf,
-    .rdp_recvbuf_len = RDP_MAX_SEGMENT_SIZE,
-    .serial_receive_buf = serial_inbuf,
-    .serial_receive_buf_len = RDP_MAX_SEGMENT_SIZE,
-};
-
-static struct rdp_cbs_s rdp_cbs = {
-    .connected = connected,
-    .closed = closed,
-    .data_send_completed = data_send_completed,
-    .data_received = data_received,
-};
-
-static struct rdpos_cbs_s rdpos_cbs = {
-    .send_fn = send_serial,
-};
-
 void rdpos_io_init(void)
 {
     opts.close_wait = 0;
     opts.ack_wait = 0;
     opts.connected = 0;
     opts.rdy = 1;
-    rdpos_init_connection(&sconn, &bufs, &rdp_cbs, &rdpos_cbs);
-    rdp_listen(conn, 1);
+    rdp_init_connection(&conn, rdp_outbuf, rdp_recv_buf);
+    rdpos_init_connection(&sconn, &conn, serial_inbuf, sizeof(serial_inbuf));
+    
+    rdp_set_closed_cb(&conn, closed);
+    rdp_set_connected_cb(&conn, connected);
+    rdp_set_data_received_cb(&conn, data_received);
+    rdp_set_data_send_completed_cb(&conn, data_send_completed);
+    rdpos_set_send_cb(&sconn, send_serial);
+
+    rdp_listen(&conn, 1);
 }
 
 void rdpos_io_clock(int dt)
 {
-    rdp_clock(conn, dt);
+    rdp_clock(&conn, dt);
 }
 
 //****************** END RDPOS *********************
@@ -163,7 +151,7 @@ void rdpos_io_clock(int dt)
 
 static void send_buffer(const unsigned char *buf, size_t len)
 {
-    rdp_send(conn, buf, len);
+    rdp_send(&conn, buf, len);
 }
 
 static void register_received_cb(void (*f)(const unsigned char *, size_t))
