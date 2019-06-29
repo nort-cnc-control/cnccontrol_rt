@@ -1,5 +1,5 @@
 #include <rdpos_io.h>
-#include <rdpos.h>
+#include <serial_datagram.h>
 #include <rdp.h>
 
 
@@ -11,8 +11,12 @@ static void (*cb_disconnected)(void);
 static void (*cb_serial_reset)(void);
 static void (*cb_byte_transmit)(uint8_t b);
 
-static struct rdpos_connection_s sconn;
 static struct rdp_connection_s conn;
+
+static uint8_t rdp_recv_buf[RDP_MAX_SEGMENT_SIZE];
+static uint8_t rdp_outbuf[RDP_MAX_SEGMENT_SIZE];
+static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE*2 + 20];
+
 
 //****************** SERIAL ************************
 
@@ -48,9 +52,22 @@ static void send_serial(void *arg, const void *data, size_t len)
     }
 }
 
+static void dgram_received(const void *dtgrm, size_t len, void *arg)
+{
+    struct rdp_connection_s *conn = arg;
+    rdp_received(conn, dtgrm, len);
+}
+
+serial_datagram_rcv_handler_t hdl = {
+    .buffer = serial_inbuf,
+    .size = sizeof(serial_inbuf),
+    .callback_fn = dgram_received,
+    .callback_arg = &conn,
+};
+
 static void byte_received(unsigned char c)
 {
-    bool res = rdpos_byte_received(&sconn, c);
+    bool res = serial_datagram_receive(&hdl, &c, 1);
 }
 
 static void byte_transmitted(void)
@@ -86,10 +103,6 @@ struct serial_cbs_s rdpos_io_serial_cbs = {
 
 //***************** RDPOS *****************************
 
-static uint8_t rdp_recv_buf[RDP_MAX_SEGMENT_SIZE];
-static uint8_t rdp_outbuf[RDP_MAX_SEGMENT_SIZE];
-static uint8_t serial_inbuf[RDP_MAX_SEGMENT_SIZE];
-
 static void connected(struct rdp_connection_s *conn)
 {
     opts.connected = 1;
@@ -121,6 +134,11 @@ static void data_received(struct rdp_connection_s *conn, const uint8_t *data, si
         cb_line_received(data, len);
 }
 
+static void send_fn(struct rdp_connection_s *conn, const uint8_t *buf, size_t len)
+{
+    serial_datagram_send(buf, len, send_serial, conn);
+}
+
 void rdpos_io_init(void)
 {
     opts.close_wait = 0;
@@ -128,13 +146,12 @@ void rdpos_io_init(void)
     opts.connected = 0;
     opts.rdy = 1;
     rdp_init_connection(&conn, rdp_outbuf, rdp_recv_buf);
-    rdpos_init_connection(&sconn, &conn, serial_inbuf, sizeof(serial_inbuf));
     
     rdp_set_closed_cb(&conn, closed);
     rdp_set_connected_cb(&conn, connected);
     rdp_set_data_received_cb(&conn, data_received);
     rdp_set_data_send_completed_cb(&conn, data_send_completed);
-    rdpos_set_send_cb(&sconn, send_serial);
+    rdp_set_send_cb(&conn, send_fn);
 
     rdp_listen(&conn, 1);
 }
