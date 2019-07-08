@@ -63,8 +63,14 @@ static void line_error(void)
     printf("Line error\n");
 }
 
+static void reboot(void)
+{
+    printf("Reboot\n");
+}
+
 void config_steppers(steppers_definition *sd)
 {
+    sd->reboot         = reboot;
     sd->set_dir        = set_dir;
     sd->make_step      = make_step;
     sd->get_endstops   = get_stops;

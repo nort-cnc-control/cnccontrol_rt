@@ -216,6 +216,9 @@ static int handle_g_command(gcode_frame_t *frame)
             return -E_OK;
         case 999:
             def.reboot();
+            // for debug cases
+            send_ok(nid);
+            return -E_OK;
         default:
         {
             char buf[60];
