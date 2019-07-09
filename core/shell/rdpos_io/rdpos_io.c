@@ -54,6 +54,7 @@ static void send_serial(void *arg, const void *data, size_t len)
 
 static void dgram_received(const void *dtgrm, size_t len, void *arg)
 {
+    //do_blink();
     struct rdp_connection_s *conn = arg;
     rdp_received(conn, dtgrm, len);
 }
@@ -67,7 +68,11 @@ serial_datagram_rcv_handler_t hdl = {
 
 static void byte_received(unsigned char c)
 {
-    bool res = serial_datagram_receive(&hdl, &c, 1);
+    int res = serial_datagram_receive(&hdl, &c, 1);
+    if (res != 0)
+    {
+//	    do_blink();
+    }
 }
 
 static void byte_transmitted(void)

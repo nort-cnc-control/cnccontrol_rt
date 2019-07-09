@@ -166,7 +166,7 @@ static void transmit_char(unsigned char data)
 {
     USART_DR(USART1) = data;
 }
-/*
+
 int blink = 0;
 int do_blink(void)
 {
@@ -182,10 +182,17 @@ int do_blink(void)
     }
     return 0;
 }
-*/
+
 
 void usart1_isr(void)
 {
+
+    if (USART_SR(USART1) & USART_SR_TC)
+    {
+        USART_SR(USART1) &= ~USART_SR_TC;
+        serial_cbs->byte_transmitted();
+    }
+
     /* Check if we were called because of RXNE. */
     if (USART_SR(USART1) & USART_SR_RXNE)
     {
@@ -194,11 +201,6 @@ void usart1_isr(void)
         serial_cbs->byte_received(data); 
     }
 
-    if (USART_SR(USART1) & USART_SR_TC)
-    {
-        USART_SR(USART1) &= ~USART_SR_TC;
-        serial_cbs->byte_transmitted();
-    }
 }
 
 static void init_shell(void)
