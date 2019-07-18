@@ -10,7 +10,6 @@
 #include "config.h"
 
 #include <serial_io.h>
-#include <rdpos_io.h>
 #include <shell_print.h>
 #include <shell_read.h>
 
@@ -25,9 +24,9 @@
 #define TIMEOUT_TIMER_STEP 1000UL
 
 // *************** CONFIGURABLE PART **********
-static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
-static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
-static void (*init_serial_shell)(void) = rdpos_io_init;
+static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
+static void (*init_serial_shell)(void) = serial_io_init;
 
 static int shell_cfg = 0;
 
@@ -96,28 +95,6 @@ static void step_timer_setup(void)
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
-}
-
-static void timeout_timer_setup(void)
-{
-    rcc_periph_reset_pulse(RST_TIM3);
-
-    timer_set_prescaler(TIM3, PSC);
-    timer_direction_up(TIM3);
-    timer_disable_preload(TIM3);
-    timer_update_on_overflow(TIM3);
-    timer_enable_update_event(TIM3);
-    timer_continuous_mode(TIM3);
-
-    nvic_enable_irq(NVIC_TIM3_IRQ);
-    timer_enable_irq(TIM3, TIM_DIER_UIE);
-
-    // set time step 10 ms
-    const float t0 = TIMEOUT_TIMER_STEP / 1e6;
-    const int n = t0 * FTIMER;
-    timer_set_period(TIM3, n);
-    timer_set_counter(TIM3, 0);
-    timer_enable_counter(TIM3);
 }
 
 static void gpio_setup(void)
@@ -308,15 +285,6 @@ void tim2_isr(void)
     }
 }
 
-void tim3_isr(void)
-{
-    if (TIM_SR(TIM3) & TIM_SR_UIF) {
-        TIM_SR(TIM3) &= ~TIM_SR_UIF;
-        if (shell_cfg)
-            rdpos_io_clock(TIMEOUT_TIMER_STEP);
-    }
-}
-
 static void line_started(void)
 {
     // PC13 has LED. Enable it
@@ -410,6 +378,5 @@ void hardware_setup(void)
     init_shell();
     step_timer_setup();
     usart_setup(SHELL_BAUDRATE);
-    timeout_timer_setup();
     gpio_set(GPIOC, GPIO13);
 }

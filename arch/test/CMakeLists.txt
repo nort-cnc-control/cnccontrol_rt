@@ -4,4 +4,4 @@ set(CMAKE_C_FLAGS "-O0 -DTEST_BUILD")
 set(CMAKE_C_FLAGS "-O0 -DTEST_BUILD" PARENT_SCOPE)
 
 add_executable(test main.c)
-target_link_libraries(test control err gcode m shell_print shell_read serial_io rdpos_io pthread rt)
+target_link_libraries(test control err gcode m shell_print shell_read serial_io pthread rt)

@@ -4,7 +4,7 @@
 #include <control.h>
 #include <shell_print.h>
 #include <shell_read.h>
-#include <rdpos_io.h>
+#include <serial_io.h>
 #include "config.h"
 #include <math.h>
 #include <pthread.h>
@@ -138,8 +138,8 @@ static void* make_tick(void *arg)
 /* Shell */
 pthread_cond_t connected_flag;
 
-static struct serial_cbs_s *serial_cbs = &rdpos_io_serial_cbs;
-static struct shell_cbs_s  *shell_cbs =  &rdpos_io_shell_cbs;
+static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
+static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
 
 static int fd;
 static int clsd = 0;
@@ -175,16 +175,6 @@ void *receive(void *arg)
     return NULL;
 }
 
-static void* rdpclock(void *arg)
-{
-    while (1)
-    {
-        usleep(1000);
-        rdpos_io_clock(1000);
-    }
-    return NULL;
-}
-
 /* Shell */
 
 int main(int argc, const char **argv)
@@ -202,10 +192,9 @@ int main(int argc, const char **argv)
         return 0;
     }
     printf("Serial opened. fd = %i\n", fd);
-    rdpos_io_init();
 
-    shell_print_init(&rdpos_io_shell_cbs);
-    shell_read_init(&rdpos_io_shell_cbs);
+    shell_print_init(&serial_io_shell_cbs);
+    shell_read_init(&serial_io_shell_cbs);
 
     serial_cbs->register_byte_transmit(transmit_char);
 
@@ -217,7 +206,6 @@ int main(int argc, const char **argv)
     init_steppers();
 
     /* Create timers */
-    pthread_create(&tid_rdp, NULL, rdpclock, NULL);
     pthread_create(&tid_tick, NULL, make_tick, NULL);
 
     while (true)
