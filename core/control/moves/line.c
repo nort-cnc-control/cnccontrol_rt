@@ -1,5 +1,4 @@
 #include <math.h>
-#include <shell_print.h>
 #include "common.h"
 #include "line.h"
 #include "moves.h"
@@ -203,7 +202,6 @@ void line_pre_calculate(line_plan *line)
     if (line->acc_steps < 0 || line->dec_steps < 0)
     {
         // We can not perform such moving!
-        shell_send_string("debug: line impossible to move!\n\r");
         if (line->acc_steps < 0)
             line->acc_steps = 0;
         if (line->dec_steps < 0)

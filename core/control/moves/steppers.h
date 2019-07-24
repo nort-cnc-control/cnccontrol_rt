@@ -6,7 +6,7 @@ typedef struct {
     uint8_t stop_x:1;
     uint8_t stop_y:1;
     uint8_t stop_z:1;
-    uint8_t probe_z:1;
+    uint8_t probe:1;
 } cnc_endstops;
 
 typedef struct

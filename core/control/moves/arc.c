@@ -3,7 +3,6 @@
 #include "common.h"
 #include <moves.h>
 #include <stdlib.h>
-#include <shell_print.h>
 #include <acceleration.h>
 
 #include <assert.h>
@@ -75,15 +74,6 @@ static void start_segment(arc_segment *s)
     current_state.dir[1] = 0;
     current_state.dir[2] = 0;
     current_state.segment = s;
-    /*shell_send_string("seg: ");
-    shell_print_dec(s->start[0]);
-    shell_send_char(' ');
-    shell_print_dec(s->start[1]);
-    shell_send_char(' ');
-    shell_print_dec(s->finish[0]);
-    shell_send_char(' ');
-    shell_print_dec(s->finish[1]);
-    shell_send_char('\n');*/
     if (s->go_x)
     {
         current_state.x0 = s->start[0];
@@ -133,13 +123,6 @@ static double make_step(void)
 {
     if (current_state.x == current_state.x1)
     {
-#if DEBUG
-        shell_send_string("end: x == x1\n\r");
-        shell_print_dec(current_state.x);
-        shell_send_string(" ");
-        shell_print_dec(current_state.x0);
-        shell_send_string("\n\r");
-#endif
         return -1;
     }
 
@@ -191,16 +174,6 @@ static double plan_tick()
 
     if (current_state.x == current_state.x1)
     {
-        //shell_send_string("Finish segment\n\r");
-/*        shell_send_string("x = ");
-        shell_print_dec(current_state.x);
-        shell_send_string("(");
-        shell_print_dec(current_state.x1);
-        shell_send_string(") y = ");
-        shell_print_dec(current_state.y);
-        shell_send_string("(");
-        shell_print_dec(current_state.y1);
-        shell_send_string(")\n\r");*/
 #ifdef TEST_BUILD
         assert(current_state.x == current_state.x1);
         assert(current_state.y == current_state.y1);
@@ -217,9 +190,6 @@ static double plan_tick()
         }
         else
         {
-#if DEBUG
-            shell_send_string("Last segment reached\n\r");
-#endif
             return -1;
         }
     }
@@ -237,11 +207,6 @@ int arc_step_tick(void)
     // Check if we have reached the end
     if (len < 0)
     {
-#if DEBUG
-        shell_send_string("Real total: ");
-        shell_print_dec(current_state.acc.step);
-        shell_send_string("\n\r");
-#endif
 	    def.line_finished();
         return -1;
     }
@@ -249,9 +214,6 @@ int arc_step_tick(void)
     // Check for endstops
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
     {
-#if DEBUG
-        shell_send_string("debug: break\n\r");
-#endif
 	    def.line_error();
         return -1;
     }
@@ -572,14 +534,6 @@ void arc_pre_calculate(arc_plan *arc)
         break;
     }
 
-#if DEBUG
-    shell_send_string("ARC: ");
-    shell_print_fixed(delta[0]);
-    shell_send_string(", ");
-    shell_print_fixed(delta[1]);
-    shell_send_string("\r\n");
-#endif
-
     double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
     double p[2] = {delta[1] / len, -delta[0] / len}; // ortogonal vector
 
@@ -662,11 +616,6 @@ void arc_pre_calculate(arc_plan *arc)
             // small arc
         }
     }
-#if DEBUG
-    shell_send_string("debug: angle = ");
-    shell_print_fixed(angle * 180 / 3.1415926535);
-    shell_send_string("\n\r");
-#endif
     arc->len = radius * angle;
     arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arc->len, arc->steps);
     arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arc->len, arc->steps);
@@ -678,30 +627,14 @@ void arc_pre_calculate(arc_plan *arc)
         if (arc->acc_steps + arc->dec_steps < arc->steps)
             arc->acc_steps += (arc->steps - arc->acc_steps - arc->dec_steps);
     }
-#if DEBUG
-    shell_send_string("debug: acc = ");
-    shell_print_dec(arc->acc_steps);
-    shell_send_string(" dec = ");
-    shell_print_dec(arc->dec_steps);
-    shell_send_string("\n\r");
-#endif
     if (arc->acc_steps < 0 || arc->dec_steps < 0)
     {
         // We can not perform such moving!
-        shell_send_string("debug: arc impossible to move!\n\r");
         if (arc->acc_steps < 0)
             arc->acc_steps = 0;
         if (arc->dec_steps < 0)
             arc->dec_steps = 0;
                 
     }
-#if DEBUG
-    shell_send_string("Num of segments: ");
-    shell_print_dec(arc->num_segments);
-    shell_send_string("\n\rSteps: ");
-    shell_print_dec(arc->steps);
-    shell_send_string("\n\r");
-#endif
     arc->ready = 1;
 }
-

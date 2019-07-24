@@ -2,9 +2,6 @@
 #include <arc.h>
 #include <planner.h>
 #include <control.h>
-#include <shell_print.h>
-#include <shell_read.h>
-#include <serial_io.h>
 #include "config.h"
 #include <math.h>
 #include <pthread.h>
@@ -13,6 +10,9 @@
 #include <time.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <output.h>
+#include <gcode_handler.h>
+#include <string.h>
 
 int dsteps[3] = {0, 0, 0};
 int steps[3];
@@ -38,7 +38,7 @@ static cnc_endstops get_stops(void)
         .stop_x  = 0,
         .stop_y  = 0,
         .stop_z  = 0,
-        .probe_z = 0,
+        .probe = 0,
     };
 
     return stops;
@@ -135,23 +135,14 @@ static void* make_tick(void *arg)
     return NULL;
 }
 
-/* Shell */
-pthread_cond_t connected_flag;
-
-static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
-static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
-
 static int fd;
-static int clsd = 0;
-
-static void transmit_char(uint8_t c)
-{
-    write(fd, &c, 1);
-    serial_cbs->byte_transmitted();
-}
+static int clsd;
 
 void *receive(void *arg)
 {
+    static char buf[1000];
+    size_t blen;
+
     printf("Starting recv thread. fd = %i\n", fd);
     while (!clsd)
     {
@@ -162,20 +153,35 @@ void *receive(void *arg)
             usleep(100);
             continue;
         }
-        printf("%02X ", b);
-        if (b == 0xC0)
-            printf("\n");
-        /*if (rand() % 100 < 3)
+        putchar(b);
+        if (b == '\n' || b == '\r')
         {
-            printf("data loss\n");
-            continue;
-        }*/
-        serial_cbs->byte_received(b);
+            execute_g_command(buf, blen);
+            blen = 0;
+            memset(buf, 0, sizeof(buf));
+        }
+        else
+        {
+            buf[blen++] = b;
+        }
     }
     return NULL;
 }
 
-/* Shell */
+static ssize_t write_fun(int fd, const void *data, size_t len)
+{
+    if (fd == 0)
+    {
+        write(fd, data, len);
+        write(fd, "\r\n", 2);
+    }
+    else
+    {
+        write(fd, data, len);
+        write(fd, "\r\n", 2);
+    }
+    return 0;
+}
 
 int main(int argc, const char **argv)
 {
@@ -193,37 +199,26 @@ int main(int argc, const char **argv)
     }
     printf("Serial opened. fd = %i\n", fd);
 
-    shell_print_init(&serial_io_shell_cbs);
-    shell_read_init(&serial_io_shell_cbs);
-
-    serial_cbs->register_byte_transmit(transmit_char);
-
     pthread_create(&tid_rcv, NULL, receive, &fd);
 
     usleep(100000);
 
+    output_control_set_fd(fd);
+    output_shell_set_fd(0);
+    output_set_write_fun(write_fun);
+
     test_init();
     init_steppers();
 
-    /* Create timers */
     pthread_create(&tid_tick, NULL, make_tick, NULL);
+    planner_lock();
+    moves_reset();
+    output_control_write("Hello", sizeof("Hello"));
 
     while (true)
     {
-        while (!shell_connected())
-            usleep(1000);
-        printf("Connected\n");
-        planner_lock();
-        moves_reset();
-        shell_send_string("Hello");
-        while (shell_connected())
-        {
-            planner_pre_calculate();
-            usleep(1000);
-        }
-        planner_lock();
-        moves_reset();
-        printf("Disconnected\n");
+        planner_pre_calculate();
+        usleep(1000);
     }
     
 	return 0;

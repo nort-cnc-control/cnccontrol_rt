@@ -8,7 +8,7 @@ include_directories(libopencm3/include/)
 link_directories(libopencm3/lib/)
 
 add_executable(controller.elf main.c stm32f103.c)
-target_link_libraries(controller.elf control err gcode shell_print shell_read serial_io opencm3_stm32f1 m)
+target_link_libraries(controller.elf control err gcode output opencm3_stm32f1 m)
 
 add_custom_target(controller.bin ALL arm-none-eabi-objcopy -O binary controller.elf controller.bin)
 add_dependencies(controller.bin controller.elf)

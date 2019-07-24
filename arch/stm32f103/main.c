@@ -1,9 +1,9 @@
 #include "config.h"
 
-#include <shell_print.h>
 #include <moves.h>
 #include <planner.h>
 #include <control.h>
+#include <output.h>
 
 void hardware_setup(void);
 
@@ -38,15 +38,14 @@ int main(void)
 {
     hardware_setup();
     init_steppers();
+    
+    planner_lock();
+    moves_reset();
+    output_control_write("Hello", -1);
+    
     while (true)
     {
-        while (!shell_connected())
-            ;
-        planner_lock();
-        moves_reset();
-        shell_send_string("Hello");
-        while (shell_connected())
-            planner_pre_calculate();
+        planner_pre_calculate();
     }
 
     return 0;

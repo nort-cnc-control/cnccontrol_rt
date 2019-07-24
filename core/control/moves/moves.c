@@ -1,7 +1,6 @@
 #include "line.h"
 #include "arc.h"
 #include "moves.h"
-#include <shell_print.h>
 
 static enum {
     MOVE_NONE = 0,
@@ -65,15 +64,6 @@ void moves_init(steppers_definition definition)
 int moves_line_to(line_plan *plan)
 {
     int i;
-#if DEBUG
-    shell_send_string("debug: delta = ");
-    shell_print_fixed(state.delta[0]);
-    shell_send_char(' ');
-    shell_print_fixed(state.delta[1]);
-    shell_send_char(' ');
-    shell_print_fixed(state.delta[2]);
-    shell_send_char('\n');
-#endif
     add_move(plan->x);
     for (i = 0; i < 3; i++)
     {

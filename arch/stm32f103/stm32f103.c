@@ -6,12 +6,11 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/spi.h>
 
+#include <string.h>
+#include <output.h>
 #include "config.h"
-
-#include <serial_io.h>
-#include <shell_print.h>
-#include <shell_read.h>
 
 #include <control.h>
 #include <moves.h>
@@ -22,11 +21,6 @@
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
 #define TIMEOUT_TIMER_STEP 1000UL
-
-// *************** CONFIGURABLE PART **********
-static struct serial_cbs_s *serial_cbs = &serial_io_serial_cbs;
-static struct shell_cbs_s  *shell_cbs =  &serial_io_shell_cbs;
-static void (*init_serial_shell)(void) = serial_io_init;
 
 static int shell_cfg = 0;
 
@@ -99,50 +93,49 @@ static void step_timer_setup(void)
 
 static void gpio_setup(void)
 {
-    /* Set GPIO (in GPIO port C) to 'output push-pull'. */
+    /* Blink led */
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
                   GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
     // X - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                   GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
-    // Y - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
-    // Z - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO6);
     // X - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                   GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
+    
+    // Y - step
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO2);
     // Y - dir
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
+    
+    // Z - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                   GPIO_CNF_OUTPUT_OPENDRAIN, GPIO4);
     // Z - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO7);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO5);
 
-    // Z - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO12);
-    gpio_set(GPIOB, GPIO12);
-    // Y - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO13);
-    gpio_set(GPIOB, GPIO13);
+    
     // X - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO14);
-    gpio_set(GPIOB, GPIO14);
-    // Z - probe
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO15);
-    gpio_set(GPIOA, GPIO15);
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO3);
+    gpio_set(GPIOB, GPIO3);
+    // Y - stop
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO4);
+    gpio_set(GPIOB, GPIO4);
+    // Z - stop
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO5);
+    gpio_set(GPIOB, GPIO5);
+
+    // Probe
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO8);
+    gpio_set(GPIOB, GPIO8);
 }
 
 
 /******** SHELL ******************/
-
-static void transmit_char(unsigned char data)
-{
-    USART_DR(USART1) = data;
-}
 
 int blink = 0;
 int do_blink(void)
@@ -160,39 +153,82 @@ int do_blink(void)
     return 0;
 }
 
+static unsigned char txbuf[256];
+static int txpos;
+static int txlast;
+
+
+static void transmit_char(unsigned char data)
+{
+    USART_DR(USART1) = data;
+}
 
 void usart1_isr(void)
 {
+    static unsigned char rcvbuf[128];
+    static size_t rcvlen = 0;
 
     if (USART_SR(USART1) & USART_SR_TC)
     {
         USART_SR(USART1) &= ~USART_SR_TC;
-        serial_cbs->byte_transmitted();
+        /* byte has been transmitted */
+        if (txpos != txlast)
+        {
+            int cur = txpos;
+            txpos = (txpos + 1) % sizeof(txbuf);
+            transmit_char(txbuf[cur]);
+        }
     }
 
     /* Check if we were called because of RXNE. */
     if (USART_SR(USART1) & USART_SR_RXNE)
     {
+        USART_SR(USART1) &= ~USART_SR_RXNE;
+
         /* Retrieve the data from the peripheral. */
         unsigned char data = usart_recv(USART1);
-        serial_cbs->byte_received(data); 
-    }
 
+        if (data == '\n' || data == '\r' || rcvlen >= 128)
+        {
+            execute_g_command(rcvbuf, rcvlen);
+            rcvlen = 0;
+            memset(rcvbuf, 0, sizeof(rcvbuf));
+        }
+        else
+        {
+            rcvbuf[rcvlen++] = data;
+        }
+    }
 }
 
-static void init_shell(void)
+static ssize_t write_fun(int fd, const void *data, size_t len)
 {
-    // configure serial_io to use this hardware
-    init_serial_shell();
+    int i;
+    bool empty = (txlast == txpos);
+    for (i = 0; i < len; i++)
+    {
+        txbuf[txlast] = ((const char*)data)[i];
+        txlast = (txlast + 1) % sizeof(txbuf);
+    }
+    txbuf[txlast] = '\n';
+    txlast = (txlast + 1) % sizeof(txbuf);
+    txbuf[txlast] = '\r';
+    txlast = (txlast + 1) % sizeof(txbuf);
+    if (empty)
+    {
+        int cur = txpos;
+        txpos = (txpos + 1) % sizeof(txbuf);
+        transmit_char(txbuf[cur]);
+    }
+    return 0;
+}
 
-    // configure serial
-    serial_cbs->register_byte_transmit(transmit_char);
-
-    // configure shell
-    shell_print_init(shell_cbs);
-    shell_read_init(shell_cbs);
-
-    shell_cfg = 1;
+static void shell_setup(void)
+{
+    txpos = txlast = 0;
+    output_set_write_fun(write_fun);
+    output_control_set_fd(0);
+    output_shell_set_fd(1);
 }
 
 /************* END SHELL ****************/
@@ -207,10 +243,10 @@ static void set_dir(int i, int dir)
             gpio_set(GPIOA, GPIO1);
             break;
         case 1:
-            gpio_set(GPIOA, GPIO4);
+            gpio_set(GPIOA, GPIO3);
             break;
         case 2:
-            gpio_set(GPIOA, GPIO7);
+            gpio_set(GPIOA, GPIO5);
             break;
         }
     } else {
@@ -219,10 +255,10 @@ static void set_dir(int i, int dir)
             gpio_clear(GPIOA, GPIO1);
             break;
         case 1:
-            gpio_clear(GPIOA, GPIO4);
+            gpio_clear(GPIOA, GPIO3);
             break;
         case 2:
-            gpio_clear(GPIOA, GPIO7);
+            gpio_clear(GPIOA, GPIO5);
             break;
         }
     }
@@ -236,10 +272,10 @@ static void make_step(int i)
         gpio_clear(GPIOA, GPIO0);
         break;
     case 1:
-        gpio_clear(GPIOA, GPIO3);
+        gpio_clear(GPIOA, GPIO2);
         break;
     case 2:
-        gpio_clear(GPIOA, GPIO6);
+        gpio_clear(GPIOA, GPIO4);
         break;
     }
 }
@@ -247,8 +283,8 @@ static void make_step(int i)
 static void end_step(void)
 {
     gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO3);
-    gpio_set(GPIOA, GPIO6);
+    gpio_set(GPIOA, GPIO2);
+    gpio_set(GPIOA, GPIO4);
 }
 
 static void make_tick(void)
@@ -326,10 +362,10 @@ static void line_error(void)
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
-        .stop_x  = !(gpio_get(GPIOB, GPIO14) >> 14),
-        .stop_y  = !(gpio_get(GPIOB, GPIO13) >> 13),
-        .stop_z  = !(gpio_get(GPIOB, GPIO12) >> 12),
-        .probe_z = !(gpio_get(GPIOA, GPIO15) >> 15),
+        .stop_x  = !(gpio_get(GPIOB, GPIO3) >> 14),
+        .stop_y  = !(gpio_get(GPIOB, GPIO4) >> 13),
+        .stop_z  = !(gpio_get(GPIOB, GPIO5) >> 12),
+        .probe   = !(gpio_get(GPIOB, GPIO8) >> 15),
     };
 
     return stops;
@@ -375,7 +411,7 @@ void hardware_setup(void)
 
     clock_setup();
     gpio_setup();
-    init_shell();
+    shell_setup();
     step_timer_setup();
     usart_setup(SHELL_BAUDRATE);
     gpio_set(GPIOC, GPIO13);

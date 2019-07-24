@@ -5,8 +5,8 @@
 #include <print_events.h>
 #include <print_status.h>
 #include <planner.h>
-#include <shell_print.h>
 #include <string.h>
+#include <unistd.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -242,10 +242,13 @@ static int handle_g_command(gcode_frame_t *frame)
     return -E_INCORRECT;
 }
 
-int execute_g_command(const unsigned char *command, size_t len)
+int execute_g_command(const unsigned char *command, ssize_t len)
 {
     gcode_frame_t frame;
     int rc;
+
+    if (len < 0)
+        len = strlen(command);
 
     rc = parse_cmdline(command, len, &frame);
     switch (rc)

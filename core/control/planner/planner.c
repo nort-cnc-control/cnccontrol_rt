@@ -5,8 +5,8 @@
 #include "planner.h"
 #include <math.h>
 #include <err.h>
-#include <shell_print.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define QUEUE_SIZE 10
 
@@ -70,10 +70,7 @@ static void get_cmd(void)
 
     if (plan_last == plan_cur)
     {
-#if DEBUG
-        shell_send_string("debug: planner is empty\n\r");
-#endif
-	return;
+    	return;
     }
 
     int res;
@@ -109,7 +106,6 @@ static void get_cmd(void)
         get_cmd();
         break;
     case ACTION_NONE:
-        shell_send_string("debug: ACTION_NONE\n\r");
         break;
     }
 }
@@ -183,7 +179,7 @@ static int break_on_endstops(int32_t *dx, void *user_data)
     if (endstops.stop_z && dx[2] < 0)
         return 1;
 
-    if (break_on_probe && endstops.probe_z && dx[2] >= 0)
+    if (break_on_probe && endstops.probe && dx[2] >= 0)
         return 1;
 
     return 0;

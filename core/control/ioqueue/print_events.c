@@ -1,37 +1,41 @@
 #include <stdio.h>
-#include <shell_print.h>
+#include <unistd.h>
 #include <planner.h>
+#include <output.h>
+#include <string.h>
+
+#define min(a,b) ((a) < (b) ? (a) : (b))
 
 void send_queued(int nid)
 {
-    char buf[128];
+    char buf[50];
     int q = empty_slots();
-    snprintf(buf, 128, "queued N:%i Q:%i", nid, q);
-    shell_send_string(buf);
+    snprintf(buf, sizeof(buf), "queued N:%i Q:%i", nid, q);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
 void send_dropped(int nid)
 {
-    char buf[128];
+    char buf[50];
     int q = empty_slots();
-    snprintf(buf, 128, "dropped N:%i Q:%i", nid, q);
-    shell_send_string(buf);
+    snprintf(buf, sizeof(buf), "dropped N:%i Q:%i", nid, q);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
 void send_started(int nid)
 {
-    char buf[128];
+    char buf[50];
     int q = empty_slots();
-    snprintf(buf, 128, "started N:%i Q:%i", nid, q);
-    shell_send_string(buf);
+    snprintf(buf, sizeof(buf), "started N:%i Q:%i", nid, q);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
 void send_completed(int nid)
 {
-    char buf[128];
+    char buf[50];
     int q = empty_slots();
-    snprintf(buf, 128, "completed N:%i Q:%i", nid, q);
-    shell_send_string(buf);
+    snprintf(buf, sizeof(buf), "completed N:%i Q:%i", nid, q);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
 void send_ok(int nid)
@@ -43,8 +47,7 @@ void send_ok(int nid)
 
 void send_error(int nid, const char *err)
 {
-    char buf[128];
-    snprintf(buf, 128, "error N:%i %s", nid, err);
-    buf[127] = 0;
-    shell_send_string(buf);
+    char buf[50];
+    snprintf(buf, sizeof(buf), "error N:%i %s", nid, err);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }

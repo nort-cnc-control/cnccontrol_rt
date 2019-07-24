@@ -1,14 +1,10 @@
 #include <acceleration.h>
 #include <common.h>
-#include <shell_print.h>
 
 void acceleration_process(acceleration_state *state, int32_t step_delay)
 {
     if (state->step >= state->total_steps)
     {
-#if DEBUG
-        shell_send_string("debug: finished\n\r");
-#endif
         state->type = STATE_STOP;
         return;
     }
