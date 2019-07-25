@@ -3,7 +3,7 @@
 
 static int control_fd;
 static int shell_fd;
-static ssize_t (*write_fun)(int, const void *, size_t);
+static ssize_t (*write_fun)(int, const void *, ssize_t);
 
 void output_control_set_fd(int fd)
 {
@@ -15,7 +15,7 @@ void output_shell_set_fd(int fd)
     shell_fd = fd;
 }
 
-void output_set_write_fun(ssize_t (*write_f)(int, const void *, size_t))
+void output_set_write_fun(ssize_t (*write_f)(int, const void *, ssize_t))
 {
     write_fun = write_f;
 }

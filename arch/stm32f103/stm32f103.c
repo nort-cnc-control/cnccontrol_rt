@@ -7,7 +7,11 @@
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/spi.h>
+#include <libopencm3/stm32/exti.h>
 
+#include <enc28j60.h>
+
+#include <stdio.h>
 #include <string.h>
 #include <output.h>
 #include "config.h"
@@ -22,7 +26,21 @@
 #define PSC ((FCPU) / (FTIMER) - 1)
 #define TIMEOUT_TIMER_STEP 1000UL
 
+#define NORT_ETHERTYPE 0xFEFE
+
 static int shell_cfg = 0;
+
+static const uint8_t mac[6] = {0x0C, 0x00, 0x00, 0x00, 0x00, 0x02};
+//static const uint8_t ip[4] = {10, 55, 2, 200};
+static uint8_t host[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+struct enc28j60_state_s eth_state;
+bool configured = false;
+
+void gpio_setup(void);
+void step_timer_setup(void);
+void usart_setup(int baudrate);
+void uart_send(const uint8_t *data, ssize_t len);
 
 // ********************************************
 
@@ -43,95 +61,51 @@ static void clock_setup(void)
 
     /* Enable TIM3 clock for connection timeouts */
     rcc_periph_clock_enable(RCC_TIM3);
+
+    /* Enable SPI */
+    rcc_periph_clock_enable(RCC_AFIO);
+    rcc_periph_clock_enable(RCC_SPI2);
 }
 
-static void usart_setup(int baudrate)
+
+
+/* Setup SPI */
+
+static uint8_t spi_rw(uint8_t d)
 {
-    nvic_enable_irq(NVIC_USART1_IRQ);
-
-    /* Setup GPIO pin GPIO_USART1_RE_RX on GPIO port A for receive. */
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
-                  GPIO_CNF_INPUT_FLOAT, GPIO_USART1_RX);
-
-    /* Setup GPIO pin GPIO_USART1_TX. */
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
-
-    /* Setup UART parameters. */
-    usart_set_baudrate(USART1, baudrate);
-    usart_set_databits(USART1, 8);
-    usart_set_stopbits(USART1, USART_STOPBITS_1);
-    usart_set_mode(USART1, USART_MODE_TX_RX);
-    usart_set_parity(USART1, USART_PARITY_NONE);
-    usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
-
-    USART_CR1(USART1) |= USART_CR1_RXNEIE;
-    USART_CR1(USART1) |= USART_CR1_TCIE;
-
-    /* Finally enable the USART. */
-    usart_enable(USART1);
+    spi_send(SPI2, d);
+    return spi_read(SPI2);
 }
 
-static void step_timer_setup(void)
+static void spi_cs(uint8_t v)
 {
-    rcc_periph_reset_pulse(RST_TIM2);
-
-    timer_set_prescaler(TIM2, PSC);
-    timer_direction_up(TIM2);
-    timer_disable_preload(TIM2);
-    timer_update_on_overflow(TIM2);
-    timer_enable_update_event(TIM2);
-    timer_continuous_mode(TIM2);
-
-    timer_set_oc_fast_mode(TIM2, TIM_OC1);
-    timer_set_oc_value(TIM2, TIM_OC1, 1);
-
-    nvic_enable_irq(NVIC_TIM2_IRQ);
-    timer_enable_irq(TIM2, TIM_DIER_UIE);
-    timer_enable_irq(TIM2, TIM_DIER_CC1IE);
+    if (v)
+        gpio_set(GPIOB, GPIO_SPI2_NSS);
+    else
+        gpio_clear(GPIOB, GPIO_SPI2_NSS);
 }
 
-static void gpio_setup(void)
+static void spi_setup(void)
 {
-    /* Blink led */
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
+    nvic_enable_irq(NVIC_SPI2_IRQ);
 
-    // X - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
-    // X - dir
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
-    
-    // Y - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO2);
-    // Y - dir
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
-    
-    // Z - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO4);
-    // Z - dir
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO5);
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI2_MOSI | GPIO_SPI2_SCK);
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI2_NSS);
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_SPI2_MISO);
 
-    
-    // X - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO3);
-    gpio_set(GPIOB, GPIO3);
-    // Y - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO4);
-    gpio_set(GPIOB, GPIO4);
-    // Z - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO5);
-    gpio_set(GPIOB, GPIO5);
+    spi_reset(SPI2);
 
-    // Probe
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO8);
-    gpio_set(GPIOB, GPIO8);
+    spi_init_master(SPI2,
+                    SPI_CR1_BAUDRATE_FPCLK_DIV_8,
+                    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                    SPI_CR1_CPHA_CLK_TRANSITION_1,
+                    SPI_CR1_DFF_8BIT,
+                    SPI_CR1_MSBFIRST);
+
+    spi_enable_software_slave_management(SPI2);
+    spi_set_nss_high(SPI2);
+
+    spi_enable(SPI2);
 }
 
 
@@ -153,79 +127,35 @@ int do_blink(void)
     return 0;
 }
 
-static unsigned char txbuf[256];
-static int txpos;
-static int txlast;
 
-
-static void transmit_char(unsigned char data)
-{
-    USART_DR(USART1) = data;
-}
-
-void usart1_isr(void)
-{
-    static unsigned char rcvbuf[128];
-    static size_t rcvlen = 0;
-
-    if (USART_SR(USART1) & USART_SR_TC)
-    {
-        USART_SR(USART1) &= ~USART_SR_TC;
-        /* byte has been transmitted */
-        if (txpos != txlast)
-        {
-            int cur = txpos;
-            txpos = (txpos + 1) % sizeof(txbuf);
-            transmit_char(txbuf[cur]);
-        }
-    }
-
-    /* Check if we were called because of RXNE. */
-    if (USART_SR(USART1) & USART_SR_RXNE)
-    {
-        USART_SR(USART1) &= ~USART_SR_RXNE;
-
-        /* Retrieve the data from the peripheral. */
-        unsigned char data = usart_recv(USART1);
-
-        if (data == '\n' || data == '\r' || rcvlen >= 128)
-        {
-            execute_g_command(rcvbuf, rcvlen);
-            rcvlen = 0;
-            memset(rcvbuf, 0, sizeof(rcvbuf));
-        }
-        else
-        {
-            rcvbuf[rcvlen++] = data;
-        }
-    }
-}
-
-static ssize_t write_fun(int fd, const void *data, size_t len)
+ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
     int i;
-    bool empty = (txlast == txpos);
-    for (i = 0; i < len; i++)
+    if (len < 0)
+        len = strlen((const char *)data);
+    if (fd == 0)
     {
-        txbuf[txlast] = ((const char*)data)[i];
-        txlast = (txlast + 1) % sizeof(txbuf);
+        char hdr[ETHERNET_HEADER_LEN];
+        enc28j60_fill_header(hdr, mac, host, NORT_ETHERTYPE);
+        while (!enc28j60_tx_ready(&eth_state))
+            ;
+        uint8_t plen[2] = {len >> 8, len & 0xFF};
+        enc28j60_send_start(&eth_state);
+        enc28j60_send_append(&eth_state, hdr, ETHERNET_HEADER_LEN);
+        enc28j60_send_append(&eth_state, plen, 2);
+        enc28j60_send_append(&eth_state, data, len);
+        enc28j60_send_commit(&eth_state);
     }
-    txbuf[txlast] = '\n';
-    txlast = (txlast + 1) % sizeof(txbuf);
-    txbuf[txlast] = '\r';
-    txlast = (txlast + 1) % sizeof(txbuf);
-    if (empty)
+    else
     {
-        int cur = txpos;
-        txpos = (txpos + 1) % sizeof(txbuf);
-        transmit_char(txbuf[cur]);
+        uart_send(data, len);
     }
     return 0;
 }
 
+
 static void shell_setup(void)
 {
-    txpos = txlast = 0;
     output_set_write_fun(write_fun);
     output_control_set_fd(0);
     output_shell_set_fd(1);
@@ -233,160 +163,56 @@ static void shell_setup(void)
 
 /************* END SHELL ****************/
 
-static volatile int moving;
+/* Ethernet */
 
-static void set_dir(int i, int dir)
+static void enc28j60setup(struct enc28j60_state_s *state)
 {
-    if (dir) {
-        switch (i) {
-        case 0:
-            gpio_set(GPIOA, GPIO1);
-            break;
-        case 1:
-            gpio_set(GPIOA, GPIO3);
-            break;
-        case 2:
-            gpio_set(GPIOA, GPIO5);
-            break;
-        }
-    } else {
-        switch (i) {
-        case 0:
-            gpio_clear(GPIOA, GPIO1);
-            break;
-        case 1:
-            gpio_clear(GPIOA, GPIO3);
-            break;
-        case 2:
-            gpio_clear(GPIOA, GPIO5);
-            break;
-        }
-    }
+    // interrupt pin
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO1);
+
+    // enable interrupt
+    nvic_enable_irq(NVIC_EXTI1_IRQ);
+    exti_select_source(EXTI1, GPIOB);
+    exti_set_trigger(EXTI1, EXTI_TRIGGER_FALLING);
+    exti_enable_request(EXTI1);
+
+    enc28j60_init(state, spi_rw, spi_cs);
+    enc28j60_configure(state, mac, 4096, false);
+    enc28j60_interrupt_enable(state, true);
 }
 
-static void make_step(int i)
+void exti1_isr(void)
 {
-    switch (i)
-    {
-    case 0:
-        gpio_clear(GPIOA, GPIO0);
-        break;
-    case 1:
-        gpio_clear(GPIOA, GPIO2);
-        break;
-    case 2:
-        gpio_clear(GPIOA, GPIO4);
-        break;
-    }
-}
-
-static void end_step(void)
-{
-    gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO2);
-    gpio_set(GPIOA, GPIO4);
-}
-
-static void make_tick(void)
-{
-    int delay_us = moves_step_tick();
-    if (delay_us < 0)
-    {
+    exti_reset_request(EXTI1);
+    if (!configured)
+    {   
+        uart_send("not cfg", -1);
         return;
     }
-    int delay = delay_us * FTIMER / 1000000UL;
-    if (delay < 3)
-        delay = 3;
-    timer_set_period(TIM2, delay);
-}
-
-void tim2_isr(void)
-{
-    if (TIM_SR(TIM2) & TIM_SR_UIF) {
-        // next step of movement
-        // it can set STEP pins active (low)
-        TIM_SR(TIM2) &= ~TIM_SR_UIF;
-        make_tick();
+    while (enc28j60_has_package(&eth_state))
+    {
+        char buf[1518];
+        uint32_t status;
+        uint32_t crc;
+        ssize_t len = enc28j60_read_packet(&eth_state, buf, 1518, &status, &crc);
+        uint16_t ethertype = enc28j60_get_ethertype(buf, len);
+        uint8_t src[6];
+        uint8_t dst[6];
+        uint16_t plen;
+        uint8_t *pl = (uint8_t *)enc28j60_get_payload(buf, len);
+        memcpy(src, enc28j60_get_source(buf, len), 6);
+        memcpy(dst, enc28j60_get_target(buf, len), 6);
+        switch (ethertype)
+        {
+            case NORT_ETHERTYPE:
+                memcpy(host, src, 6);
+                plen = ((uint16_t)pl[0]) << 8 | pl[1];
+                execute_g_command(pl+2, plen);
+                break;
+            default:
+                break;
+        }
     }
-    else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
-        // set STEP pins not active (high) at the end of STEP
-        // ______     _______
-        //       |___|
-        //
-        //           ^
-        //           |
-        //           here
-        TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
-        end_step();
-    }
-}
-
-static void line_started(void)
-{
-    // PC13 has LED. Enable it
-    gpio_clear(GPIOC, GPIO13);
-
-    // Set initial STEP state
-    end_step();
-    moving = 1;
-
-    // some big enough value, it will be overwritten
-    timer_set_period(TIM2, 10000);
-    timer_set_counter(TIM2, 0);
-    timer_enable_counter(TIM2);
-    // first tick
-    make_tick();
-}
-
-static void line_finished(void)
-{
-    timer_disable_counter(TIM2);
-
-    // disable LED
-    gpio_set(GPIOC, GPIO13);
-
-    // initial STEP state
-    end_step();
-    moving = 0;
-}
-
-static void line_error(void)
-{
-    // temporary do same things as in finished case
-    timer_disable_counter(TIM2);
-    gpio_set(GPIOC, GPIO13);
-    end_step();
-    moving = 0;
-}
-
-static cnc_endstops get_stops(void)
-{
-    cnc_endstops stops = {
-        .stop_x  = !(gpio_get(GPIOB, GPIO3) >> 14),
-        .stop_y  = !(gpio_get(GPIOB, GPIO4) >> 13),
-        .stop_z  = !(gpio_get(GPIOB, GPIO5) >> 12),
-        .probe   = !(gpio_get(GPIOB, GPIO8) >> 15),
-    };
-
-    return stops;
-}
-
-static void reboot(void)
-{
-    SCB_AIRCR = (0x5FA<<16)|(1 << 2);
-    for (;;)
-        ;
-}
-
-void config_steppers(steppers_definition *sd)
-{
-    sd->reboot         = reboot;
-    sd->set_dir        = set_dir;
-    sd->make_step      = make_step;
-    sd->get_endstops   = get_stops;
-    sd->line_started   = line_started;
-    sd->line_finished  = line_finished;
-    sd->line_error     = line_error;
 }
 
 void hard_fault_handler(void)
@@ -405,14 +231,20 @@ void hard_fault_handler(void)
 
 void hardware_setup(void)
 {
-    moving = 0;
 
     SCB_VTOR = (uint32_t) 0x08000000;
 
     clock_setup();
     gpio_setup();
-    shell_setup();
+    
+    spi_setup();
+    
     step_timer_setup();
     usart_setup(SHELL_BAUDRATE);
+    enc28j60setup(&eth_state);
     gpio_set(GPIOC, GPIO13);
+    shell_setup();
+
+    uart_send("configured", -1);
+    configured = true;
 }

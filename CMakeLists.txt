@@ -8,3 +8,6 @@ endif ()
 
 add_subdirectory(arch/${BUILD_TYPE})
 add_subdirectory(core)
+
+add_subdirectory(drivers/ethernet_enc28j60/src/)
+

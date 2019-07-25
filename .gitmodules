@@ -1,3 +1,6 @@
 [submodule "libopencm3"]
 	path = arch/stm32f103/libopencm3
 	url = https://github.com/libopencm3/libopencm3
+[submodule "drivers/ethernet_enc28j60"]
+	path = drivers/ethernet_enc28j60
+	url = https://github.com/nort-cnc-control/ethernet_enc28j60

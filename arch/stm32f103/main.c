@@ -41,8 +41,9 @@ int main(void)
     
     planner_lock();
     moves_reset();
+
     output_control_write("Hello", -1);
-    
+
     while (true)
     {
         planner_pre_calculate();
