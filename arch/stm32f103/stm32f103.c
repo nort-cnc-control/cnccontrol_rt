@@ -8,6 +8,7 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/exti.h>
+#include <libopencm3/stm32/dma.h>
 
 #include <enc28j60.h>
 
@@ -41,6 +42,15 @@ void gpio_setup(void);
 void step_timer_setup(void);
 void usart_setup(int baudrate);
 void uart_send(const uint8_t *data, ssize_t len);
+void uart_pause(void);
+void uart_continue(void);
+
+uint8_t spi_rw(uint8_t d);
+void spi_cs(uint8_t v);
+void spi_setup(void);
+void spi_read_buf(uint8_t *data, size_t len);
+void spi_write_buf(const uint8_t *data, size_t len);
+
 
 // ********************************************
 
@@ -62,51 +72,26 @@ static void clock_setup(void)
     /* Enable TIM3 clock for connection timeouts */
     rcc_periph_clock_enable(RCC_TIM3);
 
-    /* Enable SPI */
+    /* Enable SPI2 */
     rcc_periph_clock_enable(RCC_AFIO);
     rcc_periph_clock_enable(RCC_SPI2);
+
+    /* Enable DMA1 */
+    rcc_periph_clock_enable(RCC_DMA1);
 }
 
-
+static void dma_int_enable(void)
+{
+	/* SPI2 RX on DMA1 Channel 4 */
+ 	nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
+	nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
+	/* SPI2 TX on DMA1 Channel 5 */
+	nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
+	nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
+}
 
 /* Setup SPI */
 
-static uint8_t spi_rw(uint8_t d)
-{
-    spi_send(SPI2, d);
-    return spi_read(SPI2);
-}
-
-static void spi_cs(uint8_t v)
-{
-    if (v)
-        gpio_set(GPIOB, GPIO_SPI2_NSS);
-    else
-        gpio_clear(GPIOB, GPIO_SPI2_NSS);
-}
-
-static void spi_setup(void)
-{
-    nvic_enable_irq(NVIC_SPI2_IRQ);
-
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI2_MOSI | GPIO_SPI2_SCK);
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI2_NSS);
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_SPI2_MISO);
-
-    spi_reset(SPI2);
-
-    spi_init_master(SPI2,
-                    SPI_CR1_BAUDRATE_FPCLK_DIV_8,
-                    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                    SPI_CR1_CPHA_CLK_TRANSITION_1,
-                    SPI_CR1_DFF_8BIT,
-                    SPI_CR1_MSBFIRST);
-
-    spi_enable_software_slave_management(SPI2);
-    spi_set_nss_high(SPI2);
-
-    spi_enable(SPI2);
-}
 
 
 /******** SHELL ******************/
@@ -171,12 +156,13 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO1);
 
     // enable interrupt
+    nvic_set_priority(NVIC_EXTI1_IRQ, 1);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
     exti_select_source(EXTI1, GPIOB);
     exti_set_trigger(EXTI1, EXTI_TRIGGER_FALLING);
     exti_enable_request(EXTI1);
 
-    enc28j60_init(state, spi_rw, spi_cs);
+    enc28j60_init(state, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
     enc28j60_configure(state, mac, 4096, false);
     enc28j60_interrupt_enable(state, true);
 }
@@ -236,7 +222,7 @@ void hardware_setup(void)
 
     clock_setup();
     gpio_setup();
-    
+    dma_int_enable();
     spi_setup();
     
     step_timer_setup();

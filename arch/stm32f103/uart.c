@@ -20,9 +20,12 @@
 static unsigned char txbuf[1024] = {};
 static int txpos = 0;
 static int txlast = 0;
+static bool paused = false;
+static bool busy = false;
 
 static void transmit_char(unsigned char data)
 {
+    busy = true;
     USART_DR(USART1) = data;
 }
 
@@ -33,9 +36,10 @@ void usart1_isr(void)
 
     if (USART_SR(USART1) & USART_SR_TC)
     {
+        busy = false;
         USART_SR(USART1) &= ~USART_SR_TC;
         /* byte has been transmitted */
-        if (txpos != txlast)
+        if (txpos != txlast && !paused)
         {
             int cur = txpos;
             txpos = (txpos + 1) % sizeof(txbuf);
@@ -68,6 +72,25 @@ void uart_send(const uint8_t *data, ssize_t len)
     txlast = (txlast + 1) % sizeof(txbuf);
     txbuf[txlast] = '\r';
     txlast = (txlast + 1) % sizeof(txbuf);
+    if (empty && !paused)
+    {
+        int cur = txpos;
+        txpos = (txpos + 1) % sizeof(txbuf);
+        transmit_char(txbuf[cur]);
+    }
+}
+
+void uart_pause(void)
+{
+    paused = true;
+    while (busy)
+        ;
+}
+
+void uart_continue(void)
+{
+    paused = false;
+    bool empty = (txlast == txpos);
     if (empty)
     {
         int cur = txpos;

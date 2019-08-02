@@ -23,6 +23,7 @@
 #define PSC ((FCPU) / (FTIMER) - 1)
 #define TIMEOUT_TIMER_STEP 1000UL
 
+static bool going = false;
 
 void step_timer_setup(void)
 {
@@ -72,8 +73,8 @@ void gpio_setup(void)
 
     
     // X - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO3);
-    gpio_set(GPIOB, GPIO3);
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO6);
+    gpio_set(GPIOB, GPIO6);
     // Y - stop
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO4);
     gpio_set(GPIOB, GPIO4);
@@ -150,11 +151,14 @@ static void make_tick(void)
     int delay = delay_us * FTIMER / 1000000UL;
     if (delay < 3)
         delay = 3;
+    timer_set_counter(TIM2, 0);
     timer_set_period(TIM2, delay);
 }
 
 void tim2_isr(void)
 {
+    if (!going)
+        return;
     if (TIM_SR(TIM2) & TIM_SR_UIF) {
         // next step of movement
         // it can set STEP pins active (low)
@@ -183,16 +187,15 @@ static void line_started(void)
     end_step();
     moving = 1;
 
-    // some big enough value, it will be overwritten
-    timer_set_period(TIM2, 10000);
-    timer_set_counter(TIM2, 0);
-    timer_enable_counter(TIM2);
     // first tick
     make_tick();
+    timer_enable_counter(TIM2);
+    going = true;
 }
 
 static void line_finished(void)
 {
+    going = false;
     timer_disable_counter(TIM2);
 
     // disable LED
@@ -205,6 +208,7 @@ static void line_finished(void)
 
 static void line_error(void)
 {
+    going = false;
     // temporary do same things as in finished case
     timer_disable_counter(TIM2);
     gpio_set(GPIOC, GPIO13);
@@ -215,10 +219,10 @@ static void line_error(void)
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
-        .stop_x  = !(gpio_get(GPIOB, GPIO3) >> 14),
-        .stop_y  = !(gpio_get(GPIOB, GPIO4) >> 13),
-        .stop_z  = !(gpio_get(GPIOB, GPIO5) >> 12),
-        .probe   = !(gpio_get(GPIOB, GPIO8) >> 15),
+        .stop_x  = !(gpio_get(GPIOB, GPIO6)),
+        .stop_y  = !(gpio_get(GPIOB, GPIO4)),
+        .stop_z  = !(gpio_get(GPIOB, GPIO5)),
+        .probe   = !(gpio_get(GPIOB, GPIO8)),
     };
 
     return stops;
