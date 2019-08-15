@@ -83,10 +83,10 @@ static void clock_setup(void)
 static void dma_int_enable(void)
 {
 	/* SPI2 RX on DMA1 Channel 4 */
- 	nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
+ 	nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0x11);
 	nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
 	/* SPI2 TX on DMA1 Channel 5 */
-	nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
+	nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0x11);
 	nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
 }
 
@@ -112,6 +112,34 @@ int do_blink(void)
     return 0;
 }
 
+static bool ethernet_lock = false;
+static void eth_lock(void)
+{
+    while (ethernet_lock)
+            ;
+    nvic_disable_irq(NVIC_EXTI1_IRQ);
+    ethernet_lock = true;
+}
+
+static void eth_unlock(void)
+{
+    ethernet_lock = false;
+    nvic_enable_irq(NVIC_EXTI1_IRQ);
+}
+
+static bool poll_lock_f = false;
+static void poll_lock(void)
+{
+    while (poll_lock_f)
+            ;
+    poll_lock_f = true;
+}
+
+static void poll_unlock(void)
+{
+    poll_lock_f = false;
+}
+
 
 ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
@@ -120,6 +148,8 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
         len = strlen((const char *)data);
     if (fd == 0)
     {
+        eth_lock();
+
         char hdr[ETHERNET_HEADER_LEN];
         enc28j60_fill_header(hdr, mac, host, NORT_ETHERTYPE);
         while (!enc28j60_tx_ready(&eth_state))
@@ -130,6 +160,8 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
         enc28j60_send_append(&eth_state, plen, 2);
         enc28j60_send_append(&eth_state, data, len);
         enc28j60_send_commit(&eth_state);
+        
+        eth_unlock();
     }
     else
     {
@@ -156,7 +188,7 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO1);
 
     // enable interrupt
-    nvic_set_priority(NVIC_EXTI1_IRQ, 1);
+    nvic_set_priority(NVIC_EXTI1_IRQ, 0x22);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
     exti_select_source(EXTI1, GPIOB);
     exti_set_trigger(EXTI1, EXTI_TRIGGER_FALLING);
@@ -167,20 +199,32 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     enc28j60_interrupt_enable(state, true);
 }
 
-void exti1_isr(void)
+static bool eth_has_pkg(void)
 {
-    exti_reset_request(EXTI1);
+    eth_lock();
+    bool res = enc28j60_has_package(&eth_state);
+    eth_unlock();
+    return res;
+}
+
+void poll_net(void)
+{
+    poll_lock();
     if (!configured)
     {   
         uart_send("not cfg", -1);
+        poll_unlock();
         return;
     }
-    while (enc28j60_has_package(&eth_state))
+
+    while (eth_has_pkg())
     {
         char buf[1518];
         uint32_t status;
         uint32_t crc;
+        eth_lock();
         ssize_t len = enc28j60_read_packet(&eth_state, buf, 1518, &status, &crc);
+        eth_unlock();
         uint16_t ethertype = enc28j60_get_ethertype(buf, len);
         uint8_t src[6];
         uint8_t dst[6];
@@ -199,6 +243,13 @@ void exti1_isr(void)
                 break;
         }
     }
+    poll_unlock();
+}
+
+void exti1_isr(void)
+{
+    exti_reset_request(EXTI1);
+    poll_net();
 }
 
 void hard_fault_handler(void)

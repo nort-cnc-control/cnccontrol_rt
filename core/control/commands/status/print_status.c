@@ -11,7 +11,7 @@
 
 void print_endstops(int nid)
 {
-    char buf[128];    
+    char buf[128]; 
     send_started(nid);
     int q = empty_slots();
     cnc_endstops stops = moves_get_endstops();
@@ -19,11 +19,28 @@ void print_endstops(int nid)
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
+static int decimal4(double x)
+{
+    if (x < 0)
+        x = -x;
+    return (int)(x * 10000) - ((int)x)*10000;
+}
+
 void print_position(int nid)
 {
-    char buf[128];    
+    char buf[128];
     send_started(nid);
     int q = empty_slots();
-    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%0.2lf Y:%0.2lf Z:%0.2lf", nid, q, position.pos[0], position.pos[1], position.pos[2]);
+
+    int xh = position.pos[0];
+    int xl = decimal4(position.pos[0]);
+
+    int yh = position.pos[1];
+    int yl = decimal4(position.pos[1]);
+
+    int zh = position.pos[2];
+    int zl = decimal4(position.pos[2]);
+
+    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%i.%04i Y:%i.%04i Z:%i.%04i", nid, q, xh, xl, yh, yl, zh, zl);
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }

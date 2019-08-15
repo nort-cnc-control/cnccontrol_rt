@@ -6,7 +6,7 @@
 #include <output.h>
 
 void hardware_setup(void);
-
+void poll_net(void);
 void config_steppers(steppers_definition *sd);
 
 static void init_steppers(void)
@@ -46,6 +46,7 @@ int main(void)
 
     while (true)
     {
+//        poll_net();
         planner_pre_calculate();
     }
 

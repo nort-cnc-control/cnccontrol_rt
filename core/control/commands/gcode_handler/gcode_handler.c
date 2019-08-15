@@ -182,9 +182,11 @@ static int handle_g_command(gcode_frame_t *frame)
     case 'M':
         switch (cmds[0].val_i) {
         case 114:
+            send_queued(nid);
             print_position(nid);
             return -E_OK;
         case 119:
+            send_queued(nid);
             print_endstops(nid);
             return -E_OK;
         case 800:

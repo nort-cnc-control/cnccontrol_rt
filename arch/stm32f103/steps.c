@@ -39,6 +39,8 @@ void step_timer_setup(void)
     timer_set_oc_fast_mode(TIM2, TIM_OC1);
     timer_set_oc_value(TIM2, TIM_OC1, 1);
 
+    nvic_set_priority(NVIC_TIM2_IRQ, 0x00);
+
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
@@ -52,24 +54,24 @@ void gpio_setup(void)
 
     // X - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
     // X - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
     
     // Y - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO2);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
     // Y - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO3);
     
     // Z - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO4);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO4);
     // Z - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO5);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO5);
 
     
     // X - stop
@@ -94,18 +96,6 @@ static void set_dir(int i, int dir)
     if (dir) {
         switch (i) {
         case 0:
-            gpio_set(GPIOA, GPIO1);
-            break;
-        case 1:
-            gpio_set(GPIOA, GPIO3);
-            break;
-        case 2:
-            gpio_set(GPIOA, GPIO5);
-            break;
-        }
-    } else {
-        switch (i) {
-        case 0:
             gpio_clear(GPIOA, GPIO1);
             break;
         case 1:
@@ -113,6 +103,18 @@ static void set_dir(int i, int dir)
             break;
         case 2:
             gpio_clear(GPIOA, GPIO5);
+            break;
+        }
+    } else {
+        switch (i) {
+        case 0:
+            gpio_set(GPIOA, GPIO1);
+            break;
+        case 1:
+            gpio_set(GPIOA, GPIO3);
+            break;
+        case 2:
+            gpio_set(GPIOA, GPIO5);
             break;
         }
     }
@@ -123,22 +125,22 @@ static void make_step(int i)
     switch (i)
     {
     case 0:
-        gpio_clear(GPIOA, GPIO0);
+        gpio_set(GPIOA, GPIO0);
         break;
     case 1:
-        gpio_clear(GPIOA, GPIO2);
+        gpio_set(GPIOA, GPIO2);
         break;
     case 2:
-        gpio_clear(GPIOA, GPIO4);
+        gpio_set(GPIOA, GPIO4);
         break;
     }
 }
 
 static void end_step(void)
 {
-    gpio_set(GPIOA, GPIO0);
-    gpio_set(GPIOA, GPIO2);
-    gpio_set(GPIOA, GPIO4);
+    gpio_clear(GPIOA, GPIO0);
+    gpio_clear(GPIOA, GPIO2);
+    gpio_clear(GPIOA, GPIO4);
 }
 
 static void make_tick(void)
@@ -158,7 +160,13 @@ static void make_tick(void)
 void tim2_isr(void)
 {
     if (!going)
+    {
+        TIM_SR(TIM2) &= ~TIM_SR_UIF;
+        TIM_SR(TIM2) &= ~TIM_SR_CC1IF;
+
+        timer_disable_counter(TIM2);
         return;
+    }
     if (TIM_SR(TIM2) & TIM_SR_UIF) {
         // next step of movement
         // it can set STEP pins active (low)
@@ -166,9 +174,9 @@ void tim2_isr(void)
         make_tick();
     }
     else if (TIM_SR(TIM2) & TIM_SR_CC1IF) {
-        // set STEP pins not active (high) at the end of STEP
-        // ______     _______
-        //       |___|
+        // set STEP pins not active (low) at the end of STEP
+        //        ___
+        // ______|   |_______
         //
         //           ^
         //           |
@@ -189,15 +197,16 @@ static void line_started(void)
 
     // first tick
     make_tick();
-    timer_enable_counter(TIM2);
     going = true;
+
+    timer_enable_counter(TIM2);
 }
 
 static void line_finished(void)
 {
-    going = false;
     timer_disable_counter(TIM2);
-
+    going = false;
+    
     // disable LED
     gpio_set(GPIOC, GPIO13);
 
@@ -208,9 +217,10 @@ static void line_finished(void)
 
 static void line_error(void)
 {
-    going = false;
     // temporary do same things as in finished case
     timer_disable_counter(TIM2);
+    going = false;
+    
     gpio_set(GPIOC, GPIO13);
     end_step();
     moving = 0;
