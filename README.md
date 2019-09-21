@@ -109,4 +109,4 @@ We can make only fixed step with stepper motors. But if we have make such moveme
 
 # License
 
-GPLv3+, see LICENSE file for full text
+GPLv3, see LICENSE file for full text
