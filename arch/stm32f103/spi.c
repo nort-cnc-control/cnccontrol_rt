@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <unistd.h>
 
+void uart_send(const uint8_t *data, ssize_t len);
+
 uint8_t spi_rw(uint8_t d)
 {
     spi_send(SPI2, d);

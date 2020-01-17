@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <err.h>
 
-#define MAX_CMDS 10
+#define MAX_CMDS 16
 
 typedef struct {
     char type;

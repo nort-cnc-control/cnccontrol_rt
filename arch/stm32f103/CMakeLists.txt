@@ -9,6 +9,8 @@ link_directories(libopencm3/lib/)
 
 add_executable(controller.elf main.c stm32f103.c steps.c uart.c spi.c)
 target_link_libraries(controller.elf control err gcode output opencm3_stm32f1 m enc28j60)
+target_include_directories(controller.elf PUBLIC enc28j60)
 
 add_custom_target(controller.bin ALL arm-none-eabi-objcopy -O binary controller.elf controller.bin)
 add_dependencies(controller.bin controller.elf)
+
