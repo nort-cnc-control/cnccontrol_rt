@@ -217,7 +217,7 @@ void poll_net(void)
         return;
     }
 
-    while (eth_has_pkg())
+    while (eth_has_pkg() && !ethernet_lock)
     {
         char buf[1518];
         uint32_t status;

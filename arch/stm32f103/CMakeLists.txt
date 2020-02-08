@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
+
 set(LINKER_FLAGS "-T ${CMAKE_CURRENT_SOURCE_DIR}/stm32.ld -Wl,--gc-sections --static -nostartfiles -specs=nano.specs -specs=nosys.specs")
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}")
