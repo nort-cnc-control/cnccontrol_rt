@@ -51,6 +51,7 @@ void spi_setup(void);
 void spi_read_buf(uint8_t *data, size_t len);
 void spi_write_buf(const uint8_t *data, size_t len);
 
+void step_timer_irq_enable(bool en);
 
 // ********************************************
 
@@ -115,8 +116,7 @@ int do_blink(void)
 static bool ethernet_lock = false;
 static void eth_lock(void)
 {
-    while (ethernet_lock)
-            ;
+    step_timer_irq_enable(0);
     nvic_disable_irq(NVIC_EXTI1_IRQ);
     ethernet_lock = true;
 }
@@ -125,6 +125,7 @@ static void eth_unlock(void)
 {
     ethernet_lock = false;
     nvic_enable_irq(NVIC_EXTI1_IRQ);
+    step_timer_irq_enable(1);
 }
 
 static bool poll_lock_f = false;
@@ -248,8 +249,8 @@ void poll_net(void)
 
 void exti1_isr(void)
 {
-    exti_reset_request(EXTI1);
     poll_net();
+    exti_reset_request(EXTI1);
 }
 
 void hard_fault_handler(void)

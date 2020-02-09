@@ -46,6 +46,18 @@ void step_timer_setup(void)
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
 }
 
+void step_timer_irq_enable(bool en)
+{
+    if (en)
+    {
+        nvic_enable_irq(NVIC_TIM2_IRQ);
+    }
+    else
+    {
+        nvic_disable_irq(NVIC_TIM2_IRQ);
+    }
+}
+
 void gpio_setup(void)
 {
     /* Blink led */
