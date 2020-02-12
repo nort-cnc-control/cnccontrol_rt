@@ -29,11 +29,20 @@
 
 #define NORT_ETHERTYPE 0xFEFE
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 static int shell_cfg = 0;
 
 static const uint8_t mac[6] = {0x0C, 0x00, 0x00, 0x00, 0x00, 0x02};
 //static const uint8_t ip[4] = {10, 55, 2, 200};
 static uint8_t host[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+#define MNUM 8
+#define MLEN 120
+static char messages[MNUM][MLEN];
+static int mpos = 0;
+static int mfirst = 0;
+static int mnum = 0;
 
 struct enc28j60_state_s eth_state;
 bool configured = false;
@@ -50,8 +59,6 @@ void spi_cs(uint8_t v);
 void spi_setup(void);
 void spi_read_buf(uint8_t *data, size_t len);
 void spi_write_buf(const uint8_t *data, size_t len);
-
-void step_timer_irq_enable(bool en);
 
 // ********************************************
 
@@ -116,7 +123,6 @@ int do_blink(void)
 static bool ethernet_lock = false;
 static void eth_lock(void)
 {
-    step_timer_irq_enable(0);
     nvic_disable_irq(NVIC_EXTI1_IRQ);
     ethernet_lock = true;
 }
@@ -125,7 +131,6 @@ static void eth_unlock(void)
 {
     ethernet_lock = false;
     nvic_enable_irq(NVIC_EXTI1_IRQ);
-    step_timer_irq_enable(1);
 }
 
 static bool poll_lock_f = false;
@@ -141,6 +146,66 @@ static void poll_unlock(void)
     poll_lock_f = false;
 }
 
+static bool eth_has_pkg(void)
+{
+    bool res = enc28j60_has_package(&eth_state);
+    return res;
+}
+
+static void run_eth(void)
+{
+    static bool eth_running = false;
+    if (eth_running)
+	return;
+    eth_running = true;
+    bool ehp;
+    while ((ehp = eth_has_pkg()) || mnum > 0)
+    {
+        if (mnum > 0)
+        {
+            size_t len = strlen(messages[mfirst]);
+            char hdr[ETHERNET_HEADER_LEN];
+            enc28j60_fill_header(hdr, mac, host, NORT_ETHERTYPE);
+            while (!enc28j60_tx_ready(&eth_state))
+                ;
+            uint8_t plen[2] = {len >> 8, len & 0xFF};
+            enc28j60_send_start(&eth_state);
+            enc28j60_send_append(&eth_state, hdr, ETHERNET_HEADER_LEN);
+            enc28j60_send_append(&eth_state, plen, 2);
+            enc28j60_send_append(&eth_state, messages[mfirst], len);
+            enc28j60_send_commit(&eth_state);
+            mfirst = (mfirst + 1) % MNUM;
+            mnum--;
+        }
+        if (ehp)
+        {
+            char buf[1518];
+            uint32_t status;
+            uint32_t crc;
+
+            ssize_t len = enc28j60_read_packet(&eth_state, buf, 1518, &status, &crc);
+
+            uint16_t ethertype = enc28j60_get_ethertype(buf, len);
+            uint8_t src[6];
+            uint8_t dst[6];
+            uint16_t plen;
+            uint8_t *pl = (uint8_t *)enc28j60_get_payload(buf, len);
+            memcpy(src, enc28j60_get_source(buf, len), 6);
+            memcpy(dst, enc28j60_get_target(buf, len), 6);
+            switch (ethertype)
+            {
+            case NORT_ETHERTYPE:
+                memcpy(host, src, 6);
+                plen = ((uint16_t)pl[0]) << 8 | pl[1];
+                execute_g_command(pl+2, plen);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    eth_running = false;
+}
 
 ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
@@ -149,20 +214,14 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
         len = strlen((const char *)data);
     if (fd == 0)
     {
-        eth_lock();
-
-        char hdr[ETHERNET_HEADER_LEN];
-        enc28j60_fill_header(hdr, mac, host, NORT_ETHERTYPE);
-        while (!enc28j60_tx_ready(&eth_state))
-            ;
-        uint8_t plen[2] = {len >> 8, len & 0xFF};
-        enc28j60_send_start(&eth_state);
-        enc28j60_send_append(&eth_state, hdr, ETHERNET_HEADER_LEN);
-        enc28j60_send_append(&eth_state, plen, 2);
-        enc28j60_send_append(&eth_state, data, len);
-        enc28j60_send_commit(&eth_state);
-        
-        eth_unlock();
+        if (mnum == MNUM)
+            return -1;
+        len = min(len, MLEN-1);
+        strncpy(messages[mpos], data, len);
+        messages[mpos][len] = 0;
+        mpos = (mpos + 1) % MNUM;
+        mnum++;
+	run_eth();
     }
     else
     {
@@ -200,56 +259,9 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     enc28j60_interrupt_enable(state, true);
 }
 
-static bool eth_has_pkg(void)
-{
-    eth_lock();
-    bool res = enc28j60_has_package(&eth_state);
-    eth_unlock();
-    return res;
-}
-
-void poll_net(void)
-{
-    poll_lock();
-    if (!configured)
-    {   
-        uart_send("not cfg", -1);
-        poll_unlock();
-        return;
-    }
-
-    while (eth_has_pkg() && !ethernet_lock)
-    {
-        char buf[1518];
-        uint32_t status;
-        uint32_t crc;
-        eth_lock();
-        ssize_t len = enc28j60_read_packet(&eth_state, buf, 1518, &status, &crc);
-        eth_unlock();
-        uint16_t ethertype = enc28j60_get_ethertype(buf, len);
-        uint8_t src[6];
-        uint8_t dst[6];
-        uint16_t plen;
-        uint8_t *pl = (uint8_t *)enc28j60_get_payload(buf, len);
-        memcpy(src, enc28j60_get_source(buf, len), 6);
-        memcpy(dst, enc28j60_get_target(buf, len), 6);
-        switch (ethertype)
-        {
-            case NORT_ETHERTYPE:
-                memcpy(host, src, 6);
-                plen = ((uint16_t)pl[0]) << 8 | pl[1];
-                execute_g_command(pl+2, plen);
-                break;
-            default:
-                break;
-        }
-    }
-    poll_unlock();
-}
-
 void exti1_isr(void)
 {
-    poll_net();
+    run_eth();
     exti_reset_request(EXTI1);
 }
 
