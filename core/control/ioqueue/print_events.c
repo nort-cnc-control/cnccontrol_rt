@@ -38,6 +38,13 @@ void send_completed(int nid)
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
+void send_failed(int nid)
+{
+    char buf[50];
+    snprintf(buf, sizeof(buf), "failed N:%i move failed", nid);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
+}
+
 void send_ok(int nid)
 {
     send_queued(nid);

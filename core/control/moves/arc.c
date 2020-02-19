@@ -201,21 +201,21 @@ static double plan_tick()
 
 int arc_step_tick(void)
 {
+    // Check for endstops
+    if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
+    {
+        def.endstops_touched();
+        return -E_ENDSTOP;
+    }
+
     // Make step
     double len = plan_tick();
 
     // Check if we have reached the end
     if (len < 0)
     {
-	    def.line_finished();
-        return -1;
-    }
-
-    // Check for endstops
-    if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
-    {
-	    def.line_error();
-        return -1;
+        def.line_finished();
+        return -E_NEXT;
     }
 
     // Calculate delay

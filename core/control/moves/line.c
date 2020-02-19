@@ -50,8 +50,6 @@ int line_move_to(line_plan *plan)
         def.set_dir(i, current_plan->s[i] >= 0);
         current_state.steps[i] = 0;
     }
-    if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
-        return -E_NEXT;
 
     if (current_plan->steps == 0)
         return -E_NEXT;
@@ -115,6 +113,14 @@ static double make_step(void)
 
 int line_step_tick(void)
 {
+    // Check for endstops
+    if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
+    {
+        current_state.is_moving = 0;
+        def.endstops_touched();
+        return -E_ENDSTOP;
+    }
+
     // Make step
     double len = make_step();
 
@@ -123,14 +129,6 @@ int line_step_tick(void)
     {
         current_state.is_moving = 0;
         def.line_finished();
-        return -1;
-    }
-
-    // Check for endstops
-    if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
-    {
-        current_state.is_moving = 0;
-        def.line_error();
         return -1;
     }
 

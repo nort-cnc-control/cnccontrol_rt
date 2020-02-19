@@ -17,6 +17,7 @@ typedef struct
     void (*line_started)(void);
     void (*line_finished)(void);
     void (*line_error)(void);
+    void (*endstops_touched)(void);
     cnc_endstops (*get_endstops)(void);
     int32_t steps_per_unit[3];
     int32_t feed_base;

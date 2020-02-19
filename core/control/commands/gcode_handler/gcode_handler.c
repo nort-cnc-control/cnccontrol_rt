@@ -197,7 +197,15 @@ static int handle_g_command(gcode_frame_t *frame)
             planner_lock();
             send_ok(nid);
             return -E_OK;
-        case 995:
+        case 802:
+            planner_fail_on_endstops(false);
+            send_ok(nid);
+            return -E_OK;
+        case 803:
+            planner_fail_on_endstops(true);
+            send_ok(nid);
+            return -E_OK;
+	case 995:
             enable_break_on_probe(false);
             send_ok(nid);
             return -E_OK;

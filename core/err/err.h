@@ -11,4 +11,5 @@ enum {
     E_NOMEM = 5,
     E_LOCKED = 6,
     E_CRC = 7,
+    E_ENDSTOP = 8,
 };
