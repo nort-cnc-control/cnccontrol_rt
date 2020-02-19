@@ -135,6 +135,7 @@ static void endstops_touched(void)
 	_planner_lock();
         def.line_error();
         ev_send_failed(cp->nid);
+        pop_cmd();
     }
 }
 
