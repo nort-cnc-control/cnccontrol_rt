@@ -14,6 +14,11 @@
 #include <gcode_handler.h>
 #include <string.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+
 #include <moves.h>
 #include <planner.h>
 #include <control.h>
@@ -22,6 +27,7 @@
 int dsteps[3] = {0, 0, 0};
 int steps[3];
 double pos[3];
+bool run = false;
 
 static void set_dir(int coord, int dir)
 {
@@ -70,6 +76,7 @@ static void line_error(void)
 
 static void reboot(void)
 {
+    output_control_write("Hello", -1);
     printf("Reboot\n");
 }
 
@@ -123,7 +130,7 @@ void test_init(void)
 
 static void* make_tick(void *arg)
 {
-    while (1)
+    while (run)
     {
         if (line_st)
         {
@@ -143,15 +150,14 @@ static void* make_tick(void *arg)
 }
 
 static int fd;
-static int clsd;
 
 void *receive(void *arg)
 {
     static char buf[1000];
-    size_t blen;
+    size_t blen = 0;
 
     printf("Starting recv thread. fd = %i\n", fd);
-    while (!clsd)
+    while (run)
     {
         unsigned char b;
         ssize_t n = read(fd, &b, 1);
@@ -160,10 +166,17 @@ void *receive(void *arg)
             usleep(100);
             continue;
         }
-        putchar(b);
         if (b == '\n' || b == '\r')
         {
-            execute_g_command(buf, blen);
+            if (blen >= 3 && !memcmp(buf, "RT:", 3))
+            {
+                printf("Execute: %.*s\n", blen - 3, buf + 3);
+                execute_g_command(buf + 3, blen - 3);
+            }
+            else if (blen >= 5 && !memcmp(buf, "EXIT:", 5))
+            {
+                run = false;
+            }
             blen = 0;
             memset(buf, 0, sizeof(buf));
         }
@@ -177,56 +190,78 @@ void *receive(void *arg)
 
 static ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
+    printf("Send line: %.*s\n", len, (const char*)data);
     if (fd == 0)
     {
         write(fd, data, len);
-        write(fd, "\r\n", 2);
+        write(fd, "\n", 1);
     }
     else
     {
         write(fd, data, len);
-        write(fd, "\r\n", 2);
+        write(fd, "\n", 1);
     }
     return 0;
+}
+
+static int create_control(unsigned short port)
+{
+    struct sockaddr_in ctl_sockaddr;
+    int ctlsock = socket(AF_INET, SOCK_STREAM, 0);
+    setsockopt(ctlsock, SOL_SOCKET, SO_REUSEADDR, NULL, 0);
+
+    ctl_sockaddr.sin_family = AF_INET;
+    ctl_sockaddr.sin_port = htons(port);
+    ctl_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(ctlsock, (struct sockaddr *)&ctl_sockaddr, sizeof(ctl_sockaddr)) < 0)
+    {
+        printf("Can not bind tcp\n");
+        return -1;
+    }
+    listen(ctlsock, 1);
+    return ctlsock;
 }
 
 int main(int argc, const char **argv)
 {
     pthread_t tid_rcv; /* идентификатор потока */
-    pthread_t tid_rdp; /* идентификатор потока */
     pthread_t tid_tick; /* идентификатор потока */
-    const char *serial_port = argv[1];
-    printf("Opening %s\n", serial_port);
     
-    fd = open(serial_port, O_RDWR | O_NOCTTY | O_SYNC | O_NDELAY);
-    if (fd <= 0)
+    int sock = create_control(8889);
+    if (sock <= 0)
     {
         printf("Error opening\n");
         return 0;
     }
-    printf("Serial opened. fd = %i\n", fd);
-
-    pthread_create(&tid_rcv, NULL, receive, &fd);
-
-    usleep(100000);
-
-    output_control_set_fd(fd);
-    output_shell_set_fd(0);
-    output_set_write_fun(write_fun);
-
-    test_init();
-    init_steppers();
-
-    pthread_create(&tid_tick, NULL, make_tick, NULL);
-    planner_lock();
-    moves_reset();
-    output_control_write("Hello", sizeof("Hello"));
 
     while (true)
     {
-        planner_pre_calculate();
-        usleep(1000);
+        fd = accept(sock, NULL, NULL);
+        run = true;
+        printf("Connect from client\n");
+
+        pthread_create(&tid_rcv, NULL, receive, &fd);
+        usleep(100000);
+
+        output_control_set_fd(fd);
+        output_shell_set_fd(0);
+        output_set_write_fun(write_fun);
+
+        test_init();
+        init_steppers();
+
+        pthread_create(&tid_tick, NULL, make_tick, NULL);
+        planner_lock();
+        moves_reset();
+
+        while (run)
+        {
+            planner_pre_calculate();
+            usleep(1000);
+        }
+
+        close(fd);
     }
-    
-	return 0;
+    return 0;
 }
