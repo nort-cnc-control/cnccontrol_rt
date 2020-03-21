@@ -90,12 +90,12 @@ static void clock_setup(void)
 
 static void dma_int_enable(void)
 {
-	/* SPI2 RX on DMA1 Channel 4 */
- 	nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0x11);
-	nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
-	/* SPI2 TX on DMA1 Channel 5 */
-	nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0x11);
-	nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
+    /* SPI2 RX on DMA1 Channel 4 */
+    nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
+    nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
+    /* SPI2 TX on DMA1 Channel 5 */
+    nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
+    nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
 }
 
 /* Setup SPI */
@@ -217,11 +217,10 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
         if (mnum == MNUM)
             return -1;
         len = min(len, MLEN-1);
-        strncpy(messages[mpos], data, len);
+        memcpy(messages[mpos], data, len);
         messages[mpos][len] = 0;
         mpos = (mpos + 1) % MNUM;
         mnum++;
-	run_eth();
     }
     else
     {
@@ -248,22 +247,22 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO1);
 
     // enable interrupt
-    nvic_set_priority(NVIC_EXTI1_IRQ, 0x22);
+/*    nvic_set_priority(NVIC_EXTI1_IRQ, 0x22);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
     exti_select_source(EXTI1, GPIOB);
     exti_set_trigger(EXTI1, EXTI_TRIGGER_FALLING);
-    exti_enable_request(EXTI1);
+    exti_enable_request(EXTI1);*/
 
     enc28j60_init(state, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
     enc28j60_configure(state, mac, 4096, false);
     enc28j60_interrupt_enable(state, true);
 }
 
-void exti1_isr(void)
+/*void exti1_isr(void)
 {
     run_eth();
     exti_reset_request(EXTI1);
-}
+}*/
 
 void hard_fault_handler(void)
 {
@@ -298,3 +297,9 @@ void hardware_setup(void)
     uart_send("configured", -1);
     configured = true;
 }
+
+void hardware_loop(void)
+{
+	run_eth();
+}
+

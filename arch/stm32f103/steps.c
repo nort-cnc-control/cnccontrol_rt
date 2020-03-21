@@ -99,6 +99,14 @@ void gpio_setup(void)
     // Probe
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO8);
     gpio_set(GPIOB, GPIO8);
+
+    // GPIO Tool 0
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO14);
+
+    // GPIO Tool 1
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
 }
 
 static volatile int moving;
@@ -238,6 +246,25 @@ static void line_error(void)
     moving = 0;
 }
 
+static void set_gpio(int id, int on)
+{
+    switch (id)
+    {
+    case 0:
+        if (on)
+            gpio_set(GPIOC, GPIO14);
+        else
+            gpio_clear(GPIOC, GPIO14);
+        break;
+    case 1:
+        if (on)
+            gpio_set(GPIOC, GPIO15);
+        else
+            gpio_clear(GPIOC, GPIO15);
+        break;
+    }
+}
+
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
@@ -257,7 +284,7 @@ static void reboot(void)
         ;
 }
 
-void config_steppers(steppers_definition *sd)
+void config_steppers(steppers_definition *sd, gpio_definition *gd)
 {
     sd->reboot         = reboot;
     sd->set_dir        = set_dir;
@@ -266,4 +293,5 @@ void config_steppers(steppers_definition *sd)
     sd->line_started   = line_started;
     sd->line_finished  = line_finished;
     sd->line_error     = line_error;
+    gd->set_gpio       = set_gpio;
 }

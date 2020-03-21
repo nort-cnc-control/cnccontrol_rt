@@ -32,34 +32,32 @@ void spi_cs(uint8_t v)
 static bool send_completed;
 
 static void spi_write_buf_dma(const uint8_t *data, size_t len)
-{
-    
+{   
     /* Reset DMA channels*/
-	dma_channel_reset(DMA1, DMA_CHANNEL4);
     dma_channel_reset(DMA1, DMA_CHANNEL5);
 
     while (!(SPI_SR(SPI2) & SPI_SR_TXE))
         ;
 
     volatile uint8_t temp_data __attribute__ ((unused));
-	while (SPI_SR(SPI2) & (SPI_SR_RXNE | SPI_SR_OVR))
+    while (SPI_SR(SPI2) & (SPI_SR_RXNE | SPI_SR_OVR))
     {
-		temp_data = SPI_DR(SPI2);
+        temp_data = SPI_DR(SPI2);
     }
 
     // use SPI2 register for write
     dma_set_peripheral_address(DMA1, DMA_CHANNEL5, SPI_DR(SPI2));
-	// buffer to send
+    // buffer to send
     dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)data);
     dma_set_number_of_data(DMA1, DMA_CHANNEL5, len);
 
     // read from memory
-	dma_set_read_from_memory(DMA1, DMA_CHANNEL5);
+    dma_set_read_from_memory(DMA1, DMA_CHANNEL5);
     dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL5);
 
     // send bytes
-	dma_set_peripheral_size(DMA1, DMA_CHANNEL5, DMA_CCR_PSIZE_8BIT);
-	dma_set_memory_size(DMA1, DMA_CHANNEL5, DMA_CCR_MSIZE_8BIT);
+    dma_set_peripheral_size(DMA1, DMA_CHANNEL5, DMA_CCR_PSIZE_8BIT);
+    dma_set_memory_size(DMA1, DMA_CHANNEL5, DMA_CCR_MSIZE_8BIT);
 
     // select priority    
     dma_set_priority(DMA1, DMA_CHANNEL5, DMA_CCR_PL_HIGH);
@@ -69,8 +67,8 @@ static void spi_write_buf_dma(const uint8_t *data, size_t len)
     dma_enable_transfer_error_interrupt(DMA1, DMA_CHANNEL5);
 
     send_completed = false;
+    
     spi_enable_tx_dma(SPI2);
-
     dma_enable_channel(DMA1, DMA_CHANNEL5);
 
     while (!send_completed)
@@ -81,19 +79,19 @@ void dma1_channel5_isr(void)
 {
     if (DMA1_ISR & DMA_ISR_TCIF5)
     {
-    	DMA1_IFCR |= DMA_IFCR_CTCIF5;
-	}
+        DMA1_IFCR |= DMA_IFCR_CTCIF5;
+    }
     if (DMA1_ISR & DMA_ISR_TEIF5)
     {
         uart_send("dma err", -1);
-    	DMA1_IFCR |= DMA_IFCR_CTEIF5;
+        DMA1_IFCR |= DMA_IFCR_CTEIF5;
     }
 
-	dma_disable_transfer_complete_interrupt(DMA1, DMA_CHANNEL5);
-	dma_disable_transfer_error_interrupt(DMA1, DMA_CHANNEL5);
+    dma_disable_transfer_complete_interrupt(DMA1, DMA_CHANNEL5);
+    dma_disable_transfer_error_interrupt(DMA1, DMA_CHANNEL5);
 
     spi_disable_tx_dma(SPI2);
-	dma_disable_channel(DMA1, DMA_CHANNEL5);
+    dma_disable_channel(DMA1, DMA_CHANNEL5);
     
     send_completed = true;
 }
@@ -108,28 +106,27 @@ static void spi_write_buf_manual(const uint8_t *data, size_t len)
 
 void spi_write_buf(const uint8_t *data, size_t len)
 {
-    //if (len < 16)
+//    if (len < 16)
         spi_write_buf_manual(data, len);
-    //else
-    //    spi_write_buf_dma(data, len);
+//    else
+//        spi_write_buf_dma(data, len);
 }
 
 static bool read_completed;
 
 static void spi_read_buf_dma(uint8_t *data, size_t len)
 {
-    
     /* Reset DMA channels*/
-	dma_channel_reset(DMA1, DMA_CHANNEL4);
+    dma_channel_reset(DMA1, DMA_CHANNEL4);
     dma_channel_reset(DMA1, DMA_CHANNEL5);
 
     while (!(SPI_SR(SPI2) & SPI_SR_TXE))
         ;
 
     volatile uint8_t temp_data __attribute__ ((unused));
-	while (SPI_SR(SPI2) & (SPI_SR_RXNE | SPI_SR_OVR))
+    while (SPI_SR(SPI2) & (SPI_SR_RXNE | SPI_SR_OVR))
     {
-		temp_data = SPI_DR(SPI2);
+        temp_data = SPI_DR(SPI2);
     }
 
     // use SPI2 register for write
@@ -140,12 +137,12 @@ static void spi_read_buf_dma(uint8_t *data, size_t len)
     dma_set_number_of_data(DMA1, DMA_CHANNEL4, len);
 
     // read to memory
-	dma_set_read_from_peripheral(DMA1, DMA_CHANNEL4);
+    dma_set_read_from_peripheral(DMA1, DMA_CHANNEL4);
     dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);
 
     // read bytes
-	dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
-	dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
+    dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
+    dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
 
     // select priority    
     dma_set_priority(DMA1, DMA_CHANNEL4, DMA_CCR_PL_HIGH);
@@ -168,18 +165,18 @@ void dma1_channel4_isr(void)
     if (DMA1_ISR & DMA_ISR_TCIF4)
     {
     	DMA1_IFCR |= DMA_IFCR_CTCIF4;
-	}
+    }
     if (DMA1_ISR & DMA_ISR_TEIF4)
     {
         uart_send("dma err", -1);
     	DMA1_IFCR |= DMA_IFCR_CTEIF4;
     }
 
-	dma_disable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
-	dma_disable_transfer_error_interrupt(DMA1, DMA_CHANNEL4);
+    dma_disable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
+    dma_disable_transfer_error_interrupt(DMA1, DMA_CHANNEL4);
 
     spi_disable_rx_dma(SPI2);
-	dma_disable_channel(DMA1, DMA_CHANNEL4);
+    dma_disable_channel(DMA1, DMA_CHANNEL4);
 
     read_completed = true;
 }
@@ -195,10 +192,10 @@ static void spi_read_buf_manual(uint8_t *data, size_t len)
 
 void spi_read_buf(uint8_t *data, size_t len)
 {
-    //if (len < 16)
+//    if (len < 16)
         spi_read_buf_manual(data, len);
-    //else
-    //    spi_read_buf_dma(data, len);
+//    else
+//        spi_read_buf_dma(data, len);
 }
 
 void spi_setup(void)
@@ -222,3 +219,4 @@ void spi_setup(void)
 
     spi_enable(SPI2);
 }
+

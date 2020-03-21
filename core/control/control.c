@@ -28,8 +28,8 @@ static void cb_send_failed(int nid)
     send_failed(nid);
 }
 
-void init_control(steppers_definition pd)
+void init_control(steppers_definition pd, gpio_definition gd)
 {
-    init_planner(pd, cb_send_queued, cb_send_started, cb_send_completed, cb_send_dropped, cb_send_failed);
+    init_planner(pd, gd, cb_send_queued, cb_send_started, cb_send_completed, cb_send_dropped, cb_send_failed);
 }
 
