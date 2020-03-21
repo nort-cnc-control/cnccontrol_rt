@@ -14,6 +14,11 @@
 #include <gcode_handler.h>
 #include <string.h>
 
+#include <moves.h>
+#include <planner.h>
+#include <control.h>
+#include <output.h>
+
 int dsteps[3] = {0, 0, 0};
 int steps[3];
 double pos[3];
@@ -68,7 +73,7 @@ static void reboot(void)
     printf("Reboot\n");
 }
 
-void config_steppers(steppers_definition *sd)
+void config_steppers(steppers_definition *sd, gpio_definition *gd)
 {
     sd->reboot         = reboot;
     sd->set_dir        = set_dir;
@@ -81,6 +86,8 @@ void config_steppers(steppers_definition *sd)
 
 static void init_steppers(void)
 {
+    gpio_definition gd;
+
     steppers_definition sd = {
         .steps_per_unit = {
             STEPS_PER_MM,
@@ -100,8 +107,8 @@ static void init_steppers(void)
         },
         .acc_default = ACC,
     };
-    config_steppers(&sd);
-    init_control(sd);
+    config_steppers(&sd, &gd);
+    init_control(sd, gd);
 }
 
 void test_init(void)
@@ -168,7 +175,7 @@ void *receive(void *arg)
     return NULL;
 }
 
-static ssize_t write_fun(int fd, const void *data, size_t len)
+static ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
     if (fd == 0)
     {

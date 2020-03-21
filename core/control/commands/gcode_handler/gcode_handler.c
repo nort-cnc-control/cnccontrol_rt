@@ -181,6 +181,44 @@ static int handle_g_command(gcode_frame_t *frame)
         break;
     case 'M':
         switch (cmds[0].val_i) {
+        case 3:
+        case 5:
+        {
+            int tool = 0;
+            int on = (cmds[0].val_i == 3);
+	    int i;
+            for (i = 1; i < ncmds; i++) {
+                switch (cmds[i].type) {
+                case 'T':
+                    tool = cmds[i].val_i;
+		    break;
+                }
+	    }
+            int res = planner_tool(tool, on, nid);
+            if (res >= 0)
+            {
+                return -E_OK;
+            }
+            else if (res == -E_NOMEM)
+            {
+                send_error(nid, "no space in buffer");
+                planner_lock();
+                return res;
+            }
+            else if (res == -E_LOCKED)
+            {
+                send_error(nid, "system is locked");
+                return res;
+            }
+            else
+            {
+                send_error(nid, "problem with planning tool");
+                planner_lock();
+                return res;
+            }
+
+            return -E_OK;
+	}
         case 114:
             send_queued(nid);
             print_position(nid);

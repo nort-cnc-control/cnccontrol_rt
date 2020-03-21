@@ -7,10 +7,13 @@
 
 void hardware_setup(void);
 void poll_net(void);
-void config_steppers(steppers_definition *sd);
+void hardware_loop(void);
+void config_steppers(steppers_definition *sd, gpio_definition *gd);
 
 static void init_steppers(void)
 {
+    gpio_definition gd;
+
     steppers_definition sd = {
         .steps_per_unit = {
             STEPS_PER_MM,
@@ -30,8 +33,8 @@ static void init_steppers(void)
         },
         .acc_default = ACC,
     };
-    config_steppers(&sd);
-    init_control(sd);
+    config_steppers(&sd, &gd);
+    init_control(sd, gd);
 }
 
 int main(void)
@@ -48,6 +51,7 @@ int main(void)
     {
 //        poll_net();
         planner_pre_calculate();
+	hardware_loop();
     }
 
     return 0;

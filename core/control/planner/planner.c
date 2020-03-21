@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "moves.h"
+#include <tools.h>
 #include "planner.h"
 #include <math.h>
 #include <err.h>
@@ -25,6 +26,7 @@ typedef enum {
     ACTION_NONE = 0,
     ACTION_LINE,
     ACTION_ARC,
+    ACTION_TOOL,
 } action_type;
 
 typedef struct {
@@ -35,6 +37,7 @@ typedef struct {
     union {
         line_plan line;
         arc_plan arc;
+        tool_plan tool;
     };
 } action_plan;
 
@@ -102,6 +105,16 @@ static void get_cmd(void)
             get_cmd();
         }
         break;
+    case ACTION_TOOL:
+        res = tool_action(&(cp->tool));
+        if (res == -E_NEXT)
+        {
+            if (cp->notify_end)
+                ev_send_completed(cp->nid);
+            pop_cmd();
+            get_cmd();
+        }
+        break;
     case ACTION_NONE:
         pop_cmd();
         get_cmd();
@@ -140,6 +153,7 @@ static void endstops_touched(void)
 }
 
 void init_planner(steppers_definition pd,
+		  gpio_definition gd,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),
                   void (*arg_send_completed)(int nid),
@@ -165,6 +179,7 @@ void init_planner(steppers_definition pd,
     sd.endstops_touched = endstops_touched;
     sd.line_finished = line_finished;
     moves_init(sd);
+    tools_init(gd);
 }
 
 int used_slots(void)
@@ -328,6 +343,39 @@ int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, 
     {
         ev_send_dropped(nid);
     }
+    return empty_slots();
+}
+
+int planner_tool(int id, bool on, int nid)
+{
+    if (planner_is_locked())
+    {
+        return -E_LOCKED;
+    }
+
+    if (empty_slots() == 0)
+    {
+        return -E_NOMEM;
+    }
+
+    action_plan *cur;
+
+    cur = &plan[plan_last];
+    cur->type = ACTION_TOOL;
+    cur->nid = nid;
+    cur->notify_end = 1;
+    cur->notify_start = 1;
+
+    cur->tool.on = on;
+    cur->tool.id = id;
+
+    plan_last = (plan_last + 1) % QUEUE_SIZE;
+    plan_len++;
+
+    ev_send_queued(nid);
+    if (used_slots() == 1) {
+        get_cmd();
+    } 
     return empty_slots();
 }
 
