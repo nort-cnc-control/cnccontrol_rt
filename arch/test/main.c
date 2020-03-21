@@ -67,15 +67,25 @@ static void line_finished(void)
 {
     printf("Line finished\n");
     line_st = false;
+    printf("Position = %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
 static void line_error(void)
 {
     printf("Line error\n");
+    printf("Position = %lf %lf %lf\n", pos[0], pos[1], pos[2]);
 }
 
 static void reboot(void)
 {
+    planner_lock();
+    steps[0] = 0;
+    steps[1] = 0;
+    steps[2] = 0;
+    pos[0] = 0;
+    pos[1] = 0;
+    pos[2] = 0;
+    moves_reset();
     output_control_write("Hello", -1);
     printf("Reboot\n");
 }
@@ -190,7 +200,7 @@ void *receive(void *arg)
 
 static ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
-    printf("Send line: %.*s\n", len, (const char*)data);
+//    printf("Send line: %.*s\n", len, (const char*)data);
     if (fd == 0)
     {
         write(fd, data, len);

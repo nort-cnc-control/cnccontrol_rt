@@ -38,6 +38,7 @@ void moves_reset(void)
     int i;
     for (i = 0; i < 3; i++)
     {
+        position.pos[i] = 0;
         state.target[i] = position.pos[i];
         state.delta[i] = 0;
     }
