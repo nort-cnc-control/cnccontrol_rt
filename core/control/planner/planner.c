@@ -210,8 +210,8 @@ static int break_on_endstops(int32_t *dx, void *user_data)
     return 0;
 }
 
-static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *usr_data,
-                            double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_line_to(_Decimal64 x[3], int (*cbr)(int32_t *, void *), void *usr_data,
+                            _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -249,7 +249,7 @@ static int _planner_line_to(double x[3], int (*cbr)(int32_t *, void *), void *us
     return 1;
 }
 
-int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc, int nid)
+int planner_line_to(_Decimal64 x[3], _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid)
 {
     if (planner_is_locked())
     {
@@ -276,8 +276,8 @@ int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc,
     return empty_slots();
 }
 
-static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
-                           double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
+                           _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -319,7 +319,7 @@ static int _planner_arc_to(double x[3], double d, arc_plane plane, int cw, int (
 }
 
 
-int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid)
+int planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid)
 {
     if (planner_is_locked())
     {

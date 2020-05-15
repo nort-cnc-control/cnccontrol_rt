@@ -39,19 +39,19 @@ static int handle_g_command(gcode_frame_t *frame)
         case 0:
         case 1: {
             int i;
-            double f = 0, feed0 = 0, feed1 = 0;
+            _Decimal64 f = 0, feed0 = 0, feed1 = 0;
             int32_t acc = def.acc_default;
-            double x[3] = {0, 0, 0};
+            _Decimal64 x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = cmds[i].val_f/100.0;
+                    x[0] = cmds[i].val_f;
                     break;
                 case 'Y':
-                    x[1] = cmds[i].val_f/100.0;
+                    x[1] = cmds[i].val_f;
                     break;
                 case 'Z':
-                    x[2] = cmds[i].val_f/100.0;
+                    x[2] = cmds[i].val_f;
                     break;
                 case 'F':
                     f = cmds[i].val_i;
@@ -94,24 +94,25 @@ static int handle_g_command(gcode_frame_t *frame)
         case 2:
         case 3: {
             int i;
-            double f = 0, feed0 = 0, feed1 = 0;
-	        int32_t acc = def.acc_default;
-            double x[3] = {0, 0, 0};
+            _Decimal64 f = 0, feed0 = 0, feed1 = 0;
+            _Decimal64 x[3] = {0, 0, 0};
+            _Decimal64 d = 0;
+
+	    int32_t acc = def.acc_default;
             int plane = XY;
-            double d = 0;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = cmds[i].val_f/100.0;
+                    x[0] = cmds[i].val_f;
                     break;
                 case 'Y':
-                    x[1] = cmds[i].val_f/100.0;
+                    x[1] = cmds[i].val_f;
                     break;
                 case 'Z':
-                    x[2] = cmds[i].val_f/100.0;
+                    x[2] = cmds[i].val_f;
                     break;
                 case 'D':
-                    d = cmds[i].val_f/100.0;
+                    d = cmds[i].val_f;
                     break;
                 case 'F':
                     f = cmds[i].val_i;
@@ -252,7 +253,7 @@ static int handle_g_command(gcode_frame_t *frame)
             send_ok(nid);
             return -E_OK;
         case 997: {
-            double x[3] = {0};
+            _Decimal64 x[3] = {0};
             moves_set_position(x);
             moves_reset();
             send_ok(nid);

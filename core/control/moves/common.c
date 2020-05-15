@@ -9,11 +9,11 @@
 // len is measured in mm
 //
 // Return: delay in usec
-uint32_t feed2delay(double feed, double step_len)
+uint32_t feed2delay(_Decimal64 feed, _Decimal64 step_len)
 {
     if (feed < 1)
         feed = 1;
-    return step_len * 1e6 / (feed / 60);
+    return step_len * 1000000 / (feed / 60);
 }
 
 // Find new feed when acceleration
@@ -23,12 +23,12 @@ uint32_t feed2delay(double feed, double step_len)
 // delay in usec
 //
 // Return: new feed in mm / min
-double accelerate(double feed, double acc, double delay)
+_Decimal64 accelerate(_Decimal64 feed, _Decimal64 acc, _Decimal64 delay)
 {
     acc *= 3600; // mm / min^2
-    delay /= (60 * 1e6); // min
+    delay /= (60 * 1000000); // min
 
-    double df = acc * delay;
+    _Decimal64 df = acc * delay;
     return feed + df;
 }
 
@@ -38,15 +38,15 @@ double accelerate(double feed, double acc, double delay)
 // feed1 in mm / min
 // acc in mm / sec^2
 // len in mm
-uint32_t acceleration_steps(double feed0,
-                            double feed1,
-                            double acc,
-                            double len,
+uint32_t acceleration_steps(_Decimal64 feed0,
+                            _Decimal64 feed1,
+                            _Decimal64 acc,
+                            _Decimal64 len,
                             uint32_t steps)
 {
-    double cacc = acc * 3600;
+    _Decimal64 cacc = acc * 3600;
     // cacc in mm / min^2
-    double slen = (SQR(feed1) - SQR(feed0)) / (2*cacc);
+    _Decimal64 slen = (SQR(feed1) - SQR(feed0)) / (2*cacc);
     // slen in mm
     return slen * steps / len;
 }

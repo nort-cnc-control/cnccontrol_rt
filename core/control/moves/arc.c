@@ -1,3 +1,4 @@
+#define __STDC_WANT_DEC_FP__
 #include "arc.h"
 #include <math.h>
 #include "common.h"
@@ -8,6 +9,7 @@
 #include <assert.h>
 
 #define SQR(a) ((a) * (a))
+const double pi = 3.1415926535;
 
 static steppers_definition def;
 void arc_init(steppers_definition definition)
@@ -28,7 +30,7 @@ static double fun2(int32_t x, int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double fx = x;
-    return SQR(fb) * (1.0 - SQR(fx / fa));
+    return SQR(fb) * (1 - SQR(fx / fa));
 }
 
 static int32_t ifun(int32_t x, int32_t a, int32_t b)
@@ -36,7 +38,7 @@ static int32_t ifun(int32_t x, int32_t a, int32_t b)
     double fa = a;
     double fb = b;
     double fx = x;
-    double fy = fb * sqrt(1.0 - SQR(fx / fa));
+    double fy = fb * sqrt(1 - SQR(fx / fa));
     return round(fy);
 }
 
@@ -47,6 +49,7 @@ static arc_plan *current_plan;
 static struct
 {
     double start[3];
+    _Decimal64 startd[3];
     int32_t steps[3];
     int32_t dir[3];
     int segment_id;
@@ -159,16 +162,16 @@ static double make_step(void)
     return current_state.step_str;
 }
 
-static double plan_tick()
+static _Decimal64 plan_tick()
 {
     double len = make_step();
 
     // Set current position
-    double cx[3];
+    _Decimal64 cx[3];
     int i;
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start[i] + ((double)current_state.steps[i]) / def.steps_per_unit[i];
+        cx[i] = current_state.startd[i] + ((_Decimal64)current_state.steps[i]) / def.steps_per_unit[i];
     }
     moves_set_position(cx);
 
@@ -209,7 +212,7 @@ int arc_step_tick(void)
     }
 
     // Make step
-    double len = plan_tick();
+    _Decimal64 len = plan_tick();
 
     // Check if we have reached the end
     if (len < 0)
@@ -235,6 +238,7 @@ int arc_move_to(arc_plan *plan)
     for (i = 0; i < 3; i++)
     {
         current_state.start[i] = position.pos[i];
+        current_state.startd[i] = position.pos[i]; // original position in decimal format
         current_state.steps[i] = 0;
     }
 
@@ -506,7 +510,7 @@ static void make_arc_cw(arc_plan *arc, int32_t sx, int32_t sy, int32_t ex, int32
 
 void arc_pre_calculate(arc_plan *arc)
 {
-    double delta[2];
+    _Decimal64 delta[2];
 
     int stx, sty;
     double d = arc->d;
@@ -534,10 +538,11 @@ void arc_pre_calculate(arc_plan *arc)
         break;
     }
 
-    double len = sqrt(SQR(delta[0]) + SQR(delta[1]));
-    double p[2] = {delta[1] / len, -delta[0] / len}; // ortogonal vector
+    double ddelta[3] = {(double)delta[0], (double)delta[1], (double)delta[2]};
+    double len = sqrt(SQR(ddelta[0]) + SQR(ddelta[1]));
+    double p[2] = {ddelta[1] / len, -ddelta[0] / len}; // ortogonal vector
 
-    double center[2] = {delta[0] / 2 + p[0] * d, delta[1] / 2 + p[1] * d};
+    double center[2] = {ddelta[0] / 2 + p[0] * d, ddelta[1] / 2 + p[1] * d};
     double radius = sqrt(SQR(len) / 4 + SQR(d));
 
     int32_t start[2];
@@ -551,24 +556,24 @@ void arc_pre_calculate(arc_plan *arc)
         b = round(radius * def.steps_per_unit[1]);
         start[0] = round(-center[0] * def.steps_per_unit[0]);
         start[1] = round(-center[1] * def.steps_per_unit[1]);
-        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[0]);
-        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[1]);
+        finish[0] = round((ddelta[0] - center[0]) * def.steps_per_unit[0]);
+        finish[1] = round((ddelta[1] - center[1]) * def.steps_per_unit[1]);
         break;
     case YZ:
         a = round(radius * def.steps_per_unit[1]);
         b = round(radius * def.steps_per_unit[2]);
         start[0] = round(-center[0] * def.steps_per_unit[1]);
         start[1] = round(-center[1] * def.steps_per_unit[2]);
-        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[1]);
-        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[2]);
+        finish[0] = round((ddelta[0] - center[0]) * def.steps_per_unit[1]);
+        finish[1] = round((ddelta[1] - center[1]) * def.steps_per_unit[2]);
         break;
     case ZX:
         a = round(radius * def.steps_per_unit[2]);
         b = round(radius * def.steps_per_unit[0]);
         start[0] = round(-center[0] * def.steps_per_unit[2]);
         start[1] = round(-center[1] * def.steps_per_unit[0]);
-        finish[0] = round((delta[0] - center[0]) * def.steps_per_unit[2]);
-        finish[1] = round((delta[1] - center[1]) * def.steps_per_unit[0]);
+        finish[0] = round((ddelta[0] - center[0]) * def.steps_per_unit[2]);
+        finish[1] = round((ddelta[1] - center[1]) * def.steps_per_unit[0]);
         break;
     }
 
@@ -589,7 +594,7 @@ void arc_pre_calculate(arc_plan *arc)
     }
 
     int total_steps = arc->steps;
-    double cosa = (-center[0] * (delta[0] - center[0]) - center[1] * (delta[1] - center[1])) / (radius * radius);
+    double cosa = (-center[0] * (ddelta[0] - center[0]) - center[1] * (ddelta[1] - center[1])) / (radius * radius);
     double angle = acos(cosa);
 
     if (cw)
@@ -601,7 +606,7 @@ void arc_pre_calculate(arc_plan *arc)
         else
         {
             // big arc
-            angle = 2*3.14159265358 - angle;
+            angle = 2*pi - angle;
         }
     }
     else
@@ -609,7 +614,7 @@ void arc_pre_calculate(arc_plan *arc)
         if (d > 0)
         {
             // big arc
-            angle = 2*3.14159265358 - angle;
+            angle = 2*pi - angle;
         }
         else
         {

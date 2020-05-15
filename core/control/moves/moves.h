@@ -12,8 +12,8 @@ typedef struct {
 } step_flags;
 
 typedef struct {
-    double pos[3];
-    double speed[3];
+    _Decimal64 pos[3];
+    _Decimal64 speed[3];
     step_flags flags[3];
 } cnc_position;
 
@@ -31,7 +31,7 @@ void moves_reset(void);
 
 void moves_break(void);
 
-void moves_set_position(double x[3]);
+void moves_set_position(_Decimal64 x[3]);
 
 extern cnc_position position;
 

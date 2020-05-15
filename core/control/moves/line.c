@@ -19,7 +19,7 @@ static struct
 
     acceleration_state acc;
 
-    double start_pos[3];
+    _Decimal64 start_pos[3];
 } current_state;
 
 static steppers_definition def;
@@ -74,7 +74,7 @@ int line_move_to(line_plan *plan)
     return -E_OK;
 }
 
-static double make_step(void)
+static _Decimal64 make_step(void)
 {
     int i;
     if (current_state.acc.step >= current_state.acc.total_steps)
@@ -99,12 +99,12 @@ static double make_step(void)
     }
 
     current_state.acc.step++;
-    double len = current_plan->len / current_state.acc.total_steps;
+    _Decimal64 len = current_plan->len / current_state.acc.total_steps;
 
-    double cx[3];
+    _Decimal64 cx[3];
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start_pos[i] + ((double)current_state.steps[i]) / def.steps_per_unit[i];
+        cx[i] = current_state.start_pos[i] + ((_Decimal64)current_state.steps[i]) / def.steps_per_unit[i];
     }
     moves_set_position(cx);
 
@@ -122,7 +122,7 @@ int line_step_tick(void)
     }
 
     // Make step
-    double len = make_step();
+    _Decimal64 len = make_step();
 
     // Check if we have reached the end
     if (len <= 0)
@@ -159,7 +159,7 @@ static void bresenham_plan(line_plan *plan)
 void line_pre_calculate(line_plan *line)
 {
     int j;
-    double l = 0;
+    _Decimal64 l = 0;
     for (j = 0; j < 3; j++)
     {
         l += SQR(line->x[j]);

@@ -26,17 +26,17 @@ typedef enum {
 typedef struct {
     // Specified data
     arc_plane plane;       // selected plane
-    double x[3];            // delta
-    double d;               // center in selected plane
-    double feed;            // feed of moving
-    double feed0;           // initial feed
-    double feed1;           // finishing feed
+    _Decimal64 x[3];            // delta
+    _Decimal64 d;               // center in selected plane
+    _Decimal64 feed;            // feed of moving
+    _Decimal64 feed0;           // initial feed
+    _Decimal64 feed1;           // finishing feed
     uint32_t acceleration; // acceleration
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;
 
     // Pre-calculated data
-    double len;            // arc length
+    _Decimal64 len;            // arc length
     uint32_t steps;        // total amount of steps
     uint32_t acc_steps;    // steps on acceleration
     uint32_t dec_steps;    // steps on deceleration

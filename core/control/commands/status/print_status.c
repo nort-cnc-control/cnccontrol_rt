@@ -19,14 +19,14 @@ void print_endstops(int nid)
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
-static int decimal4(double x)
+static int decimal4(_Decimal64 x)
 {
     if (x < 0)
         x = -x;
     return (int)(x * 10000) - ((int)x)*10000;
 }
 
-static void double2fixed(double x, int *xh, int *xl, char *sign)
+void double2fixed(_Decimal64 x, int *xh, int *xl, char *sign)
 {
     if (x < 0)
     {

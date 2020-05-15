@@ -71,41 +71,45 @@ static int read_hex(const unsigned char **str, const unsigned char *end, int32_t
     return -E_BADNUM;
 }
 
-static int read_fixed(const unsigned char **str, const unsigned char *end, int32_t *val)
+static int read_decimal(const unsigned char **str, const unsigned char *end, _Decimal64 *val)
 {
     if (*str >= end)
         return -E_BADNUM;
-    if ((**str >= '0' && **str <= '9') || **str == '-' || **str == '.') {
+
+    if ((**str >= '0' && **str <= '9') || **str == '-' || **str == '.')
+    {
         int8_t minus = 1;
-        int32_t v = 0;
-        if (**str == '-') {
+        _Decimal64 v = 0;
+
+        if (**str == '-')
+        {
             minus = -1;
             (*str)++;
         }
+
         if (*str >= end)
             return -E_BADNUM;
-        while (**str >= '0' && **str <= '9' && *str < end) {
+
+        while (**str >= '0' && **str <= '9' && *str < end)
+        {
             v *= 10;
             v += (**str - '0');
             (*str)++;
         }
-        v *= 100;
-        if (**str == '.') {
+
+        if (**str == '.')
+        {
             uint8_t s = 0;
-            uint8_t ns = 0;
+            _Decimal64 div = 10;
             (*str)++;
-            while (**str >= '0' && **str <= '9' && *str < end) {
-                if (ns < 2) {
-                    s *= 10;
-                    s += (**str - '0');
-                }
+            while (**str >= '0' && **str <= '9' && *str < end)
+            {
+                v += (**str - '0') / div;
                 (*str)++;
-                ns++;
+                div *= 10;
             }
-            if (ns == 1)
-                s*= 10;
-            v += s;
         }
+
         v *= minus;
         *val = v;
         return E_OK;
@@ -166,7 +170,7 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
             if (**str == ' ' || **str == '\n' || **str == 0) {
                 return -E_BADNUM;
             }
-            if (read_fixed(str, end, &(cmd->val_f)))
+            if (read_decimal(str, end, &(cmd->val_f)))
                 return -E_BADNUM;
         }
         else

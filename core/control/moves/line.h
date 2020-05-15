@@ -6,16 +6,16 @@
 
 typedef struct {
     // Specified data
-    double x[3]; // delta
-    double feed;   // feed of moving
-    double feed0;  // initial feed
-    double feed1;  // finishing feed
-    double acceleration; // acceleration
+    _Decimal64 x[3]; // delta
+    _Decimal64 feed;   // feed of moving
+    _Decimal64 feed0;  // initial feed
+    _Decimal64 feed1;  // finishing feed
+    _Decimal64 acceleration; // acceleration
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;
 
     // Pre-calculated data
-    double len;  // length of delta
+    _Decimal64 len;  // length of delta
     int32_t s[3]; // steps along each axises
     int maxi;     // which axis has max steps
     uint32_t steps;        // total amount of steps

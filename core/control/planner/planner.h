@@ -16,9 +16,9 @@ void init_planner(steppers_definition pd,
                   void (*arg_send_dropped)(int nid),
 		  void (*arg_send_failed)(int nid));
 
-int planner_line_to(double x[3], double feed, double f0, double f1, int32_t acc, int nid);
+int planner_line_to(_Decimal64 x[3], _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid);
 
-int planner_arc_to(double x[3], double d, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid);
+int planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid);
 
 int planner_tool(int id, bool on, int nid);
 

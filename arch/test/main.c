@@ -24,9 +24,11 @@
 #include <control.h>
 #include <output.h>
 
+#include <print_status.h>
+
 int dsteps[3] = {0, 0, 0};
 int steps[3];
-double pos[3];
+_Decimal64 pos[3];
 bool run = false;
 
 static void set_dir(int coord, int dir)
@@ -63,17 +65,29 @@ static void line_started(void)
     line_st = true;
 }
 
+static void print_pos(void)
+{
+    int xh, yh, zh;
+    int xl, yl, zl;
+    char xs, ys, zs;
+    double2fixed(position.pos[0], &xh, &xl, &xs);
+    double2fixed(position.pos[1], &yh, &yl, &ys);
+    double2fixed(position.pos[2], &zh, &zl, &zs);
+
+    printf("Position = %c%i.%04i %c%i.%04i %c%i.%04i\n", xs, xh, xl, ys, yh, yl, zs, zh, zl);
+}
+
 static void line_finished(void)
 {
     printf("Line finished\n");
     line_st = false;
-    printf("Position = %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+    print_pos();
 }
 
 static void line_error(void)
 {
     printf("Line error\n");
-    printf("Position = %lf %lf %lf\n", pos[0], pos[1], pos[2]);
+    print_pos();
 }
 
 static void reboot(void)

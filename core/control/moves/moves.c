@@ -12,13 +12,13 @@ cnc_position position;
 
 static struct
 {
-    double delta[3];
-    double target[3];
+    _Decimal64 delta[3];
+    _Decimal64 target[3];
 } state;
 
 static steppers_definition def;
 
-static void add_move(double x[3])
+static void add_move(_Decimal64 x[3])
 {
     int i;
     for (i = 0; i < 3; i++)
@@ -44,7 +44,7 @@ void moves_reset(void)
     }
 }
 
-void moves_set_position(double x[3])
+void moves_set_position(_Decimal64 x[3])
 {
     int i;
     for (i = 0; i < 3; i++)
