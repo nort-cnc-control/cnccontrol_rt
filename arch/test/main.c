@@ -245,6 +245,8 @@ int main(int argc, const char **argv)
         return 0;
     }
 
+    printf("Listening control on :8889\n");
+
     while (true)
     {
         fd = accept(sock, NULL, NULL);
