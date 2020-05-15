@@ -180,7 +180,7 @@ void *receive(void *arg)
         {
             if (blen >= 3 && !memcmp(buf, "RT:", 3))
             {
-                printf("Execute: %.*s\n", blen - 3, buf + 3);
+                printf("Execute: %.*s\n", (int)(blen - 3), buf + 3);
                 execute_g_command(buf + 3, blen - 3);
             }
             else if (blen >= 5 && !memcmp(buf, "EXIT:", 5))
