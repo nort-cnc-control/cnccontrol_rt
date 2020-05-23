@@ -1,7 +1,6 @@
 #include <math.h>
-#include "common.h"
-#include "line.h"
-#include "moves.h"
+#include <common.h>
+#include <line.h>
 #include <err.h>
 
 #include <acceleration.h>
@@ -19,14 +18,9 @@ static struct
 
     acceleration_state acc;
 
-    _Decimal64 start_pos[3];
+    int32_t start_pos[3];
 } current_state;
 
-static steppers_definition def;
-void line_init(steppers_definition definition)
-{
-    def = definition;
-}
 
 int line_move_to(line_plan *plan)
 {
@@ -41,13 +35,13 @@ int line_move_to(line_plan *plan)
 
     for (i = 0; i < 3; i++)
     {
-        if (current_plan->s[i] > 0) 
+        if (current_plan->x[i] > 0) 
             current_state.dir[i] = 1;
-        else if (current_plan->s[i] < 0)
+        else if (current_plan->x[i] < 0)
             current_state.dir[i] = -1;
         else 
             current_state.dir[i] = 0;
-        def.set_dir(i, current_plan->s[i] >= 0);
+        moves_common_set_dir(i, current_plan->x[i] >= 0);
         current_state.steps[i] = 0;
     }
 
@@ -69,125 +63,136 @@ int line_move_to(line_plan *plan)
         current_state.err[i] = 0;
         current_state.start_pos[i] = position.pos[i];
     }
-
-    def.line_started();
+    
+    moves_common_line_started();
     return -E_OK;
 }
 
-static _Decimal64 make_step(void)
+static void make_step(void)
 {
     int i;
     if (current_state.acc.step >= current_state.acc.total_steps)
     {
-        return -1;
+        return;
     }
     /* Bresenham */
-    def.make_step(current_plan->maxi);
+    moves_common_make_step(current_plan->maxi);
     current_state.steps[current_plan->maxi] += current_state.dir[current_plan->maxi];
     
     for (i = 0; i < 3; i++)
     {
         if (i == current_plan->maxi)
             continue;
-        current_state.err[i] += abs(current_plan->s[i]);
+        current_state.err[i] += abs(current_plan->x[i]);
         if (current_state.err[i] * 2 >= (int32_t)current_plan->steps)
         {
             current_state.err[i] -= (int32_t)current_plan->steps;
-            def.make_step(i);
+            moves_common_make_step(i);
             current_state.steps[i] += current_state.dir[i];
         }
     }
 
     current_state.acc.step++;
-    _Decimal64 len = current_plan->len / current_state.acc.total_steps;
 
-    _Decimal64 cx[3];
+    int32_t cx[3];
     for (i = 0; i < 3; i++)
     {
-        cx[i] = current_state.start_pos[i] + ((_Decimal64)current_state.steps[i]) / def.steps_per_unit[i];
+        cx[i] = current_state.start_pos[i] + current_state.steps[i];
     }
-    moves_set_position(cx);
-
-    return len;
+    moves_common_set_position(cx);
 }
 
 int line_step_tick(void)
 {
+    int i;
     // Check for endstops
-    if (current_plan->check_break && current_plan->check_break(current_plan->s, current_plan->check_break_data))
+    if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
     {
         current_state.is_moving = 0;
-        def.endstops_touched();
+        moves_common_endstops_touched();
         return -E_ENDSTOP;
     }
 
+    int32_t delta[3];
+    for (i = 0; i < 3; i++)
+        delta[i] = position.pos[i];
+
     // Make step
-    _Decimal64 len = make_step();
+    make_step();
+
+    // Measure delta
+    double len = 0;
+    for (i = 0; i < 3; i++)
+    {
+        double d = (position.pos[i] - delta[i]) / moves_common_def->steps_per_unit[i];
+        len += d * d;
+    }
+    len = sqrt(len);
 
     // Check if we have reached the end
-    if (len <= 0)
+    if (len == 0)
     {
         current_state.is_moving = 0;
-        def.line_finished();
-        return -1;
+        moves_common_line_finished();
+        return -E_NEXT;
     }
 
     /* Calculating delay */
-    int step_delay = feed2delay(current_state.acc.feed, current_plan->len / current_plan->steps);
-    acceleration_process(&current_state.acc, step_delay);
-    return step_delay;
+    double delay = len / current_state.acc.feed;
+    acceleration_process(&current_state.acc, delay);
+    return delay * 1000000;
 }
 
 static void bresenham_plan(line_plan *plan)
 {
     int i;
-    plan->steps = abs(plan->s[0]);
+    plan->steps = abs(plan->x[0]);
     plan->maxi = 0;
-    if (abs(plan->s[1]) > plan->steps)
+    if (abs(plan->x[1]) > plan->steps)
     {
         plan->maxi = 1;
-        plan->steps = abs(plan->s[1]);
+        plan->steps = abs(plan->x[1]);
     }
 
-    if (abs(plan->s[2]) > plan->steps)
+    if (abs(plan->x[2]) > plan->steps)
     {
         plan->maxi = 2;
-        plan->steps = abs(plan->s[2]);
+        plan->steps = abs(plan->x[2]);
     }
 }
 
 void line_pre_calculate(line_plan *line)
 {
     int j;
-    _Decimal64 l = 0;
+    double l = 0;
     for (j = 0; j < 3; j++)
     {
-        l += SQR(line->x[j]);
-        line->s[j] = line->x[j] * def.steps_per_unit[j];
+        double d = line->x[j] / moves_common_def->steps_per_unit[j];
+        l += d*d;
     }
     line->len = sqrt(l);
 
     if (line->len == 0)
         return;
 
-    if (line->feed < def.feed_base)
-        line->feed = def.feed_base;
-    else if (line->feed > def.feed_max)
-        line->feed = def.feed_max;
+    if (line->feed < moves_common_def->feed_base)
+        line->feed = moves_common_def->feed_base;
+    else if (moves_common_def->feed_max > 0 && line->feed > moves_common_def->feed_max)
+        line->feed = moves_common_def->feed_max;
 
-    if (line->feed1 < def.feed_base)
-        line->feed1 = def.feed_base;
+    if (line->feed1 < moves_common_def->feed_base)
+        line->feed1 = moves_common_def->feed_base;
     else if (line->feed1 > line->feed)
         line->feed1 = line->feed;
 
-    if (line->feed0 < def.feed_base)
-        line->feed0 = def.feed_base;
+    if (line->feed0 < moves_common_def->feed_base)
+        line->feed0 = moves_common_def->feed_base;
     else if (line->feed0 > line->feed)
         line->feed0 = line->feed;
 
     bresenham_plan(line);
-    line->acc_steps = acceleration_steps(line->feed0, line->feed, line->acceleration, line->len, line->steps);
-    line->dec_steps = acceleration_steps(line->feed1, line->feed, line->acceleration, line->len, line->steps);
+    line->acc_steps = acceleration_steps(line->feed0, line->feed, line->acceleration, line->len / line->steps);
+    line->dec_steps = acceleration_steps(line->feed1, line->feed, line->acceleration, line->len / line->steps);
 
     if (line->acc_steps + line->dec_steps > line->steps)
     {
@@ -206,3 +211,4 @@ void line_pre_calculate(line_plan *line)
             line->dec_steps = 0;           
     }
 }
+

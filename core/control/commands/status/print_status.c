@@ -19,42 +19,18 @@ void print_endstops(int nid)
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
-static int decimal4(_Decimal64 x)
-{
-    if (x < 0)
-        x = -x;
-    return (int)(x * 10000) - ((int)x)*10000;
-}
-
-void double2fixed(_Decimal64 x, int *xh, int *xl, char *sign)
-{
-    if (x < 0)
-    {
-        x = -x;
-        *sign = '-';
-    }
-    else
-    {
-        *sign = '+';
-    }
-    *xh = (int)(x);
-    *xl = decimal4(x);
-}
-
 void print_position(int nid)
 {
     char buf[128];
     send_started(nid);
     int q = empty_slots();
 
-    int xh, yh, zh;
-    int xl, yl, zl;
-    char xs, ys, zs;
-    double2fixed(position.pos[0], &xh, &xl, &xs);
-    double2fixed(position.pos[1], &yh, &yl, &ys);
-    double2fixed(position.pos[2], &zh, &zl, &zs);
+    int32_t x, y, z;
+    x = position.pos[0];
+    y = position.pos[1];
+    z = position.pos[2];
 
-    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%c%i.%04i Y:%c%i.%04i Z:%c%i.%04i", nid, q, xs, xh, xl, ys, yh, yl, zs, zh, zl);
+    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%i Y:%i Z:%i", nid, q, x, y, z);
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 

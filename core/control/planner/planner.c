@@ -11,7 +11,6 @@
 
 #define QUEUE_SIZE 10
 
-steppers_definition def;
 extern cnc_position position;
 
 static volatile int search_begin;
@@ -64,12 +63,6 @@ static void pop_cmd(void)
     }
 }
 
-static void line_started(void)
-{
-    if (locked)
-        return;
-    def.line_started();
-}
 
 static void get_cmd(void)
 {
@@ -122,12 +115,23 @@ static void get_cmd(void)
     }
 }
 
+static void (*line_started_cb)(void);
+static void (*line_finished_cb)(void);
+static void (*line_error_cb)(void);
+
+static void line_started(void)
+{
+    if (locked)
+        return;
+    line_started_cb();
+}
+
 static void line_finished(void)
 {
     action_plan *cp = &plan[plan_cur];
     if (cp->notify_end)
         ev_send_completed(cp->nid);
-    def.line_finished();
+    line_finished_cb();
     pop_cmd();
 
     if (locked)
@@ -140,20 +144,22 @@ static void endstops_touched(void)
 {
     if (!fail_on_endstops)
     {
-        line_finished();
+        line_finished_cb();
     }
     else
     {
         action_plan *cp = &plan[plan_cur];
 	_planner_lock();
-        def.line_error();
+        line_error_cb();
         ev_send_failed(cp->nid);
         pop_cmd();
     }
 }
 
-void init_planner(steppers_definition pd,
-		  gpio_definition gd,
+static steppers_definition steppers_definitions;
+
+void init_planner(steppers_definition *def,
+		  gpio_definition *gd,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),
                   void (*arg_send_completed)(int nid),
@@ -170,15 +176,17 @@ void init_planner(steppers_definition pd,
     search_begin = 0;
     finish_action = NULL;
 
-    def = pd;
-    def.feed_max = pd.feed_max;
-    def.feed_base = pd.feed_base;
+    memcpy(&steppers_definitions, def, sizeof(*def));
 
-    steppers_definition sd = def;
-    sd.line_started = line_started;
-    sd.endstops_touched = endstops_touched;
-    sd.line_finished = line_finished;
-    moves_init(sd);
+    line_started_cb = def->line_started;
+    line_finished_cb = def->line_finished;
+    line_error_cb = def->endstops_touched;
+
+    steppers_definitions.line_started = line_started;
+    steppers_definitions.endstops_touched = endstops_touched;
+    steppers_definitions.line_finished = line_finished;
+
+    moves_init(&steppers_definitions);
     tools_init(gd);
 }
 
@@ -194,7 +202,7 @@ int empty_slots(void)
 
 static int break_on_endstops(int32_t *dx, void *user_data)
 {
-    cnc_endstops endstops = def.get_endstops();
+    cnc_endstops endstops = steppers_definitions.get_endstops();
     if (endstops.stop_x && dx[0] < 0)
         return 1;
 
@@ -210,8 +218,8 @@ static int break_on_endstops(int32_t *dx, void *user_data)
     return 0;
 }
 
-static int _planner_line_to(_Decimal64 x[3], int (*cbr)(int32_t *, void *), void *usr_data,
-                            _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *usr_data,
+                            double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -249,7 +257,7 @@ static int _planner_line_to(_Decimal64 x[3], int (*cbr)(int32_t *, void *), void
     return 1;
 }
 
-int planner_line_to(_Decimal64 x[3], _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid)
+int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc, int nid)
 {
     if (planner_is_locked())
     {
@@ -276,8 +284,8 @@ int planner_line_to(_Decimal64 x[3], _Decimal64 feed, _Decimal64 f0, _Decimal64 
     return empty_slots();
 }
 
-static int _planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
-                           _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid, int ns, int ne)
+static int _planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
+                           double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
@@ -302,7 +310,8 @@ static int _planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int c
     cur->arc.x[0] = x[0];
     cur->arc.x[1] = x[1];
     cur->arc.x[2] = x[2];
-    cur->arc.d = d;
+    cur->arc.a = a;
+    cur->arc.b = b;
     cur->arc.cw = cw;
     cur->arc.plane = plane;
     cur->arc.feed = feed;
@@ -319,7 +328,7 @@ static int _planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int c
 }
 
 
-int planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, _Decimal64 feed, _Decimal64 f0, _Decimal64 f1, int32_t acc, int nid)
+int planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid)
 {
     if (planner_is_locked())
     {
@@ -331,7 +340,7 @@ int planner_arc_to(_Decimal64 x[3], _Decimal64 d, arc_plane plane, int cw, _Deci
         return -E_NOMEM;
     }
 
-    int res = _planner_arc_to(x, d, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    int res = _planner_arc_to(x, a, b, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
     if (res)
     {
         ev_send_queued(nid);
@@ -424,7 +433,7 @@ static void _planner_lock(void)
 void planner_lock(void)
 {
     _planner_lock();
-    def.line_finished();
+    steppers_definitions.line_finished();
 }
 
 void planner_unlock(void)

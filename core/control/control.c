@@ -1,5 +1,6 @@
 
 #include "control.h"
+#include <system.h>
 #include <planner.h>
 #include <print_events.h>
 
@@ -28,8 +29,9 @@ static void cb_send_failed(int nid)
     send_failed(nid);
 }
 
-void init_control(steppers_definition pd, gpio_definition gd)
+void init_control(steppers_definition *pd, gpio_definition *gd)
 {
     init_planner(pd, gd, cb_send_queued, cb_send_started, cb_send_completed, cb_send_dropped, cb_send_failed);
+    system_init(pd->reboot);
 }
 

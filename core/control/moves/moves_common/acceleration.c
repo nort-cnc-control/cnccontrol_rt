@@ -1,7 +1,7 @@
 #include <acceleration.h>
 #include <common.h>
 
-void acceleration_process(acceleration_state *state, int32_t step_delay)
+void acceleration_process(acceleration_state *state, double step_delay)
 {
     if (state->step >= state->total_steps)
     {

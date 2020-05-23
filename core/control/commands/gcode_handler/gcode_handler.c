@@ -1,3 +1,4 @@
+#include <system.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <err.h>
@@ -39,19 +40,19 @@ static int handle_g_command(gcode_frame_t *frame)
         case 0:
         case 1: {
             int i;
-            _Decimal64 f = 0, feed0 = 0, feed1 = 0;
-            int32_t acc = def.acc_default;
-            _Decimal64 x[3] = {0, 0, 0};
+            double f = 0, feed0 = 0, feed1 = 0;
+            int32_t acc = 0;
+            int32_t x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = cmds[i].val_f;
+                    x[0] = cmds[i].val_i;
                     break;
                 case 'Y':
-                    x[1] = cmds[i].val_f;
+                    x[1] = cmds[i].val_i;
                     break;
                 case 'Z':
-                    x[2] = cmds[i].val_f;
+                    x[2] = cmds[i].val_i;
                     break;
                 case 'F':
                     f = cmds[i].val_i;
@@ -94,25 +95,28 @@ static int handle_g_command(gcode_frame_t *frame)
         case 2:
         case 3: {
             int i;
-            _Decimal64 f = 0, feed0 = 0, feed1 = 0;
-            _Decimal64 x[3] = {0, 0, 0};
-            _Decimal64 d = 0;
+            int f = 0, feed0 = 0, feed1 = 0;
+            int x[3] = {0, 0, 0};
+            double a = 0, b = 0;
 
-	    int32_t acc = def.acc_default;
+	    int32_t acc = 0;
             int plane = XY;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = cmds[i].val_f;
+                    x[0] = cmds[i].val_i;
                     break;
                 case 'Y':
-                    x[1] = cmds[i].val_f;
+                    x[1] = cmds[i].val_i;
                     break;
                 case 'Z':
-                    x[2] = cmds[i].val_f;
+                    x[2] = cmds[i].val_i;
                     break;
-                case 'D':
-                    d = cmds[i].val_f;
+                case 'A':
+                    a = cmds[i].val_f;
+                    break;
+                case 'B':
+                    b = cmds[i].val_f;
                     break;
                 case 'F':
                     f = cmds[i].val_i;
@@ -145,7 +149,7 @@ static int handle_g_command(gcode_frame_t *frame)
                 }
             }
             int cw = (cmds[0].val_i == 2);
-            int res = planner_arc_to(x, d, plane, cw, f, feed0, feed1, acc, nid);
+            int res = planner_arc_to(x, a, b, plane, cw, f, feed0, feed1, acc, nid);
             if (res >= 0)
             {
                 return -E_OK;
@@ -253,8 +257,8 @@ static int handle_g_command(gcode_frame_t *frame)
             send_ok(nid);
             return -E_OK;
         case 997: {
-            _Decimal64 x[3] = {0};
-            moves_set_position(x);
+            int32_t x[3] = {0};
+            moves_common_set_position(x);
             moves_reset();
             send_ok(nid);
             return -E_OK;
@@ -264,7 +268,7 @@ static int handle_g_command(gcode_frame_t *frame)
             send_ok(nid);
             return -E_OK;
         case 999:
-            def.reboot();
+            system_reboot();
             // for debug cases
             send_ok(nid);
             return -E_OK;
@@ -297,7 +301,7 @@ int execute_g_command(const unsigned char *command, ssize_t len)
     int rc;
 
     if (len < 0)
-        len = strlen(command);
+        len = strlen((const char *)command);
 
     rc = parse_cmdline(command, len, &frame);
     switch (rc)

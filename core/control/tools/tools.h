@@ -13,6 +13,6 @@ typedef struct
     int id;
 } tool_plan;
 
-void tools_init(gpio_definition definition);
+void tools_init(gpio_definition *definition);
 int tool_action(tool_plan *plan);
 

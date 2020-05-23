@@ -28,15 +28,15 @@
 
 int dsteps[3] = {0, 0, 0};
 int steps[3];
-_Decimal64 pos[3];
+double pos[3];
 bool run = false;
 
-static void set_dir(int coord, int dir)
+static void set_dir(int coord, bool dir)
 {
-    if (dir == 0)
-        dsteps[coord] = -1;
-    else
+    if (dir == false)
         dsteps[coord] = 1;
+    else
+        dsteps[coord] = -1;
 }
 
 static void make_step(int coord)
@@ -67,14 +67,12 @@ static void line_started(void)
 
 static void print_pos(void)
 {
-    int xh, yh, zh;
-    int xl, yl, zl;
-    char xs, ys, zs;
-    double2fixed(position.pos[0], &xh, &xl, &xs);
-    double2fixed(position.pos[1], &yh, &yl, &ys);
-    double2fixed(position.pos[2], &zh, &zl, &zs);
+    int x, y, z;
+    x = position.pos[0];
+    y = position.pos[1];
+    z = position.pos[2];
 
-    printf("Position = %c%i.%04i %c%i.%04i %c%i.%04i\n", xs, xh, xl, ys, yh, yl, zs, zh, zl);
+    printf("Position = %i %i %i\n", x, y, z);
 }
 
 static void line_finished(void)
@@ -136,10 +134,9 @@ static void init_steppers(void)
             SIZE_Y,
             SIZE_Z,
         },
-        .acc_default = ACC,
     };
     config_steppers(&sd, &gd);
-    init_control(sd, gd);
+    init_control(&sd, &gd);
 }
 
 void test_init(void)
@@ -195,7 +192,7 @@ void *receive(void *arg)
             if (blen >= 3 && !memcmp(buf, "RT:", 3))
             {
                 printf("Execute: %.*s\n", (int)(blen - 3), buf + 3);
-                execute_g_command(buf + 3, blen - 3);
+                execute_g_command((const unsigned char*)(buf + 3), blen - 3);
             }
             else if (blen >= 5 && !memcmp(buf, "EXIT:", 5))
             {

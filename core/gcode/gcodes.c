@@ -71,7 +71,7 @@ static int read_hex(const unsigned char **str, const unsigned char *end, int32_t
     return -E_BADNUM;
 }
 
-static int read_decimal(const unsigned char **str, const unsigned char *end, _Decimal64 *val)
+static int read_double(const unsigned char **str, const unsigned char *end, double *val)
 {
     if (*str >= end)
         return -E_BADNUM;
@@ -79,7 +79,7 @@ static int read_decimal(const unsigned char **str, const unsigned char *end, _De
     if ((**str >= '0' && **str <= '9') || **str == '-' || **str == '.')
     {
         int8_t minus = 1;
-        _Decimal64 v = 0;
+        double v = 0;
 
         if (**str == '-')
         {
@@ -100,7 +100,7 @@ static int read_decimal(const unsigned char **str, const unsigned char *end, _De
         if (**str == '.')
         {
             uint8_t s = 0;
-            _Decimal64 div = 10;
+            double div = 10;
             (*str)++;
             while (**str >= '0' && **str <= '9' && *str < end)
             {
@@ -134,14 +134,7 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
         return -E_INCORRECT;
 
     switch ((*str)[0]) {
-    case 'G':
-    case 'M':
-    case 'P':
-    case 'L':
-    case 'F':
-    case 'N':
-    case 'T':
-    case 'S':
+    default:
         cmd->type = **str;
         (*str)++;
         if (*str < end)
@@ -154,15 +147,8 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
             return -E_BADNUM;
         }
         break;
-    case 'X':
-    case 'Y':
-    case 'Z':
-    case 'E':
-    case 'R':
-    case 'D':
-    case 'I':
-    case 'J':
-    case 'K':
+    case 'A':
+    case 'B':
         cmd->type = **str;
         (*str)++;
         if (*str < end)
@@ -170,7 +156,7 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
             if (**str == ' ' || **str == '\n' || **str == 0) {
                 return -E_BADNUM;
             }
-            if (read_decimal(str, end, &(cmd->val_f)))
+            if (read_double(str, end, &(cmd->val_f)))
                 return -E_BADNUM;
         }
         else
@@ -185,11 +171,7 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
             return -E_BADNUM;
 
         break;
-    default:
-        return -E_INCORRECT;
     }
-//	while (**str != ' ' && **str != 0 && **str != '\n')
-//		(*str)++;
 
     return E_OK;
 }

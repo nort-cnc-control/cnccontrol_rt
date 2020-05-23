@@ -15,10 +15,11 @@ typedef struct {
     int acc_steps;
     int dec_steps;
     int step;
-    _Decimal64 acceleration;
-    _Decimal64 feed;
-    _Decimal64 target_feed;
-    _Decimal64 end_feed;
+    double acceleration;
+    double feed;
+    double target_feed;
+    double end_feed;
 } acceleration_state;
 
-void acceleration_process(acceleration_state *state, int32_t step_delay);
+void acceleration_process(acceleration_state *state, double step_delay);
+

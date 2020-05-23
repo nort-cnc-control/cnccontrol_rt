@@ -1,29 +1,26 @@
 #pragma once
 
 #include <stdint.h>
-
-#include "steppers.h"
+#include <common.h>
+#include <steppers.h>
 
 typedef struct {
     // Specified data
-    _Decimal64 x[3]; // delta
-    _Decimal64 feed;   // feed of moving
-    _Decimal64 feed0;  // initial feed
-    _Decimal64 feed1;  // finishing feed
-    _Decimal64 acceleration; // acceleration
+    int32_t x[3]; // delta.              steps
+    double feed;  // feed of moving.     mm / sec
+    double feed0; // initial feed.       mm / sec
+    double feed1; // finishing feed.     mm / sec
+    double acceleration; // acceleration mm / sec^2
     int (*check_break)(int32_t *dx, void *user_arg);
     void *check_break_data;
 
     // Pre-calculated data
-    _Decimal64 len;  // length of delta
-    int32_t s[3]; // steps along each axises
-    int maxi;     // which axis has max steps
+    double len;            // length of delta. mm
+    int maxi;              // which axis has max steps
     uint32_t steps;        // total amount of steps
     uint32_t acc_steps;    // steps on acceleration
     uint32_t dec_steps;    // steps on deceleration
 } line_plan;
-
-void line_init(steppers_definition definition);
 
 // pre-calculate parameters of moving
 void line_pre_calculate(line_plan *line);

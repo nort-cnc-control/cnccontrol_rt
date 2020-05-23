@@ -10,7 +10,7 @@ typedef struct {
     char type;
     union {
         int32_t val_i;
-        _Decimal64 val_f;
+        double val_f;
     };
 } gcode_cmd_t;
 

@@ -1,8 +1,6 @@
 #pragma once
 
 enum {
-    E_WAIT  = -2,
-    E_NEXT  = -1,
     E_OK = 0,
     E_NULL = 1,
     E_BADNUM = 2,
@@ -12,4 +10,6 @@ enum {
     E_LOCKED = 6,
     E_CRC = 7,
     E_ENDSTOP = 8,
+    E_NEXT = 9,
+    E_WAIT = 10,
 };
