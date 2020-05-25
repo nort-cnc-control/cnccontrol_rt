@@ -41,7 +41,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 1: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-            int32_t acc = 0;
+            double acc = 0;
             int32_t x[3] = {0, 0, 0};
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -55,16 +55,16 @@ static int handle_g_command(gcode_frame_t *frame)
                     x[2] = cmds[i].val_i;
                     break;
                 case 'F':
-                    f = cmds[i].val_i;
+                    f = cmds[i].val_f;
                     break;
                 case 'P':
-                    feed0 = cmds[i].val_i;
+                    feed0 = cmds[i].val_f;
                     break;
                 case 'L':
-                    feed1 = cmds[i].val_i;
+                    feed1 = cmds[i].val_f;
                     break;
                 case 'T':
-                    acc = cmds[i].val_i;
+                    acc = cmds[i].val_f;
                     break;
                 }
             }
@@ -95,11 +95,11 @@ static int handle_g_command(gcode_frame_t *frame)
         case 2:
         case 3: {
             int i;
-            int f = 0, feed0 = 0, feed1 = 0;
+            double f = 0, feed0 = 0, feed1 = 0;
             int x[3] = {0, 0, 0};
             double a = 0, b = 0;
 
-	    int32_t acc = 0;
+	    double acc = 0;
             int plane = XY;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
@@ -119,16 +119,16 @@ static int handle_g_command(gcode_frame_t *frame)
                     b = cmds[i].val_f;
                     break;
                 case 'F':
-                    f = cmds[i].val_i;
+                    f = cmds[i].val_f;
                     break;
                 case 'P':
-                    feed0 = cmds[i].val_i;
+                    feed0 = cmds[i].val_f;
                     break;
                 case 'L':
-                    feed1 = cmds[i].val_i;
+                    feed1 = cmds[i].val_f;
                     break;
                 case 'T':
-                    acc = cmds[i].val_i;
+                    acc = cmds[i].val_f;
                     break;
                 case 'G':
                     switch (cmds[i].val_i)

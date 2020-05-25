@@ -184,8 +184,9 @@ void *receive(void *arg)
         ssize_t n = read(fd, &b, 1);
         if (n < 1)
         {
-            usleep(100);
-            continue;
+            printf("Disconnected\n");
+            run = false;
+            break;
         }
         if (b == '\n' || b == '\r')
         {

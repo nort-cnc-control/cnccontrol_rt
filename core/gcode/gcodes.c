@@ -149,6 +149,10 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
         break;
     case 'A':
     case 'B':
+    case 'P':
+    case 'L':
+    case 'F':
+    case 'T':
         cmd->type = **str;
         (*str)++;
         if (*str < end)
