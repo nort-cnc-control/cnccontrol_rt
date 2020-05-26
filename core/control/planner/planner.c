@@ -144,7 +144,7 @@ static void endstops_touched(void)
 {
     if (!fail_on_endstops)
     {
-        line_finished_cb();
+        line_finished();
     }
     else
     {
@@ -180,7 +180,7 @@ void init_planner(steppers_definition *def,
 
     line_started_cb = def->line_started;
     line_finished_cb = def->line_finished;
-    line_error_cb = def->endstops_touched;
+    line_error_cb = def->line_error;
 
     steppers_definitions.line_started = line_started;
     steppers_definitions.endstops_touched = endstops_touched;

@@ -216,10 +216,10 @@ static void line_started(void)
     moving = 1;
 
     // first tick
-    make_tick();
     going = true;
-
-    timer_enable_counter(TIM2);
+    make_tick();
+    if (going)
+        timer_enable_counter(TIM2);
 }
 
 static void line_finished(void)
