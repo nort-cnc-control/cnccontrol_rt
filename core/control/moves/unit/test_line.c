@@ -119,10 +119,10 @@ void test_4(void)
 
 	line_plan plan = {
 		.x = {100*400, 0, 0},
-		.feed = 100,
-		.feed0 = 100,
-		.feed1 = 100,
-		.acceleration = 40,
+		.feed = 100./60,
+		.feed0 = 100./60,
+		.feed1 = 100./60,
+		.acceleration = 40.0,
 		.len = -1, // must be negative at init
 	};
 

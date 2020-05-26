@@ -92,8 +92,6 @@ static void make_step(void)
         }
     }
 
-    current_state.acc.step++;
-
     int32_t cx[3];
     for (i = 0; i < 3; i++)
     {

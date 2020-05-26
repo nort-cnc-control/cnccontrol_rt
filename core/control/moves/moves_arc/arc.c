@@ -332,6 +332,7 @@ int arc_step_tick(void)
 
     double step_len = current_plan->len / current_plan->steps;
     double step_delay = step_len / current_state.acc.feed;
+//    printf("%lf\n", current_state.acc.feed);
     acceleration_process(&current_state.acc, step_delay);
     return step_delay * 1000000;
 }
@@ -343,7 +344,7 @@ int arc_move_to(arc_plan *plan)
     {
         arc_pre_calculate(plan);
     }
-    
+
     current_state.acc.acceleration = current_plan->acceleration;
     current_state.acc.feed = current_plan->feed0;
     current_state.acc.target_feed = current_plan->feed;
@@ -682,12 +683,12 @@ void arc_pre_calculate(arc_plan *arc)
             case LEFT:
             case RIGHT:
                 steps += abs(ys2 - ys1);
-                len += steps / stpu_y;
+                len += abs(ys2 - ys1) / stpu_y;
                 break;
             case TOP:
             case BOTTOM:
                 steps += abs(xs2 - xs1);
-                len += steps / stpu_x;
+                len += abs(xs2 - xs1) / stpu_x;
                 break;
             }
             arc->geometry.num_segments += 1;
@@ -712,12 +713,12 @@ void arc_pre_calculate(arc_plan *arc)
             case LEFT:
             case RIGHT:
                 steps += abs(y2 - y1);
-                len += steps / stpu_y;
+                len += abs(y2 - y1) / stpu_y;
                 break;
             case TOP:
             case BOTTOM:
                 steps += abs(x2 - x1);
-                len += steps / stpu_x;
+                len += abs(x2 - x1) / stpu_x;
                 break;
             }
         }
@@ -744,12 +745,12 @@ void arc_pre_calculate(arc_plan *arc)
             case LEFT:
             case RIGHT:
                 steps += abs(ys2 - ys1);
-                len += steps / stpu_y;
+                len += abs(ys2 - ys1) / stpu_y;
                 break;
             case TOP:
             case BOTTOM:
                 steps += abs(xs2 - xs1);
-                len += steps / stpu_x;
+                len += abs(xs2 - xs1) / stpu_x;
                 break;
             }
 

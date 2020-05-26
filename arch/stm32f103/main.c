@@ -34,7 +34,7 @@ static void init_steppers(void)
         .acc_default = ACC,
     };
     config_steppers(&sd, &gd);
-    init_control(sd, gd);
+    init_control(&sd, &gd);
 }
 
 int main(void)

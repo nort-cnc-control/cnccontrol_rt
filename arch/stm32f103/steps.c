@@ -111,7 +111,7 @@ void gpio_setup(void)
 
 static volatile int moving;
 
-static void set_dir(int i, int dir)
+static void set_dir(int i, bool dir)
 {
     if (dir) {
         switch (i) {

@@ -226,6 +226,15 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *u
     if (x[0] == 0 && x[1] == 0 && x[2] == 0)
         return 0;
 
+    if (f0 < steppers_definitions.feed_base)
+        f0 = steppers_definitions.feed_base;
+
+    if (f1 < steppers_definitions.feed_base)
+        f1 = steppers_definitions.feed_base;
+
+    if (feed < steppers_definitions.feed_base)
+        feed = steppers_definitions.feed_base;
+
     cur = &plan[plan_last];
     cur->type = ACTION_LINE;
     cur->nid = nid;
@@ -291,6 +300,15 @@ static int _planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, in
 
     if (x[0] == 0 && x[1] == 0 && x[2] == 0)
         return 0;
+
+    if (f0 < steppers_definitions.feed_base)
+        f0 = steppers_definitions.feed_base;
+
+    if (f1 < steppers_definitions.feed_base)
+        f1 = steppers_definitions.feed_base;
+
+    if (feed < steppers_definitions.feed_base)
+        feed = steppers_definitions.feed_base;
 
     cur = &plan[plan_last];
     cur->type = ACTION_ARC;

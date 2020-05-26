@@ -56,8 +56,16 @@ uint32_t acceleration_steps(double feed0,
                             double acc,
                             double step_len)
 {
-    double slen = (SQR(feed1) - SQR(feed0)) / (2*acc);
-    return slen / step_len;
+    double feed = feed0;
+    uint32_t steps = 0;
+    while (feed < feed1)
+    {
+        feed = accelerate(feed, acc, step_len / feed);
+        steps++;
+    }
+    if (steps > 0 && feed > feed1)
+        steps--;
+    return steps;
 }
 
 // Movement functions

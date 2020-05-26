@@ -49,4 +49,6 @@ void acceleration_process(acceleration_state *state, double step_delay)
     case STATE_STOP:
         break;
     }
+    state->step++;
 }
+

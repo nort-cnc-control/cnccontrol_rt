@@ -123,12 +123,12 @@ static void init_steppers(void)
             STEPS_PER_MM,
             STEPS_PER_MM
         },
-        .feed_base = FEED_BASE,
-        .feed_max = FEED_MAX,
-        .es_travel = FEED_ES_TRAVEL,
-        .probe_travel = FEED_PROBE_TRAVEL,
-        .es_precise = FEED_ES_PRECISE,
-        .probe_precise = FEED_PROBE_PRECISE,
+        .feed_base = FEED_BASE / 60.0,
+        .feed_max = FEED_MAX / 60.0,
+        .es_travel = FEED_ES_TRAVEL / 60.0,
+        .probe_travel = FEED_PROBE_TRAVEL / 60.0,
+        .es_precise = FEED_ES_PRECISE / 60.0,
+        .probe_precise = FEED_PROBE_PRECISE / 60.0,
         .size = {
             SIZE_X,
             SIZE_Y,
