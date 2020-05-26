@@ -96,7 +96,7 @@ static int handle_g_command(gcode_frame_t *frame)
         case 3: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-            int x[3] = {0, 0, 0};
+            int32_t x[3] = {0, 0, 0};
             double a = 0, b = 0;
 
 	    double acc = 0;

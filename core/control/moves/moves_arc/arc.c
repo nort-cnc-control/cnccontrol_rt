@@ -79,7 +79,7 @@ static struct
     } global;
 
     int32_t position[3];
-    int dir[3];
+    int32_t dir[3];
     acceleration_state acc;
 } current_state;
 
