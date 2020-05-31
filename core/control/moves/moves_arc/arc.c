@@ -288,14 +288,9 @@ static bool make_tick(void)
     for (i = 0; i < 3; i++)
     {
         int d = current_state.global.position[i] - pos[i];
-        if (d == 1)
+        if (d != 0)
         {
-            moves_common_set_dir(i, 0);
-            moves_common_make_step(i);
-        }
-        else if (d == -1)
-        {
-            moves_common_set_dir(i, 1);
+            moves_common_set_dir(i, d >= 0);
             moves_common_make_step(i);
         }
 
