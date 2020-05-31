@@ -32,14 +32,18 @@ void moves_reset(void)
 
 int moves_line_to(line_plan *plan)
 {
-    current_move_type = MOVE_LINE;
-    return line_move_to(plan);
+    int res = line_move_to(plan);
+    if (res == -E_OK)
+        current_move_type = MOVE_LINE;
+    return res;
 }
 
 int moves_arc_to(arc_plan *plan)
 {
-    current_move_type = MOVE_ARC;
-    return arc_move_to(plan);
+    int res = arc_move_to(plan);
+    if (res == -E_OK)
+        current_move_type = MOVE_ARC;
+    return res;
 }
 
 int moves_step_tick(void)
@@ -55,3 +59,4 @@ cnc_endstops moves_get_endstops(void)
 {
     return def->get_endstops();
 }
+

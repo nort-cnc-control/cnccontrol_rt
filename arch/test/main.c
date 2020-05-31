@@ -265,6 +265,7 @@ int main(int argc, const char **argv)
         run = true;
         printf("Connect from client\n");
 
+
         pthread_create(&tid_rcv, NULL, receive, &fd);
         usleep(100000);
 
@@ -274,6 +275,8 @@ int main(int argc, const char **argv)
 
         test_init();
         init_steppers();
+
+        output_control_write("Hello", -1);
 
         pthread_create(&tid_tick, NULL, make_tick, NULL);
         planner_lock();
