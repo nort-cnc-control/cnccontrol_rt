@@ -259,14 +259,9 @@ static int handle_g_command(gcode_frame_t *frame)
         case 997: {
             int32_t x[3] = {0};
             moves_common_set_position(x);
-            moves_reset();
             send_ok(nid);
             return -E_OK;
         }
-        case 998:
-            moves_reset();
-            send_ok(nid);
-            return -E_OK;
         case 999:
             system_reboot();
             // for debug cases
