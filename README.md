@@ -37,14 +37,14 @@ T - acceleration, mm/sec^2, default=50
 
 #### Arc movement
 ```
-G2/G3 XxxYyyZzz G17/G18/G19 Ddd Ffff Tttt Pppp Llll
-X, Y, Z - relative coordinates, mm. If G17 selected, only X and Y are used, G18 only Y and Z, G19 only Z and X
+G2/G3 XxxYyyZzz G17/G18/G19 Aaaa Baaa Ffff Tttt Pppp Llll
+X, Y, Z - relative coordinates, steps. If G17 selected, only X and Y are used, G18 only Y and Z, G19 only Z and X
+A, B - axises of ellipse, steps
 G17/G18/G19 - selected plane
-D - distance from horde to center, mm. Negative, if center is left from horde
 F, T, P, L - same as for G0/G1
 ```
 
-Attention! see config.h and specify XY_RIGHT, YZ_RIGHT, ZX_RIGHT for your CNC. I have axis Z looking down, and XY axes form left pair of vectors, if look from top. This is critical for correct clockwise/counter-clockwise movement
+Attention: cnccontrol_rt assumes that XYZ are right-handed basis. If it is wrong, you need to exchange G2 and G3 in g-code commands
 
 #### Get/set current state
 
@@ -61,6 +61,13 @@ Attention! see config.h and specify XY_RIGHT, YZ_RIGHT, ZX_RIGHT for your CNC. I
 #### Reboot
 
 - M999 - reboot
+
+#### Using tool
+
+M3 Tttt - enable tool number ttt
+M5 - disable tool
+
+This section is for tools that required to start and stop while moving, for example lasers
 
 # Searching endstops and probing
 

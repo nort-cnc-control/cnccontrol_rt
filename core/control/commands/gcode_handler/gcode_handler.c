@@ -194,7 +194,7 @@ static int handle_g_command(gcode_frame_t *frame)
 	    int i;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
-                case 'T':
+                case 'D':
                     tool = cmds[i].val_i;
 		    break;
                 }

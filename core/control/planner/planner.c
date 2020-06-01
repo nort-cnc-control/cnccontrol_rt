@@ -157,6 +157,7 @@ static void endstops_touched(void)
 }
 
 static steppers_definition steppers_definitions;
+static gpio_definition gpio_definitions;
 
 void init_planner(steppers_definition *def,
 		  gpio_definition *gd,
@@ -177,6 +178,7 @@ void init_planner(steppers_definition *def,
     finish_action = NULL;
 
     memcpy(&steppers_definitions, def, sizeof(*def));
+    memcpy(&gpio_definitions, gd, sizeof(*gd));
 
     line_started_cb = def->line_started;
     line_finished_cb = def->line_finished;
@@ -187,7 +189,7 @@ void init_planner(steppers_definition *def,
     steppers_definitions.line_finished = line_finished;
 
     moves_init(&steppers_definitions);
-    tools_init(gd);
+    tools_init(&gpio_definitions);
 }
 
 int used_slots(void)

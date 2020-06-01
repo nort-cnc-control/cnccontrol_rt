@@ -126,6 +126,14 @@ static void reboot(void)
     printf("Reboot\n");
 }
 
+static void set_gpio(int i, int on)
+{
+    if (on)
+        printf("Tool %i in on\n", i);
+    else
+        printf("Tool %i is off\n", i);
+}
+
 void config_steppers(steppers_definition *sd, gpio_definition *gd)
 {
     sd->reboot         = reboot;
@@ -135,6 +143,7 @@ void config_steppers(steppers_definition *sd, gpio_definition *gd)
     sd->line_started   = line_started;
     sd->line_finished  = line_finished;
     sd->line_error     = line_error;
+    gd->set_gpio       = set_gpio;
 }
 
 static void init_steppers(void)
