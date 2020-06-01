@@ -26,6 +26,9 @@
 
 #include <print_status.h>
 
+static void print_pos(void);
+
+
 int dsteps[3] = {0, 0, 0};
 int steps[3];
 double pos[3];
@@ -58,12 +61,46 @@ static cnc_endstops get_stops(void)
 }
 
 bool line_st;
+pthread_t tid_tick; /* идентификатор потока */
+
+
+static void* make_tick(void *arg)
+{
+    while (line_st)
+    {
+        int delay_us = moves_step_tick();
+        if (delay_us <= 0)
+        {
+            continue;
+        }
+        usleep(delay_us);
+    }
+    return NULL;
+}
 
 static void line_started(void)
 {
     printf("Line started\n");
     line_st = true;
+    pthread_create(&tid_tick, NULL, make_tick, NULL);
 }
+
+static void line_finished(void)
+{
+    printf("Line finished\n");
+    line_st = false;
+    pthread_join(tid_tick, NULL);
+    print_pos();
+}
+
+static void line_error(void)
+{
+    printf("Line error\n");
+    line_st = false;
+    pthread_join(tid_tick, NULL);
+    print_pos();
+}
+
 
 static void print_pos(void)
 {
@@ -73,19 +110,6 @@ static void print_pos(void)
     z = position.pos[2];
 
     printf("Position = %i %i %i\n", x, y, z);
-}
-
-static void line_finished(void)
-{
-    printf("Line finished\n");
-    line_st = false;
-    print_pos();
-}
-
-static void line_error(void)
-{
-    printf("Line error\n");
-    print_pos();
 }
 
 static void reboot(void)
@@ -149,26 +173,6 @@ void test_init(void)
     steps[2] = 0;
 }
 
-static void* make_tick(void *arg)
-{
-    while (run)
-    {
-        if (line_st)
-        {
-            int delay_us = moves_step_tick();
-            if (delay_us <= 0)
-            {
-                continue;
-            }
-            usleep(delay_us);
-        }
-        else
-        {
-            usleep(1000);
-        }
-    }
-    return NULL;
-}
 
 static int fd;
 
@@ -248,7 +252,6 @@ static int create_control(unsigned short port)
 int main(int argc, const char **argv)
 {
     pthread_t tid_rcv; /* идентификатор потока */
-    pthread_t tid_tick; /* идентификатор потока */
     
     int sock = create_control(8889);
     if (sock <= 0)
@@ -278,7 +281,6 @@ int main(int argc, const char **argv)
 
         output_control_write("Hello", -1);
 
-        pthread_create(&tid_tick, NULL, make_tick, NULL);
         planner_lock();
         moves_reset();
 
