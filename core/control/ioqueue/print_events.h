@@ -9,3 +9,4 @@ void send_failed(int nid);
 
 void send_ok(int nid);
 void send_error(int nid, const char *err);
+void send_warning(int nid, const char *err);

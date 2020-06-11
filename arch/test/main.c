@@ -182,7 +182,7 @@ void test_init(void)
     steps[2] = 0;
 }
 
-
+pthread_mutex_t mutex;
 static int fd;
 
 void *receive(void *arg)
@@ -195,6 +195,8 @@ void *receive(void *arg)
     {
         unsigned char b;
         ssize_t n = read(fd, &b, 1);
+
+
         if (n < 1)
         {
             printf("Disconnected\n");
@@ -205,8 +207,10 @@ void *receive(void *arg)
         {
             if (blen >= 3 && !memcmp(buf, "RT:", 3))
             {
+                pthread_mutex_lock(&mutex);
                 printf("Execute: %.*s\n", (int)(blen - 3), buf + 3);
                 execute_g_command((const unsigned char*)(buf + 3), blen - 3);
+                pthread_mutex_unlock(&mutex);
             }
             else if (blen >= 5 && !memcmp(buf, "EXIT:", 5))
             {
@@ -270,6 +274,7 @@ int main(int argc, const char **argv)
     }
 
     printf("Listening control on :8889\n");
+    pthread_mutex_init(&mutex, NULL);
 
     while (true)
     {
@@ -295,11 +300,14 @@ int main(int argc, const char **argv)
 
         while (run)
         {
+            pthread_mutex_lock(&mutex);
             planner_pre_calculate();
+            pthread_mutex_unlock(&mutex);
             usleep(1000);
         }
 
         close(fd);
     }
+    pthread_mutex_destroy(&mutex);
     return 0;
 }

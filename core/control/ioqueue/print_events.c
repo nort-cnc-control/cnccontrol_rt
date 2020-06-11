@@ -58,3 +58,11 @@ void send_error(int nid, const char *err)
     snprintf(buf, sizeof(buf), "error N:%i %s", nid, err);
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
+
+void send_warning(int nid, const char *err)
+{
+    char buf[50];
+    snprintf(buf, sizeof(buf), "warning N:%i %s", nid, err);
+    output_control_write(buf, min(strlen(buf), sizeof(buf)));
+}
+

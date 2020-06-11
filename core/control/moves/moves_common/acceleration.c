@@ -42,11 +42,12 @@ void acceleration_process(acceleration_state *state, double step_delay)
         if (state->feed < state->end_feed)
         {
             state->feed = state->end_feed;
-            state->type = STATE_STOP;
+            state->type = STATE_STOP_COMPLETION;
         }
+        break;
     }
-    break;
     case STATE_STOP:
+    case STATE_STOP_COMPLETION:
         break;
     }
     state->step++;

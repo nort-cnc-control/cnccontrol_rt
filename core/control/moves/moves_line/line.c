@@ -137,7 +137,8 @@ int line_step_tick(void)
 
     /* Calculating delay */
     double delay = len / current_state.acc.feed;
-    acceleration_process(&current_state.acc, delay);
+    double average_delay = current_plan->len / current_plan->steps / current_state.acc.feed;
+    acceleration_process(&current_state.acc, average_delay);
     return delay * 1000000;
 }
 

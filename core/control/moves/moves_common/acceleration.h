@@ -7,6 +7,7 @@ typedef enum {
     STATE_ACC,
     STATE_GO,
     STATE_DEC,
+    STATE_STOP_COMPLETION,
 } acceleration_type;
 
 typedef struct {
