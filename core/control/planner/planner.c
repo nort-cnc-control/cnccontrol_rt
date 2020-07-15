@@ -49,6 +49,7 @@ static bool break_on_probe = false;
 
 static void (*ev_send_started)(int nid);
 static void (*ev_send_completed)(int nid);
+static void (*ev_send_completed_with_pos)(int nid, const int *pos);
 static void (*ev_send_queued)(int nid);
 static void (*ev_send_dropped)(int nid);
 static void (*ev_send_failed)(int nid);
@@ -130,7 +131,9 @@ static void line_finished(void)
 {
     action_plan *cp = &plan[plan_cur];
     if (cp->notify_end)
-        ev_send_completed(cp->nid);
+    {
+        ev_send_completed_with_pos(cp->nid, position.pos);
+    }
     line_finished_cb();
     pop_cmd();
 
@@ -164,11 +167,13 @@ void init_planner(steppers_definition *def,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),
                   void (*arg_send_completed)(int nid),
+                  void (*arg_send_completed_with_pos)(int nid, const int *pos),
                   void (*arg_send_dropped)(int nid),
                   void (*arg_send_failed)(int nid))
 {
     ev_send_started = arg_send_started;
     ev_send_completed = arg_send_completed;
+    ev_send_completed_with_pos = arg_send_completed_with_pos;
     ev_send_queued = arg_send_queued;
     ev_send_dropped = arg_send_dropped;
     ev_send_failed = arg_send_failed;

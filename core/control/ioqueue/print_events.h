@@ -4,6 +4,7 @@
 void send_queued(int nid);
 void send_started(int nid);
 void send_completed(int nid);
+void send_completed_with_pos(int nid, const int *pos);
 void send_dropped(int nid);
 void send_failed(int nid);
 
