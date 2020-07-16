@@ -38,7 +38,7 @@ void send_completed(int nid)
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
-void send_completed_with_pos(int nid, const int *pos)
+void send_completed_with_pos(int nid, const int32_t *pos)
 {
     char buf[50];
     int q = empty_slots();

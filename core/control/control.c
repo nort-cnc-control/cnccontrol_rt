@@ -29,7 +29,7 @@ static void cb_send_failed(int nid)
     send_failed(nid);
 }
 
-static void cb_send_completed_with_pos(int nid, const int *pos)
+static void cb_send_completed_with_pos(int nid, const int32_t *pos)
 {
     send_completed_with_pos(nid, pos);
 }

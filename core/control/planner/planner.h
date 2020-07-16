@@ -13,7 +13,7 @@ void init_planner(steppers_definition *pd,
                   void (*arg_send_queued)(int nid),
                   void (*arg_send_started)(int nid),
                   void (*arg_send_completed)(int nid),
-                  void (*arg_send_completed_with_pos)(int nid, const int *pos),
+                  void (*arg_send_completed_with_pos)(int nid, const int32_t *pos),
                   void (*arg_send_dropped)(int nid),
 		  void (*arg_send_failed)(int nid));
 
