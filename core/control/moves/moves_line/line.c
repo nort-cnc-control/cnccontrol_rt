@@ -21,7 +21,6 @@ static struct
     int32_t start_pos[3];
 } current_state;
 
-
 int line_move_to(line_plan *plan)
 {
     int i;
@@ -68,12 +67,12 @@ int line_move_to(line_plan *plan)
     return -E_OK;
 }
 
-static void make_step(void)
+static bool make_step(void)
 {
     int i;
     if (current_state.acc.step >= current_state.acc.total_steps)
     {
-        return;
+        return false;
     }
     /* Bresenham */
     moves_common_make_step(current_plan->maxi);
@@ -98,17 +97,21 @@ static void make_step(void)
         cx[i] = current_state.start_pos[i] + current_state.steps[i];
     }
     moves_common_set_position(cx);
+    return true;
 }
 
 int line_step_tick(void)
 {
     int i;
     // Check for endstops
-    if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
+    if (current_state.acc.step < current_state.acc.total_steps)
     {
-        current_state.is_moving = 0;
-        moves_common_endstops_touched();
-        return -E_ENDSTOP;
+        if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
+        {
+            current_state.is_moving = 0;
+            moves_common_endstops_touched();
+            return -E_ENDSTOP;
+        }
     }
 
     int32_t delta[3];
@@ -116,19 +119,7 @@ int line_step_tick(void)
         delta[i] = position.pos[i];
 
     // Make step
-    make_step();
-
-    // Measure delta
-    double len = 0;
-    for (i = 0; i < 3; i++)
-    {
-        double d = (position.pos[i] - delta[i]) / moves_common_def->steps_per_unit[i];
-        len += d * d;
-    }
-    len = sqrt(len);
-
-    // Check if we have reached the end
-    if (len == 0)
+    if (!make_step())
     {
         current_state.is_moving = 0;
         moves_common_line_finished();
@@ -136,10 +127,10 @@ int line_step_tick(void)
     }
 
     /* Calculating delay */
-    double delay = len / current_state.acc.feed;
     double average_delay = current_plan->len / current_plan->steps / current_state.acc.feed;
     acceleration_process(&current_state.acc, average_delay);
-    return delay * 1000000;
+
+    return average_delay * 1000000;
 }
 
 static void bresenham_plan(line_plan *plan)

@@ -71,7 +71,7 @@ static void* make_tick(void *arg)
         int delay_us = moves_step_tick();
         if (delay_us <= 0)
         {
-            continue;
+            break;
         }
         usleep(delay_us);
     }
@@ -81,6 +81,7 @@ static void* make_tick(void *arg)
 static void line_started(void)
 {
     printf("Line started\n");
+    print_pos();
     line_st = true;
     pthread_create(&tid_tick, NULL, make_tick, NULL);
 }
