@@ -8,7 +8,12 @@ set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}")
 include_directories(libopencm3/include/)
 link_directories(libopencm3/lib/)
 
-add_executable(controller.elf main.c stm32f103.c steps.c uart.c spi.c)
+if (1)
+    add_executable(controller.elf main.c stm32f103.spi.c steps.c uart.c)
+else()
+    add_executable(controller.elf main.c stm32f103.eth.c steps.c uart.c spi.master.c)
+endif()
+
 target_link_libraries(controller.elf control err gcode output opencm3_stm32f1 m enc28j60)
 target_include_directories(controller.elf PUBLIC enc28j60)
 

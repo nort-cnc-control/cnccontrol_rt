@@ -54,12 +54,6 @@ void uart_send(const uint8_t *data, ssize_t len);
 void uart_pause(void);
 void uart_continue(void);
 
-uint8_t spi_rw(uint8_t d);
-void spi_cs(uint8_t v);
-void spi_setup(void);
-void spi_read_buf(uint8_t *data, size_t len);
-void spi_write_buf(const uint8_t *data, size_t len);
-
 // ********************************************
 
 static void clock_setup(void)
@@ -99,6 +93,62 @@ static void dma_int_enable(void)
 }
 
 /* Setup SPI */
+uint8_t spi_rw(uint8_t d)
+{
+    spi_send(SPI2, d);
+    return spi_read(SPI2);
+}
+
+void spi_cs(uint8_t v)
+{
+    if (v)
+        gpio_set(GPIOB, GPIO_SPI2_NSS);
+    else
+        gpio_clear(GPIOB, GPIO_SPI2_NSS);
+}
+
+static bool send_completed;
+
+static void spi_write_buf(const uint8_t *data, size_t len)
+{
+    while (len-- > 0)
+    {
+        spi_rw(*(data++));
+    }
+}
+
+static bool read_completed;
+
+static void spi_read_buf(uint8_t *data, size_t len)
+{
+    while (len > 0)
+    {
+        *(data++) = spi_rw(0xFF);
+        len--;
+    }
+}
+
+void spi_setup(void)
+{
+    nvic_enable_irq(NVIC_SPI2_IRQ);
+
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI2_MOSI | GPIO_SPI2_SCK);
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI2_NSS);
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_SPI2_MISO);
+
+    spi_reset(SPI2);
+
+    spi_init_master(SPI2,
+                    SPI_CR1_BAUDRATE_FPCLK_DIV_8,
+                    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                    SPI_CR1_CPHA_CLK_TRANSITION_1,
+                    SPI_CR1_DFF_8BIT,
+                    SPI_CR1_MSBFIRST);
+    spi_enable_software_slave_management(SPI2);
+    spi_set_nss_high(SPI2);
+
+    spi_enable(SPI2);
+}
 
 
 
