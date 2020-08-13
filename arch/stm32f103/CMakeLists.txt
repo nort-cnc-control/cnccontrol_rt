@@ -11,7 +11,7 @@ link_directories(libopencm3/lib/)
 if (1)
     add_executable(controller.elf main.c stm32f103.spi.c steps.c uart.c)
 else()
-    add_executable(controller.elf main.c stm32f103.eth.c steps.c uart.c spi.master.c)
+    add_executable(controller.elf main.c stm32f103.eth.c steps.c uart.c)
 endif()
 
 target_link_libraries(controller.elf control err gcode output opencm3_stm32f1 m enc28j60)

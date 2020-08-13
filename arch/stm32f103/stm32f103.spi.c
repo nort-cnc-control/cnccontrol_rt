@@ -103,6 +103,7 @@ void spi_setup(void)
     spi_enable_rx_buffer_not_empty_interrupt(SPI2);
 
     // interrupt pin
+    gpio_set(GPIOB, GPIO11);
     gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_10_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO11);
 
     spi_enable(SPI2);
@@ -136,6 +137,7 @@ int num = 0;
 int save_id = 0, save_pos = 0, save_len = 0;
 int send_id = 0, send_pos = 0, send_len = 0;
 bool sending = false;
+bool receiving = false;
 
 static void send_interrupt(bool hasdata)
 {
@@ -150,19 +152,24 @@ void spi2_isr(void)
     if (SPI2_SR & SPI_SR_RXNE)
     {
         char rcv_char = spi_read(SPI2);
-        if (rcv_pos < 2 || rcv_len > 0)
+        if (!receiving && rcv_char == 0xFF)
+        {
+            receiving = true;
+        }
+        if (receiving)
         {
             rcv_message[rcv_pos] = rcv_char;
             rcv_pos++;
-            if (rcv_pos == 2)
+            if (rcv_pos == 3)
             {
-                rcv_len = ((int)rcv_message[0]) << 8 | rcv_message[1];
+                rcv_len = ((int)rcv_message[1]) << 8 | rcv_message[2];
             }
-            if (rcv_pos == rcv_len + 2)
+            if (rcv_pos == rcv_len + 3)
             {
+                receiving = false;
                 rcv_pos = 0;
                 if (rcv_len > 0)
-                    execute_g_command(rcv_message + 2, rcv_len);
+                    execute_g_command(rcv_message + 3, rcv_len);
             }
         }
     }
@@ -173,20 +180,20 @@ void spi2_isr(void)
         {
             if (sending == false)
             {
-                send_len = ((int)messages[send_id][0]) << 8 | messages[send_id][1];
+                send_len = ((int)messages[send_id][1]) << 8 | messages[send_id][2];
                 sending = true;
             }
 
             char send_char = messages[send_id][send_pos];
             send_pos++;
-            if (send_pos == send_len + 2)
+            if (send_pos == send_len + 3)
             {
                 send_pos = 0;
                 send_id = (send_id + 1) % MNUM;
                 num--;
                 if (num > 0)
                 {
-                    send_len = ((int)messages[send_id][0]) << 8 | messages[send_id][1];
+                    send_len = ((int)messages[send_id][1]) << 8 | messages[send_id][2];
                 }
                 else
                 {
@@ -195,6 +202,8 @@ void spi2_isr(void)
                     send_interrupt(false);
                 }
             }
+            while (SPI2_SR & SPI_SR_BSY)
+                ;
             spi_write(SPI2, send_char);
         }
         else
@@ -215,9 +224,10 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
             return -1;
         
         len = min(len, MLEN-1);
-        messages[save_id][0] = (len >> 8) & 0xFF;
-        messages[save_id][1] = len & 0xFF;
-        memcpy(messages[save_id] + 2, data, len);
+        messages[save_id][0] = 0xFF;
+        messages[save_id][1] = (len >> 8) & 0xFF;
+        messages[save_id][2] = len & 0xFF;
+        memcpy(messages[save_id] + 3, data, len);
         save_id = (save_id + 1) % MNUM;
         if (num == 0)
             send_interrupt(true);
