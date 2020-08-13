@@ -66,28 +66,28 @@ void gpio_setup(void)
 
     // X - step
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO14);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO14);
     // X - dir
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO15);
     
     // Y - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
     // Y - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
     
     // Z - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO2);
     // Z - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO3);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO3);
 
     // Enable
     gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);
     
     // X - stop
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO7);
@@ -107,7 +107,7 @@ void gpio_setup(void)
 
     // GPIO Tool 0
     gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
+                  GPIO_CNF_OUTPUT_OPENDRAIN, GPIO1);
 }
 
 static volatile int moving;
@@ -146,22 +146,22 @@ static void make_step(int i)
     switch (i)
     {
     case 0:
-        gpio_set(GPIOC, GPIO14);
+        gpio_clear(GPIOC, GPIO14);
         break;
     case 1:
-        gpio_set(GPIOA, GPIO0);
+        gpio_clear(GPIOA, GPIO0);
         break;
     case 2:
-        gpio_set(GPIOA, GPIO2);
+        gpio_clear(GPIOA, GPIO2);
         break;
     }
 }
 
 static void end_step(void)
 {
-    gpio_clear(GPIOC, GPIO14);
-    gpio_clear(GPIOA, GPIO0);
-    gpio_clear(GPIOA, GPIO2);
+    gpio_set(GPIOC, GPIO14);
+    gpio_set(GPIOA, GPIO0);
+    gpio_set(GPIOA, GPIO2);
 }
 
 static void make_tick(void)
@@ -253,9 +253,9 @@ static void set_gpio(int id, int on)
     {
     case 0:
         if (on)
-            gpio_set(GPIOB, GPIO1);
-        else
             gpio_clear(GPIOB, GPIO1);
+        else
+            gpio_set(GPIOB, GPIO1);
         break;
     }
 }
