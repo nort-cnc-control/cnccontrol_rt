@@ -65,33 +65,38 @@ void gpio_setup(void)
                   GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
     // X - step
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO14);
     // X - dir
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
+    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
     
     // Y - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
     // Y - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO3);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
     
     // Z - step
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO4);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
     // Z - dir
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO5);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO3);
 
+    // Enable
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_10_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
     
     // X - stop
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO7);
+    gpio_set(GPIOB, GPIO7);
+
+    // Y - stop
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO6);
     gpio_set(GPIOB, GPIO6);
-    // Y - stop
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO4);
-    gpio_set(GPIOB, GPIO4);
+
     // Z - stop
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO5);
     gpio_set(GPIOB, GPIO5);
@@ -101,12 +106,8 @@ void gpio_setup(void)
     gpio_set(GPIOB, GPIO8);
 
     // GPIO Tool 0
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO14);
-
-    // GPIO Tool 1
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
 }
 
 static volatile int moving;
@@ -116,25 +117,25 @@ static void set_dir(int i, bool dir)
     if (dir) {
         switch (i) {
         case 0:
-            gpio_clear(GPIOA, GPIO1);
+            gpio_clear(GPIOC, GPIO15);
             break;
         case 1:
-            gpio_clear(GPIOA, GPIO3);
+            gpio_clear(GPIOA, GPIO1);
             break;
         case 2:
-            gpio_clear(GPIOA, GPIO5);
+            gpio_clear(GPIOA, GPIO3);
             break;
         }
     } else {
         switch (i) {
         case 0:
-            gpio_set(GPIOA, GPIO1);
+            gpio_set(GPIOC, GPIO15);
             break;
         case 1:
-            gpio_set(GPIOA, GPIO3);
+            gpio_set(GPIOA, GPIO1);
             break;
         case 2:
-            gpio_set(GPIOA, GPIO5);
+            gpio_set(GPIOA, GPIO3);
             break;
         }
     }
@@ -145,22 +146,22 @@ static void make_step(int i)
     switch (i)
     {
     case 0:
-        gpio_set(GPIOA, GPIO0);
+        gpio_set(GPIOC, GPIO14);
         break;
     case 1:
-        gpio_set(GPIOA, GPIO2);
+        gpio_set(GPIOA, GPIO0);
         break;
     case 2:
-        gpio_set(GPIOA, GPIO4);
+        gpio_set(GPIOA, GPIO2);
         break;
     }
 }
 
 static void end_step(void)
 {
+    gpio_clear(GPIOC, GPIO14);
     gpio_clear(GPIOA, GPIO0);
     gpio_clear(GPIOA, GPIO2);
-    gpio_clear(GPIOA, GPIO4);
 }
 
 static void make_tick(void)
@@ -252,15 +253,9 @@ static void set_gpio(int id, int on)
     {
     case 0:
         if (on)
-            gpio_set(GPIOC, GPIO14);
+            gpio_set(GPIOB, GPIO1);
         else
-            gpio_clear(GPIOC, GPIO14);
-        break;
-    case 1:
-        if (on)
-            gpio_set(GPIOC, GPIO15);
-        else
-            gpio_clear(GPIOC, GPIO15);
+            gpio_clear(GPIOB, GPIO1);
         break;
     }
 }
@@ -268,8 +263,8 @@ static void set_gpio(int id, int on)
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
-        .stop_x  = !(gpio_get(GPIOB, GPIO6)),
-        .stop_y  = !(gpio_get(GPIOB, GPIO4)),
+        .stop_x  = !(gpio_get(GPIOB, GPIO7)),
+        .stop_y  = !(gpio_get(GPIOB, GPIO6)),
         .stop_z  = !(gpio_get(GPIOB, GPIO5)),
         .probe   = !(gpio_get(GPIOB, GPIO8)),
     };
