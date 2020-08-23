@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 void send_queued(int nid);
 void send_started(int nid);
 void send_completed(int nid);

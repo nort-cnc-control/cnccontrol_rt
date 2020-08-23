@@ -117,18 +117,6 @@ static void set_dir(int i, bool dir)
     if (dir) {
         switch (i) {
         case 0:
-            gpio_clear(GPIOC, GPIO15);
-            break;
-        case 1:
-            gpio_clear(GPIOA, GPIO1);
-            break;
-        case 2:
-            gpio_clear(GPIOA, GPIO3);
-            break;
-        }
-    } else {
-        switch (i) {
-        case 0:
             gpio_set(GPIOC, GPIO15);
             break;
         case 1:
@@ -136,6 +124,18 @@ static void set_dir(int i, bool dir)
             break;
         case 2:
             gpio_set(GPIOA, GPIO3);
+            break;
+        }
+    } else {
+        switch (i) {
+        case 0:
+            gpio_clear(GPIOC, GPIO15);
+            break;
+        case 1:
+            gpio_clear(GPIOA, GPIO1);
+            break;
+        case 2:
+            gpio_clear(GPIOA, GPIO3);
             break;
         }
     }
