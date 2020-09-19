@@ -1,0 +1,203 @@
+mainmenu "CNCControl_RT Configuration"
+
+menu "Compilation"
+
+config TOOLCHAIN_PREFIX
+	string "cross toolchain prefix"
+	default ""
+	help
+		"Cross toolchain prefix"
+
+choice COMPILE_OPTIMIZATION
+	prompt "Optimization"
+	default COMPILE_OPTIMIZATION_NONE
+	config COMPILE_OPTIMIZATION_NONE
+		bool "-O0"
+	
+	config COMPILE_OPTIMIZATION_FOR_SIZE
+		bool "-Os"
+endchoice
+
+config COMPILE_DEBUG
+	bool "Include debug information"
+	default y
+
+endmenu
+
+choice
+	prompt "Platform select"
+	default PLATFORM_EMULATION
+
+config PLATFORM_STM32F103
+	bool "stm32f103"
+	help
+		stm32f103 board
+
+config PLATFORM_EMULATION
+	bool "emulation"
+	help
+		emulate realtime board on linux
+
+endchoice
+
+menu "Board config"
+
+config ETHERNET
+	bool
+
+config ETHERNET_RAW
+	bool
+
+config IP
+	bool
+
+config UDP
+	bool
+
+config TCP
+	bool
+
+config SPI
+	bool
+
+config UART
+	bool
+
+if PLATFORM_EMULATION
+
+	choice
+		prompt "Control port"
+	config BOARD_EMULATION_CONTROL_TCP
+		bool "TCP"
+		select TCP
+		help
+			Send commands via TCP
+	endchoice
+
+endif
+
+if PLATFORM_STM32F103
+
+	choice
+		prompt "Control port"
+		default BOARD_STM32F103_CONTROL_UART
+
+	config BOARD_STM32F103_CONTROL_UART
+		bool "UART"
+		select UART
+		help
+			Send commands via UART
+
+	config BOARD_STM32F103_CONTROL_SPI
+		bool "SPI"
+		select SPI
+		help
+			Send commands via SPI
+
+	config BOARD_STM32F103_CONTROL_ETHERNET
+		bool "Ethernet"
+		select ETHERNET
+		select ETHERNET_RAW
+		help
+			Send commands via Ethernet
+
+	config BOARD_STM32F103_CONTROL_UDP
+		bool "UDP"
+		select ETHERNET
+		select IP
+		select UDP
+		help
+			Send commands via UDP
+
+	endchoice
+
+	if SPI
+		config BOARD_STM32F103_CONTROL_SPI_PORT
+		int "Control SPI port"
+		default 2
+		help
+			Used SPI port for control
+
+	endif
+
+	if UART
+		config BOARD_STM32F103_CONTROL_UART_PORT
+		int "Control UART port"
+		default 0
+		help
+			Used UART port for control
+	endif
+
+
+endif
+
+
+endmenu
+
+menu "Drivers"
+	if ETHERNET
+
+		choice
+			prompt "Ethenet device"
+			default ETHERNET_DEVICE_ENC28J60
+
+		config ETHERNET_DEVICE_ENC28J60
+			bool "enc28j60"
+			select SPI
+			help
+				Enc28j60 SPI ethernet driver
+
+		endchoice
+	endif
+endmenu
+
+menu "Communication"
+	if ETHERNET
+
+		config ETHERNET_MAC_ADDR
+			string "MAC address"
+			default "0C:00:00:00:00:02"
+			help
+				Ethernet device mac address
+
+	endif
+
+	if ETHERNET_RAW
+		config ETHERNET_RAW_ETHTYPE
+			hex "Ethtype for packets"
+			default "0xFEFE"
+			help
+				Use specified ethertype for control packets
+	endif
+
+	if IP
+		config IP_IPADDR
+			string "Ip address"
+			default "10.55.1.120"
+			help
+				Device IP address
+	endif
+
+	if UDP
+		config UDP_PORT
+			int "UDP port"
+			default 8889
+			help
+				Device control UDP port
+	endif
+
+	if TCP
+		config TCP_PORT
+			int "TCP port"
+			default 8889
+			help
+				Device control TCP port
+	endif
+
+endmenu
+
+menu "Core configuration"
+
+
+endmenu
+

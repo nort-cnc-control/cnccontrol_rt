@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <err.h>
+#include <err/err.h>
 
 #define MAX_CMDS 16
 

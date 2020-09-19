@@ -1,6 +1,6 @@
-#include "line.h"
-#include "arc.h"
-#include "moves.h"
+#include <control/moves/moves.h>
+#include <control/moves/moves_line/line.h>
+#include <control/moves/moves_arc/arc.h>
 
 static steppers_definition *def;
 

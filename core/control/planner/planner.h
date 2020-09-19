@@ -1,10 +1,12 @@
 #pragma once
 
-#include <stdint.h>
-#include <moves.h>
-#include <tools.h>
-#include <arc.h>
 #include <stdbool.h>
+#include <stdint.h>
+
+#include <control/moves/moves.h>
+#include <control/tools/tools.h>
+#include <control/moves/moves_line/line.h>
+#include <control/moves/moves_arc/arc.h>
 
 int empty_slots(void);
 
@@ -18,7 +20,6 @@ void init_planner(steppers_definition *pd,
 		  void (*arg_send_failed)(int nid));
 
 int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc, int nid);
-
 int planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid);
 
 int planner_tool(int id, bool on, int nid);

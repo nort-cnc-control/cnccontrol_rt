@@ -1,11 +1,12 @@
 #include <stdio.h>
-#include <print_status.h>
-#include "print_events.h"
-#include <moves.h>
-#include <planner.h>
-#include <output.h>
 #include <unistd.h>
 #include <string.h>
+
+#include <control/commands/status/print_status.h>
+#include <control/ioqueue/print_events.h>
+#include <control/moves/moves.h>
+#include <control/planner/planner.h>
+#include <output/output.h>
 
 #define min(a,b) ((a) < (b) ? (a) : (b))
 

@@ -14,13 +14,14 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <output.h>
-#include "config.h"
 
-#include <control.h>
-#include <moves.h>
-#include <planner.h>
-#include <gcode_handler.h>
+#include "config.h"
+#include <output/output.h>
+
+#include <control/control.h>
+#include <control/moves/moves.h>
+#include <control/planner/planner.h>
+#include <control/commands/gcode_handler/gcode_handler.h>
 
 #define FCPU 72000000UL
 #define FTIMER 100000UL
@@ -153,22 +154,6 @@ void spi_setup(void)
 
 
 /******** SHELL ******************/
-
-int blink = 0;
-int do_blink(void)
-{
-    if (blink)
-    {
-        gpio_set(GPIOC, GPIO13);
-        blink = 0;
-    }
-    else
-    {
-        gpio_clear(GPIOC, GPIO13);
-        blink = 1;
-    }
-    return 0;
-}
 
 static bool ethernet_lock = false;
 static void eth_lock(void)
@@ -313,20 +298,6 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     run_eth();
     exti_reset_request(EXTI1);
 }*/
-
-void hard_fault_handler(void)
-{
-    int i;
-    while (1)
-    {
-        for (i = 0; i < 0x400000; i++)
-            __asm__("nop");
-        gpio_set(GPIOC, GPIO13);
-        for (i = 0; i < 0x400000; i++)
-            __asm__("nop");
-        gpio_clear(GPIOC, GPIO13);
-    }
-}
 
 void hardware_setup(void)
 {

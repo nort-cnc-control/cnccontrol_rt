@@ -1,5 +1,5 @@
-#include <err.h>
-#include <tools.h>
+#include <err/err.h>
+#include <control/tools/tools.h>
 
 static gpio_definition *def;
 void tools_init(gpio_definition *definition)

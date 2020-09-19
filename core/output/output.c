@@ -1,5 +1,6 @@
-#include <output.h>
 #include <string.h>
+
+#include <output/output.h>
 
 static int control_fd;
 static int shell_fd;

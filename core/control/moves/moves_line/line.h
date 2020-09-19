@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <common.h>
-#include <steppers.h>
+
+#include <control/moves/moves_common/common.h>
+#include <control/moves/moves_common/steppers.h>
 
 typedef struct {
     // Specified data

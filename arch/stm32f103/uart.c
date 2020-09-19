@@ -10,12 +10,12 @@
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/exti.h>
 
-
-
 #include <stdio.h>
 #include <string.h>
-#include <output.h>
+
 #include "config.h"
+
+#include <output/output.h>
 
 static unsigned char txbuf[1024] = {};
 static int txpos = 0;

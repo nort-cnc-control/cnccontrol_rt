@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <math.h>
-#include <common.h>
+
+#include <control/moves/moves_common/common.h>
 
 #define SQR(a) ((a) * (a))
 

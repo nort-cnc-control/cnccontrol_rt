@@ -1,13 +1,14 @@
-#include <system.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <err.h>
-#include <gcodes.h>
-#include <print_events.h>
-#include <print_status.h>
-#include <planner.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <err/err.h>
+#include <gcode/gcodes.h>
+#include <control/ioqueue/print_events.h>
+#include <control/commands/status/print_status.h>
+#include <control/planner/planner.h>
+#include <control/system.h>
 
 static int handle_g_command(gcode_frame_t *frame)
 {
@@ -173,7 +174,6 @@ static int handle_g_command(gcode_frame_t *frame)
             }
             break;
         }
-
         default:
         {
             char buf[60];

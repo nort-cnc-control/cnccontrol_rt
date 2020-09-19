@@ -1,5 +1,5 @@
-#include <acceleration.h>
-#include <common.h>
+#include <control/moves/moves_common/acceleration.h>
+#include <control/moves/moves_common/common.h>
 
 void acceleration_process(acceleration_state *state, double step_delay)
 {

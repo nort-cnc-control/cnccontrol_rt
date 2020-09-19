@@ -1,8 +1,8 @@
 
-#include "control.h"
-#include <system.h>
-#include <planner.h>
-#include <print_events.h>
+#include <control/control.h>
+#include <control/system.h>
+#include <control/planner/planner.h>
+#include <control/ioqueue/print_events.h>
 
 static void cb_send_queued(int nid)
 {

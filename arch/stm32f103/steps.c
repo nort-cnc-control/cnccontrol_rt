@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <output.h>
-#include "config.h"
 
-#include <control.h>
-#include <moves.h>
-#include <planner.h>
-#include <gcode_handler.h>
+#include "config.h"
+#include <output/output.h>
+#include <control/control.h>
+#include <control/moves/moves.h>
+#include <control/planner/planner.h>
+#include <control/commands/gcode_handler/gcode_handler.h>
 
 
 #define FCPU 72000000UL

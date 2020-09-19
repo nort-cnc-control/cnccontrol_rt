@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include <steppers.h>
+#include <control/moves/moves_common/steppers.h>
 
 typedef struct {
     uint8_t en:1;

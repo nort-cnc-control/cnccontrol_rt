@@ -1,11 +1,12 @@
 #define __STDC_WANT_DEC_FP__
-#include <arc.h>
 #include <math.h>
-#include <common.h>
 #include <stdlib.h>
-#include <acceleration.h>
-
 #include <assert.h>
+
+#include <control/moves/moves_common/common.h>
+#include <control/moves/moves_common/acceleration.h>
+#include <control/moves/moves_arc/arc.h>
+
 
 #define SQR(a) ((a) * (a))
 const double pi = 3.1415926535;

@@ -1,9 +1,9 @@
 #include "config.h"
 
-#include <moves.h>
-#include <planner.h>
-#include <control.h>
-#include <output.h>
+#include <control/moves/moves.h>
+#include <control/planner/planner.h>
+#include <control/control.h>
+#include <output/output.h>
 
 void hardware_setup(void);
 void poll_net(void);

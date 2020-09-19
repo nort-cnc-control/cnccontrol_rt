@@ -1,9 +1,10 @@
 #include <math.h>
-#include <common.h>
-#include <line.h>
-#include <err.h>
 
-#include <acceleration.h>
+#include <control/moves/moves_common/common.h>
+#include <control/moves/moves_line/line.h>
+#include <err/err.h>
+
+#include <control/moves/moves_common/acceleration.h>
 
 #define SQR(x) ((x) * (x))
 

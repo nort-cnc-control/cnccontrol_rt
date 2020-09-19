@@ -1,6 +1,7 @@
-#include <err.h>
-#include <gcodes.h>
 #include <stdio.h>
+
+#include <err/err.h>
+#include <gcode/gcodes.h>
 
 static int islast(unsigned char c)
 {

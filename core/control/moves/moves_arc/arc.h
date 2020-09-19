@@ -1,7 +1,8 @@
 #pragma once
-#include <common.h>
-#include <steppers.h>
-#include "err.h"
+
+#include <control/moves/moves_common/common.h>
+#include <control/moves/moves_common/steppers.h>
+#include <err/err.h>
 
 typedef enum {
     RIGHT = 0,

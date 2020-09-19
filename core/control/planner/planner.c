@@ -1,13 +1,14 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "moves.h"
-#include <tools.h>
-#include "planner.h"
-#include <math.h>
-#include <err.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
+
+#include <control/moves/moves.h>
+#include <control/tools/tools.h>
+#include <control/planner/planner.h>
+#include <err/err.h>
 
 #define QUEUE_SIZE 10
 
@@ -475,3 +476,4 @@ void planner_fail_on_endstops(bool fail)
 {
     fail_on_endstops = fail;
 }
+

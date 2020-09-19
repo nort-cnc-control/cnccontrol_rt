@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <planner.h>
-#include <output.h>
 #include <string.h>
+
+#include <output/output.h>
+#include <control/planner/planner.h>
 
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
