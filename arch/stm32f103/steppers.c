@@ -1,8 +1,7 @@
 #define STM32F1
 
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/timer.h>
@@ -11,12 +10,7 @@
 #include <string.h>
 
 #include "config.h"
-#include <output/output.h>
-#include <control/control.h>
-#include <control/moves/moves.h>
-#include <control/planner/planner.h>
-#include <control/commands/gcode_handler/gcode_handler.h>
-
+#include "steppers.h"
 
 #define FCPU 72000000UL
 #define FTIMER 100000UL
@@ -25,7 +19,7 @@
 
 static bool going = false;
 
-void step_timer_setup(void)
+static void steppers_timer_setup(void)
 {
     rcc_periph_reset_pulse(RST_TIM2);
 
@@ -46,7 +40,7 @@ void step_timer_setup(void)
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
 }
 
-void step_timer_irq_enable(bool en)
+void steppers_timer_irq_enable(bool en)
 {
     if (en)
     {
@@ -58,11 +52,9 @@ void step_timer_irq_enable(bool en)
     }
 }
 
-void gpio_setup(void)
+void steppers_setup(void)
 {
-    /* Blink led */
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
+    steppers_timer_setup();
 
     // X - step
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_10_MHZ,
@@ -279,7 +271,7 @@ static void reboot(void)
         ;
 }
 
-void config_steppers(steppers_definition *sd, gpio_definition *gd)
+void steppers_config(steppers_definition *sd, gpio_definition *gd)
 {
     sd->reboot         = reboot;
     sd->set_dir        = set_dir;
@@ -290,3 +282,4 @@ void config_steppers(steppers_definition *sd, gpio_definition *gd)
     sd->line_error     = line_error;
     gd->set_gpio       = set_gpio;
 }
+

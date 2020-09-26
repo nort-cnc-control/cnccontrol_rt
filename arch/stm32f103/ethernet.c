@@ -15,158 +15,18 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
-#include <output/output.h>
-
-#include <control/control.h>
-#include <control/moves/moves.h>
-#include <control/planner/planner.h>
-#include <control/commands/gcode_handler/gcode_handler.h>
-
 #define FCPU 72000000UL
 #define FTIMER 100000UL
 #define PSC ((FCPU) / (FTIMER) - 1)
 #define TIMEOUT_TIMER_STEP 1000UL
 
-#define NORT_ETHERTYPE 0xFEFE
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
 static int shell_cfg = 0;
 
 static const uint8_t mac[6] = {0x0C, 0x00, 0x00, 0x00, 0x00, 0x02};
-//static const uint8_t ip[4] = {10, 55, 2, 200};
 static uint8_t host[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-#define MNUM 8
-#define MLEN 120
-static char messages[MNUM][MLEN];
-static int mpos = 0;
-static int mfirst = 0;
-static int mnum = 0;
 
 struct enc28j60_state_s eth_state;
 bool configured = false;
-
-void gpio_setup(void);
-void step_timer_setup(void);
-void usart_setup(int baudrate);
-void uart_send(const uint8_t *data, ssize_t len);
-void uart_pause(void);
-void uart_continue(void);
-
-// ********************************************
-
-static void clock_setup(void)
-{
-    rcc_clock_setup_in_hse_8mhz_out_72mhz();
-
-    /* Enable GPIOA clock. */
-    rcc_periph_clock_enable(RCC_GPIOA);
-    rcc_periph_clock_enable(RCC_GPIOB);
-    rcc_periph_clock_enable(RCC_GPIOC);
-
-    /* Enable clocks for GPIO port A (for GPIO_USART1_TX) and USART1. */
-    rcc_periph_clock_enable(RCC_USART1);
-
-    /* Enable TIM2 clock for steps*/
-    rcc_periph_clock_enable(RCC_TIM2);
-
-    /* Enable TIM3 clock for connection timeouts */
-    rcc_periph_clock_enable(RCC_TIM3);
-
-    /* Enable SPI2 */
-    rcc_periph_clock_enable(RCC_AFIO);
-    rcc_periph_clock_enable(RCC_SPI2);
-
-    /* Enable DMA1 */
-    rcc_periph_clock_enable(RCC_DMA1);
-}
-
-static void dma_int_enable(void)
-{
-    /* SPI2 RX on DMA1 Channel 4 */
-    nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
-    nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
-    /* SPI2 TX on DMA1 Channel 5 */
-    nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
-    nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
-}
-
-/* Setup SPI */
-uint8_t spi_rw(uint8_t d)
-{
-    spi_send(SPI2, d);
-    return spi_read(SPI2);
-}
-
-void spi_cs(uint8_t v)
-{
-    if (v)
-        gpio_set(GPIOB, GPIO_SPI2_NSS);
-    else
-        gpio_clear(GPIOB, GPIO_SPI2_NSS);
-}
-
-static bool send_completed;
-
-static void spi_write_buf(const uint8_t *data, size_t len)
-{
-    while (len-- > 0)
-    {
-        spi_rw(*(data++));
-    }
-}
-
-static bool read_completed;
-
-static void spi_read_buf(uint8_t *data, size_t len)
-{
-    while (len > 0)
-    {
-        *(data++) = spi_rw(0xFF);
-        len--;
-    }
-}
-
-void spi_setup(void)
-{
-    nvic_enable_irq(NVIC_SPI2_IRQ);
-
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_SPI2_MOSI | GPIO_SPI2_SCK);
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO_SPI2_NSS);
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_SPI2_MISO);
-
-    spi_reset(SPI2);
-
-    spi_init_master(SPI2,
-                    SPI_CR1_BAUDRATE_FPCLK_DIV_8,
-                    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                    SPI_CR1_CPHA_CLK_TRANSITION_1,
-                    SPI_CR1_DFF_8BIT,
-                    SPI_CR1_MSBFIRST);
-    spi_enable_software_slave_management(SPI2);
-    spi_set_nss_high(SPI2);
-
-    spi_enable(SPI2);
-}
-
-
-
-/******** SHELL ******************/
-
-static bool ethernet_lock = false;
-static void eth_lock(void)
-{
-    nvic_disable_irq(NVIC_EXTI1_IRQ);
-    ethernet_lock = true;
-}
-
-static void eth_unlock(void)
-{
-    ethernet_lock = false;
-    nvic_enable_irq(NVIC_EXTI1_IRQ);
-}
 
 static bool poll_lock_f = false;
 static void poll_lock(void)
@@ -242,7 +102,7 @@ static void run_eth(void)
     eth_running = false;
 }
 
-ssize_t write_fun(int fd, const void *data, ssize_t len)
+static ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
     int i;
     if (len < 0)
@@ -251,7 +111,6 @@ ssize_t write_fun(int fd, const void *data, ssize_t len)
     {
         if (mnum == MNUM)
             return -1;
-        len = min(len, MLEN-1);
         memcpy(messages[mpos], data, len);
         messages[mpos][len] = 0;
         mpos = (mpos + 1) % MNUM;
@@ -299,25 +158,6 @@ static void enc28j60setup(struct enc28j60_state_s *state)
     exti_reset_request(EXTI1);
 }*/
 
-void hardware_setup(void)
-{
-
-    SCB_VTOR = (uint32_t) 0x08000000;
-
-    clock_setup();
-    gpio_setup();
-    dma_int_enable();
-    spi_setup();
-    
-    step_timer_setup();
-    usart_setup(SHELL_BAUDRATE);
-    enc28j60setup(&eth_state);
-    gpio_set(GPIOC, GPIO13);
-    shell_setup();
-
-    uart_send("configured", -1);
-    configured = true;
-}
 
 void hardware_loop(void)
 {

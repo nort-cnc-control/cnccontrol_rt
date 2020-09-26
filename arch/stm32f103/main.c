@@ -5,10 +5,9 @@
 #include <control/control.h>
 #include <output/output.h>
 
-void hardware_setup(void);
-void poll_net(void);
-void hardware_loop(void);
-void config_steppers(steppers_definition *sd, gpio_definition *gd);
+#include "platform.h"
+#include "steppers.h"
+#include "net.h"
 
 static void init_steppers(void)
 {
@@ -33,26 +32,34 @@ static void init_steppers(void)
         },
         .acc_default = ACC,
     };
-    config_steppers(&sd, &gd);
+    steppers_config(&sd, &gd);
     init_control(&sd, &gd);
 }
+
+/* main */
+
 
 int main(void)
 {
     hardware_setup();
     init_steppers();
-    
+
     planner_lock();
     moves_reset();
+
+    while (!net_ready())
+    {
+        net_receive();
+    }
 
     output_control_write("Hello", -1);
 
     while (true)
     {
-//        poll_net();
         planner_pre_calculate();
 	hardware_loop();
     }
 
     return 0;
 }
+

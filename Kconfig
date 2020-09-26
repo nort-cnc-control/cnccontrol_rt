@@ -45,9 +45,6 @@ menu "Board config"
 config ETHERNET
 	bool
 
-config ETHERNET_RAW
-	bool
-
 config IP
 	bool
 
@@ -58,9 +55,6 @@ config TCP
 	bool
 
 config SPI
-	bool
-
-config UART
 	bool
 
 if PLATFORM_EMULATION
@@ -80,26 +74,7 @@ if PLATFORM_STM32F103
 
 	choice
 		prompt "Control port"
-		default BOARD_STM32F103_CONTROL_UART
-
-	config BOARD_STM32F103_CONTROL_UART
-		bool "UART"
-		select UART
-		help
-			Send commands via UART
-
-	config BOARD_STM32F103_CONTROL_SPI
-		bool "SPI"
-		select SPI
-		help
-			Send commands via SPI
-
-	config BOARD_STM32F103_CONTROL_ETHERNET
-		bool "Ethernet"
-		select ETHERNET
-		select ETHERNET_RAW
-		help
-			Send commands via Ethernet
+		default BOARD_STM32F103_CONTROL_UDP
 
 	config BOARD_STM32F103_CONTROL_UDP
 		bool "UDP"
@@ -110,24 +85,6 @@ if PLATFORM_STM32F103
 			Send commands via UDP
 
 	endchoice
-
-	if SPI
-		config BOARD_STM32F103_CONTROL_SPI_PORT
-		int "Control SPI port"
-		default 2
-		help
-			Used SPI port for control
-
-	endif
-
-	if UART
-		config BOARD_STM32F103_CONTROL_UART_PORT
-		int "Control UART port"
-		default 0
-		help
-			Used UART port for control
-	endif
-
 
 endif
 
@@ -160,14 +117,6 @@ menu "Communication"
 			help
 				Ethernet device mac address
 
-	endif
-
-	if ETHERNET_RAW
-		config ETHERNET_RAW_ETHTYPE
-			hex "Ethtype for packets"
-			default "0xFEFE"
-			help
-				Use specified ethertype for control packets
 	endif
 
 	if IP

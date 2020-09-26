@@ -68,10 +68,6 @@ void uart_send(const uint8_t *data, ssize_t len)
         txbuf[txlast] = ((const char *)data)[i];
         txlast = (txlast + 1) % sizeof(txbuf);
     }
-    txbuf[txlast] = '\n';
-    txlast = (txlast + 1) % sizeof(txbuf);
-    txbuf[txlast] = '\r';
-    txlast = (txlast + 1) % sizeof(txbuf);
     if (empty && !paused)
     {
         int cur = txpos;
@@ -125,3 +121,4 @@ void usart_setup(int baudrate)
     /* Finally enable the USART. */
     usart_enable(USART1);
 }
+
