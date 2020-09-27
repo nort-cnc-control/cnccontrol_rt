@@ -84,9 +84,9 @@ void hardware_setup(void)
     gpio_set(GPIOB, GPIO11);
 
     enc28j60_init(&state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
-    net_setup(&state, shell_send_completed, packet_received);
+    net_setup(&state, shell_pick_message, shell_send_completed, packet_received);
 
-    shell_setup(NULL, net_send);
+    shell_setup(NULL);
 
     gpio_set(GPIOC, GPIO13);
 
@@ -98,6 +98,7 @@ void hardware_setup(void)
 void hardware_loop(void)
 {
     net_receive();
+    net_send();
 }
 
 void hard_fault_handler(void)

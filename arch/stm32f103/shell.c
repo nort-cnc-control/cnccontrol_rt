@@ -17,18 +17,6 @@ static char input_buffer[MLEN];
 static int input_pos = 0;
 
 static void (*debug_send)(const uint8_t *data, ssize_t len);
-static int (*shell_send)(const uint8_t *data, ssize_t len);
-
-static const char *shell_get_message(size_t *len)
-{
-    if (mnum != 0)
-    {
-        *len = ((int)messages[mfirst][0]) << 8 | messages[mfirst][1];
-        return messages[mfirst] + 2;
-    }
-    *len = 0;
-    return NULL;
-}
 
 static void shell_pop_message(void)
 {
@@ -49,13 +37,6 @@ static bool shell_add_message(const char *msg, ssize_t len)
     strncpy(messages[mpos]+2, msg, len);
     mpos = (mpos + 1) % MNUM;
     mnum++;
-    if (mnum == 1)
-    {
-        size_t len;
-        const char *data = shell_get_message(&len);
-        if (shell_send)
-            shell_send(data, len);
-    }
     return true;
 }
 
@@ -87,11 +68,17 @@ static ssize_t write_fun(int fd, const void *data, ssize_t len)
 void shell_send_completed(void)
 {
     shell_pop_message();
-    
-    ssize_t len;
-    const char *data = shell_get_message(&len);
-    if (data != NULL)
-        shell_send(data, len);
+}
+
+const uint8_t *shell_pick_message(ssize_t *len)
+{
+    if (mnum != 0)
+    {
+        *len = ((int)messages[mfirst][0]) << 8 | messages[mfirst][1];
+        return messages[mfirst] + 2;
+    }
+    *len = -1;
+    return NULL;
 }
 
 int shell_empty_slots(void)
@@ -139,10 +126,9 @@ void shell_data_completed(void)
     input_pos = 0;
 }
 
-void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t), int (*shell_send_fun)(const uint8_t *, ssize_t))
+void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t))
 {
     debug_send = debug_send_fun;
-    shell_send = shell_send_fun;
     output_set_write_fun(write_fun);
     output_control_set_fd(0);
     output_shell_set_fd(1);

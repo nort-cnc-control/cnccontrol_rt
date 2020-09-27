@@ -17,6 +17,7 @@ static struct enc28j60_state_s *state;
 static const uint8_t local_mac[6] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x02 };
 static const uint32_t local_ip = 10 << 24 | 55 << 16 | 1 << 8 | 110;
 static const uint16_t local_udp_port = CONFIG_UDP_PORT;
+static const int TTL = 30;
 
 static uint8_t  current_remote_mac[6];
 static uint32_t current_remote_ip;
@@ -28,32 +29,28 @@ static uint16_t remote_udp_port;
 
 static uint8_t response_buf[1518];
 
-static void (*on_send_completed)(void);
+static const uint8_t *(*next_message)(ssize_t *);
 static void (*on_packet_received)(const char *data, size_t len);
+static void (*on_send_completed)(void);
 
 static volatile bool application_busy = false;
 
-void net_setup(struct enc28j60_state_s *eth_state, void (*on_send_completed_cb)(void), void (*on_packet_received_cb)(const char *data, size_t len))
+void net_setup(struct enc28j60_state_s *eth_state,
+               const uint8_t *(*next_message_cb)(ssize_t *),
+               void (*on_send_completed_cb)(void),
+               void (*on_packet_received_cb)(const char *data, size_t len))
 {
     state = eth_state;
 
-    on_packet_received = on_packet_received_cb;
+    next_message = next_message_cb;
     on_send_completed = on_send_completed_cb;
+    on_packet_received = on_packet_received_cb;
 
     if (!enc28j60_configure(state, local_mac, 4096, false))
     {
         hard_fault_handler();
     }
     enc28j60_interrupt_enable(state, true); 
-}
-
-static void eth_send_completed(void)
-{
-    if (application_busy)
-    {
-        on_send_completed();
-        application_busy = false;
-    }
 }
 
 static void handle_input_packet(const uint8_t *payload, size_t len)
@@ -212,14 +209,29 @@ bool net_ready(void)
     return remote_udp_port != 0;
 }
 
+static volatile bool net_lock = false;
+
+static void lock(void)
+{
+    while (net_lock)
+        ;
+    net_lock = true;
+}
+
+static void unlock(void)
+{
+    net_lock = false;
+}
+
 void net_receive(void)
 {
-
     uint32_t status, crc;
     uint8_t buf[1518];
 
     if (!enc28j60_has_package(state))
+    {
         return;
+    }
 
     ssize_t len = enc28j60_read_packet(state, buf, 1518, &status, &crc);
     if (len > 0)
@@ -228,10 +240,13 @@ void net_receive(void)
     }
 }
 
-int net_send(const uint8_t *data, ssize_t len)
+void net_send(void)
 {
-    while (application_busy)
-        ;
+    ssize_t len;
+    const uint8_t *data = next_message(&len);
+
+    if (data == NULL)
+        return;
 
     /* Send UDP datagram */
     memset(response_buf, 0, sizeof(response_buf));
@@ -239,12 +254,11 @@ int net_send(const uint8_t *data, ssize_t len)
     udp_fill_payload(response_buf + ETHERNET_HEADER_LEN + IP_HEADER_LEN, data, len);
 
     size_t udp_len = udp_fill_header(response_buf + ETHERNET_HEADER_LEN + IP_HEADER_LEN, local_udp_port, remote_udp_port, len);
-    size_t ip_len = ip_fill_header(response_buf + ETHERNET_HEADER_LEN, local_ip, remote_ip, IP_PROTOCOL_UDP, 30, udp_len);
+    size_t ip_len = ip_fill_header(response_buf + ETHERNET_HEADER_LEN, local_ip, remote_ip, IP_PROTOCOL_UDP, TTL, udp_len);
     size_t eth_len = enc28j60_fill_header(response_buf, local_mac, remote_mac, ETHERTYPE_IP, ip_len);
 
     application_busy = true;
     enc28j60_send_data(state, response_buf, eth_len);
-
-    eth_send_completed();
+    on_send_completed();
 }
 
