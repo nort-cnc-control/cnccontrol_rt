@@ -1,13 +1,22 @@
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfile_dir := $(dir $(mkfile_path))
 
-SRCS := main.c shell.c steppers.c platform.c net.c spi.c ip.c udp.c arp.c icmp.c
+SRCS := main.c		\
+	shell.c		\
+	steppers.c	\
+	platform.c	\
+	spi.c		\
+	libip/net.c	\
+	libip/ip.c	\
+	libip/udp.c	\
+	libip/arp.c	\
+	libip/icmp.c
 
 OBJS := $(SRCS:%.c=%.o)
 
 PWD := $(shell pwd)
 
-CC += -I$(PWD)
+CC += -I$(PWD) -I$(PWD)/libip
 
 %.o: %.c
 	$(CC) $< -o $@

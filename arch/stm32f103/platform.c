@@ -6,10 +6,15 @@
 #include "shell.h"
 #include "net.h"
 
+#include <enc28j60.h>
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
+
+
+static struct enc28j60_state_s state;
 
 /* RCC */
 static void clock_setup(void)
@@ -53,6 +58,14 @@ static void packet_received(const char *data, size_t len)
     shell_data_completed();
 }
 
+static void eth_hard_reset(bool rst)
+{
+    if (rst)
+        gpio_clear(GPIOB, GPIO11);
+    else
+        gpio_set(GPIOB, GPIO11);
+}
+
 void hardware_setup(void)
 {
     SCB_VTOR = (uint32_t) 0x08000000;
@@ -62,7 +75,17 @@ void hardware_setup(void)
     gpio_setup();
     steppers_setup();
 
-    net_setup(shell_send_completed, packet_received);
+    /* enc28j60 INT pin */
+    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO10);
+    gpio_set(GPIOB, GPIO10);
+
+    /* enc28j60 RST pin */
+    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO11);
+    gpio_set(GPIOB, GPIO11);
+
+    enc28j60_init(&state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
+    net_setup(&state, shell_send_completed, packet_received);
+
     shell_setup(NULL, net_send);
 
     gpio_set(GPIOC, GPIO13);

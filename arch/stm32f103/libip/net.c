@@ -10,12 +10,9 @@
 #include "ip.h"
 #include "udp.h"
 #include "net.h"
-#include "spi.h"
 #include "shell.h"
 
-#define BUF ((struct uip_eth_hdr *)uip_buf)
-
-static struct enc28j60_state_s state;
+static struct enc28j60_state_s *state;
 
 static const uint8_t local_mac[6] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x02 };
 static const uint32_t local_ip = 10 << 24 | 55 << 16 | 1 << 8 | 110;
@@ -36,33 +33,18 @@ static void (*on_packet_received)(const char *data, size_t len);
 
 static volatile bool application_busy = false;
 
-static void hard_reset(bool rst)
+void net_setup(struct enc28j60_state_s *eth_state, void (*on_send_completed_cb)(void), void (*on_packet_received_cb)(const char *data, size_t len))
 {
-    if (rst)
-        gpio_clear(GPIOB, GPIO11);
-    else
-        gpio_set(GPIOB, GPIO11);
-}
+    state = eth_state;
 
-void net_setup(void (*on_send_completed_cb)(void), void (*on_packet_received_cb)(const char *data, size_t len))
-{
     on_packet_received = on_packet_received_cb;
     on_send_completed = on_send_completed_cb;
 
-    /* enc28j60 INT pin */
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO10);
-    gpio_set(GPIOB, GPIO10);
-
-    /* enc28j60 RST pin */
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO11);
-    gpio_set(GPIOB, GPIO11);
-
-    enc28j60_init(&state, hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
-    if (!enc28j60_configure(&state, local_mac, 4096, false))
+    if (!enc28j60_configure(state, local_mac, 4096, false))
     {
         hard_fault_handler();
     }
-    enc28j60_interrupt_enable(&state, true); 
+    enc28j60_interrupt_enable(state, true); 
 }
 
 static void eth_send_completed(void)
@@ -121,7 +103,7 @@ static void handle_icmp(const uint8_t *payload, size_t len)
             size_t icmp_len = icmp_fill_header(response_buf + ETHERNET_HEADER_LEN + IP_HEADER_LEN, ICMP_TYPE_ECHO_REPLY, 0, echo_len);
             size_t ip_len = ip_fill_header(response_buf + ETHERNET_HEADER_LEN, local_ip, current_remote_ip, IP_PROTOCOL_ICMP, 30, icmp_len);
             size_t eth_len = enc28j60_fill_header(response_buf, local_mac, current_remote_mac, ETHERTYPE_IP, ip_len);
-            enc28j60_send_data(&state, response_buf, eth_len);
+            enc28j60_send_data(state, response_buf, eth_len);
             break;
         }
         default:
@@ -191,7 +173,7 @@ static void handle_arp(const uint8_t *payload, size_t len)
                 size_t arp_len = arp_fill_header(response_buf + ETHERNET_HEADER_LEN, ARP_HTYPE_ETHERNET, 6, ETHERTYPE_IP, 4, ARP_OPERATION_RESPONSE);
                 size_t eth_len = enc28j60_fill_header(response_buf, local_mac, sender_hw, ETHERTYPE_ARP, arp_len);
 
-                enc28j60_send_data(&state, response_buf, eth_len);
+                enc28j60_send_data(state, response_buf, eth_len);
             }
             break;
         }
@@ -236,10 +218,10 @@ void net_receive(void)
     uint32_t status, crc;
     uint8_t buf[1518];
 
-    if (!enc28j60_has_package(&state))
+    if (!enc28j60_has_package(state))
         return;
 
-    ssize_t len = enc28j60_read_packet(&state, buf, 1518, &status, &crc);
+    ssize_t len = enc28j60_read_packet(state, buf, 1518, &status, &crc);
     if (len > 0)
     {
         handle_ethernet(buf, len);
@@ -261,7 +243,7 @@ int net_send(const uint8_t *data, ssize_t len)
     size_t eth_len = enc28j60_fill_header(response_buf, local_mac, remote_mac, ETHERTYPE_IP, ip_len);
 
     application_busy = true;
-    enc28j60_send_data(&state, response_buf, eth_len);
+    enc28j60_send_data(state, response_buf, eth_len);
 
     eth_send_completed();
 }
