@@ -6,7 +6,7 @@ SRCS := main.c		\
 	steppers.c	\
 	platform.c	\
 	spi.c		\
-	libip/net.c	\
+	net.c		\
 	libip/ip.c	\
 	libip/udp.c	\
 	libip/arp.c	\
