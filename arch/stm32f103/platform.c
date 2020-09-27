@@ -39,6 +39,9 @@ static void clock_setup(void)
     rcc_periph_clock_enable(RCC_AFIO);
     rcc_periph_clock_enable(RCC_SPI2);
 
+    /* Enable DMA1 */
+    rcc_periph_clock_enable(RCC_DMA1);
+
     // Delay
     static volatile int i;
     for (i = 0; i < 100000; i++)
