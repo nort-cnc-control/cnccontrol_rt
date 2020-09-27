@@ -2,32 +2,46 @@
 
 #include <string.h>
 #include <libopencm3/stm32/gpio.h>
+
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 #include <enc28j60.h>
+#endif
+
+#ifdef CONFIG_ETHERNET
+#include <ethernet.h>
+#endif
+
+#ifdef CONFIG_IP
+#include <icmp.h>
+#include <arp.h>
+#include <ip.h>
+#include <udp.h>
+#endif
 
 #include "platform.h"
-#include "icmp.h"
-#include "arp.h"
-#include "ip.h"
-#include "udp.h"
 #include "net.h"
 #include "shell.h"
 
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 static struct enc28j60_state_s *state;
+#endif
 
+#ifdef CONFIG_ETHERNET
 static const uint8_t local_mac[6] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x02 };
+static uint8_t       current_remote_mac[6];
+static uint8_t       remote_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static uint8_t       ethernet_packet_buffer[1518];
+#endif
+
+#ifdef CONFIG_IP
 static const uint32_t local_ip = 10 << 24 | 55 << 16 | 1 << 8 | 110;
 static const uint16_t local_udp_port = CONFIG_UDP_PORT;
 static const int TTL = 30;
-
-static uint8_t  current_remote_mac[6];
 static uint32_t current_remote_ip;
 static uint16_t current_remote_port;
-
-static uint8_t  remote_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static uint32_t remote_ip;
 static uint16_t remote_udp_port;
-
-static uint8_t ethernet_packet_buffer[1518];
+#endif
 
 static const uint8_t *(*next_message)(ssize_t *);
 static void (*on_packet_received)(const char *data, size_t len);
@@ -35,34 +49,42 @@ static void (*on_send_completed)(void);
 
 static volatile bool application_busy = false;
 
-void net_setup(struct enc28j60_state_s *eth_state,
+void net_setup(void *conn_state,
                const uint8_t *(*next_message_cb)(ssize_t *),
                void (*on_send_completed_cb)(void),
                void (*on_packet_received_cb)(const char *data, size_t len))
 {
-    state = eth_state;
+    state = conn_state;
 
     next_message = next_message_cb;
     on_send_completed = on_send_completed_cb;
     on_packet_received = on_packet_received_cb;
 
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     if (!enc28j60_configure(state, local_mac, 4096, false))
     {
         hard_fault_handler();
     }
-    enc28j60_interrupt_enable(state, true); 
+    enc28j60_interrupt_enable(state, true);
+#endif
 }
 
 static void handle_input_packet(const uint8_t *payload, size_t len)
 {
+#ifdef CONFIG_ETHERNET
     memcpy(remote_mac, current_remote_mac, 6);
+#endif
+
+#ifdef CONFIG_IP
     remote_ip = current_remote_ip;
     remote_udp_port = current_remote_port;
+#endif
 
     /* Target logic */
     on_packet_received(payload, len);
 }
 
+#ifdef CONFIG_IP
 static void handle_udp(const uint8_t *payload, size_t len)
 { 
     uint16_t port = udp_get_destination(payload, len);
@@ -191,45 +213,41 @@ static void handle_arp(const uint8_t *payload, size_t len)
             break;
     }
 }
+#endif /* CONFIG_IP */
 
+#ifdef CONFIG_ETHERNET
 static void handle_ethernet(const uint8_t *payload, size_t len)
 {
-    uint16_t ethertype = enc28j60_get_ethertype(payload, len);
+    uint16_t ethertype = ethernet_get_ethertype(payload, len);
     size_t payload_len;
 
-    memcpy(current_remote_mac, enc28j60_get_source(payload, len), 6);
+    memcpy(current_remote_mac, ethernet_get_source(payload, len), 6);
 
-    payload = enc28j60_get_payload(payload, len, &payload_len);
+    payload = ethernet_get_payload(payload, len, &payload_len);
     switch (ethertype)
     {
+#ifdef CONFIG_IP
         case ETHERTYPE_IP:
             handle_ip(payload, payload_len);
             break;
         case ETHERTYPE_ARP:
             handle_arp(payload, payload_len);
             break;
+#endif
         default:
             break;
     }
 }
+#endif
+
 
 bool net_ready(void)
 {
+#ifdef CONFIG_IP
     return remote_udp_port != 0;
-}
-
-static volatile bool net_lock = false;
-
-static void lock(void)
-{
-    while (net_lock)
-        ;
-    net_lock = true;
-}
-
-static void unlock(void)
-{
-    net_lock = false;
+#else
+    return true;
+#endif
 }
 
 void net_receive(void)
@@ -238,39 +256,51 @@ void net_receive(void)
     const size_t length = sizeof(ethernet_packet_buffer);
     uint8_t *buffer = ethernet_packet_buffer;
 
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     if (!enc28j60_has_package(state))
     {
         return;
     }
-
     ssize_t len = enc28j60_read_packet(state, buffer, length, &status, &crc);
     if (len > 0)
     {
         handle_ethernet(ethernet_packet_buffer, len);
     }
+#else
+    return;
+#endif
 }
 
 void net_send(void)
 {
     ssize_t len;
     const uint8_t *data = next_message(&len);
-    uint8_t *buffer = ethernet_packet_buffer;
-    const size_t length = sizeof(ethernet_packet_buffer);
-
     if (data == NULL)
         return;
+
+#ifdef CONFIG_ETHERNET
+    uint8_t *buffer = ethernet_packet_buffer;
+    const size_t length = sizeof(ethernet_packet_buffer);
+    size_t payload_len = 0;
 
     /* Send UDP datagram */
     memset(buffer, 0, length);
 
+#ifdef CONFIG_IP
     udp_fill_payload(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN, data, len);
-
     size_t udp_len = udp_fill_header(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN, local_udp_port, remote_udp_port, len);
-    size_t ip_len = ip_fill_header(buffer + ETHERNET_HEADER_LEN, local_ip, remote_ip, IP_PROTOCOL_UDP, TTL, udp_len);
-    size_t eth_len = enc28j60_fill_header(buffer, local_mac, remote_mac, ETHERTYPE_IP, ip_len);
+    payload_len = ip_fill_header(buffer + ETHERNET_HEADER_LEN, local_ip, remote_ip, IP_PROTOCOL_UDP, TTL, udp_len);
+#endif
+
+    size_t eth_len = enc28j60_fill_header(buffer, local_mac, remote_mac, ETHERTYPE_IP, payload_len);
 
     application_busy = true;
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     enc28j60_send_data(state, buffer, eth_len);
+#endif
+
+#endif
+
     on_send_completed();
 }
 

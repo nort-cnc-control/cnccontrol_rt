@@ -26,10 +26,13 @@ static void shell_pop_message(void)
     mfirst = (mfirst + 1) % MNUM;
 }
 
-static bool shell_add_message(const char *msg, ssize_t len)
+bool shell_add_message(const char *msg, ssize_t len)
 {
     if (mnum == MNUM)
         return false;
+    if (len < 0)
+        len = strlen(msg);
+
     len = len < MLEN - 2 ? len : MLEN - 2;
     memset(messages[mpos], 0, MLEN);
     messages[mpos][0] = len >> 8;
@@ -114,13 +117,25 @@ void shell_data_completed(void)
     {
         // Do nothing
     }
+#ifdef CONFIG_LIBCORE
     else if (input_pos >= 3 && !memcmp(input_buffer, "RT:", 3))
     {
         execute_g_command(input_buffer + 3, input_pos - 3);
     }
+#endif
+#ifdef CONFIG_LIBMODBUS
     else if (input_pos >= 3 && !memcmp(input_buffer, "MB:", 3))
     {
         // TODO: add modbus code
+    }
+#endif
+    else if (input_pos >= 5 && !memcmp(input_buffer, "EXIT:", 5))
+    {
+        // Do nothing
+    }
+    else
+    {
+        // Error
     }
 
     input_pos = 0;

@@ -145,8 +145,25 @@ menu "Communication"
 
 endmenu
 
-menu "Core configuration"
+config LIBCORE
+	bool "Core support"
+	default y
+	help
+		Support of CNC movement
 
+if LIBCORE
+	menu "Core configuration"
 
-endmenu
+	endmenu
+endif
 
+config LIBMODBUS
+	bool "Modbus support"
+	default y
+	help
+		Support of modbus master
+
+if LIBMODBUS
+	menu "Modbus configuration"
+	endmenu
+endif

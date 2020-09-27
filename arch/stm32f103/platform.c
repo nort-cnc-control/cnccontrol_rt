@@ -1,10 +1,11 @@
 #define STM32F1
 
 #include "platform.h"
-#include "steppers.h"
 #include "spi.h"
 #include "shell.h"
 #include "net.h"
+
+#include "steppers.h"
 
 #include <enc28j60.h>
 

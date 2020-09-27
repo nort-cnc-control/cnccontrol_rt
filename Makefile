@@ -30,30 +30,36 @@ ifdef CONFIG_COMPILE_DEBUG
 CC += -g -ggdb
 endif
 
-CC += -I$(shell pwd)/core
-export CC
-
 ROOT := $(shell pwd)
 export ROOT
 
-LIBCORE := $(ROOT)/core/libcore.a
-export LIBCORE
-
+export CC
 
 all: build_board
 
+TARGETS :=
+
+ifdef CONFIG_LIBCORE
 build_libcore:
 	$(MAKE) -C core/
+TARGETS += build_libcore
+endif
 
 build_drivers: drivers/
 	$(MAKE) -C drivers/
+TARGETS += build_drivers
 
-build_board: build_libcore build_drivers
+build_libs: libs/
+	$(MAKE) -C libs/
+TARGETS += build_libs
+
+build_board: $(TARGETS)
 	$(MAKE) -C arch/$(PLATFORM)
 
 clean:
 	$(MAKE) -C core clean
 	$(MAKE) -C drivers clean
+	$(MAKE) -C libs clean
 	$(MAKE) -C arch/$(PLATFORM) clean
 
 menuconfig:

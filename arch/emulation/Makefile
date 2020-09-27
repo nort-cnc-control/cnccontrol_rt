@@ -7,6 +7,11 @@ ifdef CONFIG_BOARD_EMULATION_CONTROL_TCP
 DEFS += -DCONFIG_TCP_PORT=$(CONFIG_TCP_PORT)
 endif
 
+ifdef CONFIG_LIBCORE
+CC += -I$(ROOT)/core/
+LIBCORE := $(ROOT)/core/libcore.a
+endif
+
 SRCS := main.c
 
 PWD = $(shell pwd)
