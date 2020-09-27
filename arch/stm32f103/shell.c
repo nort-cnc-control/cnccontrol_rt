@@ -123,6 +123,7 @@ void shell_data_completed(void)
         execute_g_command(input_buffer + 3, input_pos - 3);
     }
 #endif
+
 #ifdef CONFIG_LIBMODBUS
     else if (input_pos >= 3 && !memcmp(input_buffer, "MB:", 3))
     {

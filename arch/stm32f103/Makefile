@@ -18,6 +18,10 @@ LIBS += $(ROOT)/core/libcore.a
 SRCS += steppers.c
 endif
 
+ifdef CONFIG_LIBMODBUS
+CC += -I$(ROOT)/modbus/ -DCONFIG_LIBCORE
+endif
+
 ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 CC += -I$(ROOT)/drivers/ethernet_enc28j60/include -DCONFIG_ETHERNET_DEVICE_ENC28J60
 LIBS += $(ROOT)/drivers/ethernet_enc28j60/libenc28j60.a
@@ -34,6 +38,7 @@ LIBS += $(ROOT)/libs/libip/libip.a
 endif
 
 ifdef CONFIG_SPI
+CC += -DCONFIG_SPI
 SRCS += spi.c
 endif
 

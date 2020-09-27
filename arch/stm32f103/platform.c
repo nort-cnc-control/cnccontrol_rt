@@ -1,13 +1,20 @@
 #define STM32F1
 
 #include "platform.h"
-#include "spi.h"
 #include "shell.h"
 #include "net.h"
 
-#include "steppers.h"
+#ifdef CONFIG_SPI
+#include "spi.h"
+#endif
 
+#ifdef CONFIG_LIBCORE
+#include "steppers.h"
+#endif
+
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 #include <enc28j60.h>
+#endif
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -15,7 +22,9 @@
 #include <libopencm3/cm3/scb.h>
 
 
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 static struct enc28j60_state_s state;
+#endif
 
 /* RCC */
 static void clock_setup(void)
@@ -36,12 +45,14 @@ static void clock_setup(void)
     /* Enable TIM3 clock for connection timeouts */
     rcc_periph_clock_enable(RCC_TIM3);
 
+#ifdef CONFIG_SPI
     /* Enable SPI2 */
     rcc_periph_clock_enable(RCC_AFIO);
     rcc_periph_clock_enable(RCC_SPI2);
 
     /* Enable DMA1 */
     rcc_periph_clock_enable(RCC_DMA1);
+#endif
 
     // Delay
     static volatile int i;
@@ -64,10 +75,12 @@ static void packet_received(const char *data, size_t len)
 
 static void eth_hard_reset(bool rst)
 {
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     if (rst)
         gpio_clear(GPIOB, GPIO11);
     else
         gpio_set(GPIOB, GPIO11);
+#endif
 }
 
 void hardware_setup(void)
@@ -75,10 +88,17 @@ void hardware_setup(void)
     SCB_VTOR = (uint32_t) 0x08000000;
 
     clock_setup();
-    spi_setup();
     gpio_setup();
-    steppers_setup();
 
+#ifdef CONFIG_SPI
+    spi_setup();
+#endif
+
+#ifdef CONFIG_LIBCORE
+    steppers_setup();
+#endif
+
+#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     /* enc28j60 INT pin */
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO10);
     gpio_set(GPIOB, GPIO10);
@@ -88,6 +108,8 @@ void hardware_setup(void)
     gpio_set(GPIOB, GPIO11);
 
     enc28j60_init(&state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
+#endif
+
     net_setup(&state, shell_pick_message, shell_send_completed, packet_received);
 
     shell_setup(NULL);
