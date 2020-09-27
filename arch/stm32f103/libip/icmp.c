@@ -41,7 +41,7 @@ size_t icmp_fill_echo(uint8_t *buf, uint16_t identifier, uint16_t sequence_numbe
     hdr->sequence_number_h = sequence_number >> 8;
     hdr->sequence_number_l = sequence_number;
     if (len > 0)
-        memcpy(buf + ICMP_HEADER_LEN + ICMP_ECHO_LEN, data, len); 
+        memmove(buf + ICMP_HEADER_LEN + ICMP_ECHO_LEN, data, len); 
     return sizeof(struct icmp_echo_s) + len;
 }
 
@@ -72,6 +72,8 @@ size_t icmp_fill_header(uint8_t *buf, uint8_t type, uint8_t code, size_t len)
     uint16_t chs;
     hdr->type = type;
     hdr->code = code;
+    hdr->checksum_h = 0;
+    hdr->checksum_l = 0;
     chs = checksum(buf, ICMP_HEADER_LEN + len);
     hdr->checksum_h = chs >> 8;
     hdr->checksum_l = chs;

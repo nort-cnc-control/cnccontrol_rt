@@ -81,6 +81,8 @@ size_t ip_fill_header(uint8_t *buf, uint32_t source, uint32_t destination, uint8
     hdr->length_h = (len + IP_HEADER_LEN) >> 8;
     hdr->length_l = (len + IP_HEADER_LEN) & 0XFF;
 
+    hdr->hchecksum_h = 0;
+    hdr->hchecksum_l = 0;
     uint16_t chs = checksum(buf, IP_HEADER_LEN);
     hdr->hchecksum_h = chs >> 8;
     hdr->hchecksum_l = chs;
