@@ -42,6 +42,9 @@ endchoice
 
 menu "Board config"
 
+config UART
+	bool
+
 config ETHERNET
 	bool
 
@@ -160,6 +163,7 @@ endif
 config LIBMODBUS
 	bool "Modbus support"
 	default y
+	select UART
 	help
 		Support of modbus master
 

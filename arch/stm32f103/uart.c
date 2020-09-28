@@ -1,103 +1,41 @@
 
 #define STM32F1
 
-#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
-#include <libopencm3/cm3/scb.h>
-#include <libopencm3/stm32/timer.h>
-#include <libopencm3/stm32/spi.h>
-#include <libopencm3/stm32/exti.h>
 
 #include <stdio.h>
 #include <string.h>
 
 #include "config.h"
 
-#include <output/output.h>
-
-static unsigned char txbuf[1024] = {};
-static int txpos = 0;
-static int txlast = 0;
-static bool paused = false;
-static bool busy = false;
-
-static void transmit_char(unsigned char data)
-{
-    busy = true;
-    USART_DR(USART1) = data;
-}
-
-void usart1_isr(void)
-{
-    static unsigned char rcvbuf[128];
-    static size_t rcvlen = 0;
-
-    if (USART_SR(USART1) & USART_SR_TC)
-    {
-        busy = false;
-        USART_SR(USART1) &= ~USART_SR_TC;
-        /* byte has been transmitted */
-        if (txpos != txlast && !paused)
-        {
-            int cur = txpos;
-            txpos = (txpos + 1) % sizeof(txbuf);
-            transmit_char(txbuf[cur]);
-        }
-    }
-
-    /* Check if we were called because of RXNE. */
-    if (USART_SR(USART1) & USART_SR_RXNE)
-    {
-        USART_SR(USART1) &= ~USART_SR_RXNE;
-
-        /* Retrieve the data from the peripheral. */
-        unsigned char data = usart_recv(USART1);
-    }
-}
-
+static volatile int i;
 void uart_send(const uint8_t *data, ssize_t len)
 {
-    int i;
     if (len < 0)
         len = strlen(data);
-    bool empty = (txlast == txpos);
-    for (i = 0; i < len; i++)
+    gpio_clear(GPIOA, GPIO12);
+    for (i = 0; i < 100000; i++)
+        __asm__("nop");
+    while (len > 0)
     {
-        txbuf[txlast] = ((const char *)data)[i];
-        txlast = (txlast + 1) % sizeof(txbuf);
+        uint16_t d = *(data++);
+        while ((USART_SR(USART1) & USART_SR_TXE) == 0)
+            ;
+        USART_DR(USART1) = d;
+//        usart_send_blocking(USART1, d);
+        len--;
     }
-    if (empty && !paused)
-    {
-        int cur = txpos;
-        txpos = (txpos + 1) % sizeof(txbuf);
-        transmit_char(txbuf[cur]);
-    }
+    for (i = 0; i < 100000; i++)
+        __asm__("nop");
+    gpio_set(GPIOA, GPIO12);
 }
 
-void uart_pause(void)
+void uart_setup(int baudrate)
 {
-    paused = true;
-    while (busy)
-        ;
-}
-
-void uart_continue(void)
-{
-    paused = false;
-    bool empty = (txlast == txpos);
-    if (empty)
-    {
-        int cur = txpos;
-        txpos = (txpos + 1) % sizeof(txbuf);
-        transmit_char(txbuf[cur]);
-    }
-}
-
-void usart_setup(int baudrate)
-{
-    nvic_enable_irq(NVIC_USART1_IRQ);
+//    nvic_enable_irq(NVIC_USART1_IRQ);
 
     /* Setup GPIO pin GPIO_USART1_RE_RX on GPIO port A for receive. */
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
@@ -106,6 +44,11 @@ void usart_setup(int baudrate)
     /* Setup GPIO pin GPIO_USART1_TX. */
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_10_MHZ,
                   GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+
+    /* Setup GPIO pin GPIO_USART1_RTS. */
+    gpio_set(GPIOA, GPIO12);
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO12);
 
     /* Setup UART parameters. */
     usart_set_baudrate(USART1, baudrate);

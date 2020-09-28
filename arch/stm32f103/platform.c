@@ -12,6 +12,10 @@
 #include "steppers.h"
 #endif
 
+#ifdef CONFIG_UART
+#include "uart.h"
+#endif
+
 #ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 #include <enc28j60.h>
 #endif
@@ -92,6 +96,10 @@ void hardware_setup(void)
 
 #ifdef CONFIG_SPI
     spi_setup();
+#endif
+
+#ifdef CONFIG_UART
+    uart_setup(9600);
 #endif
 
 #ifdef CONFIG_LIBCORE

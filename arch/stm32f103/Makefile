@@ -19,7 +19,13 @@ SRCS += steppers.c
 endif
 
 ifdef CONFIG_LIBMODBUS
-CC += -I$(ROOT)/modbus/ -DCONFIG_LIBCORE
+CC += -I$(ROOT)/libs/libmodbus/ -DCONFIG_LIBMODBUS
+LIBS += $(ROOT)/libs/libmodbus/libmodbus.a
+endif
+
+ifdef CONFIG_UART
+CC += -DCONFIG_UART
+SRCS += uart.c
 endif
 
 ifdef CONFIG_ETHERNET_DEVICE_ENC28J60

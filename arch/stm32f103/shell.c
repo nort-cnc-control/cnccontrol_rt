@@ -3,8 +3,18 @@
 
 #include "shell.h"
 
+#ifdef CONFIG_LIBCORE
 #include <output/output.h>
 #include <control/commands/gcode_handler/gcode_handler.h>
+#endif
+
+#ifdef CONFIG_LIBMODBUS
+#include <modbus.h>
+#endif
+
+#ifdef CONFIG_UART
+#include <uart.h>
+#endif
 
 #define MNUM 8
 #define MLEN 120
@@ -89,6 +99,17 @@ int shell_empty_slots(void)
     return MNUM - mnum;
 }
 
+static int hex2dig(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 0xA;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 0xA;
+    return -1;
+}
+
 bool shell_data_received(const char *data, ssize_t len)
 {
     int i;
@@ -127,9 +148,35 @@ void shell_data_completed(void)
 #ifdef CONFIG_LIBMODBUS
     else if (input_pos >= 3 && !memcmp(input_buffer, "MB:", 3))
     {
-        // TODO: add modbus code
+        int i;
+        const char *buf = input_buffer + 3;
+        uint8_t addrs[4], vals[4], devids[4];
+        memcpy(devids, buf, 4);
+        memcpy(addrs, buf+4+1, 4);
+        memcpy(vals, buf+4+1+4+1, 4);
+        for (i = 0; i < 4; i++)
+        {
+            devids[i] = hex2dig(devids[i]);
+            addrs[i] = hex2dig(addrs[i]);
+            vals[i] = hex2dig(vals[i]);
+        }
+        uint16_t addr  =  addrs[0] * 0x1000 +  addrs[1] * 0x100 +  addrs[2] * 0x10 +  addrs[3];
+        uint16_t val   =   vals[0] * 0x1000 +   vals[1] * 0x100 +   vals[2] * 0x10 +   vals[3];
+        uint16_t devid = devids[0] * 0x1000 + devids[1] * 0x100 + devids[2] * 0x10 + devids[3];
+
+#define PREAMBLE 0
+        uint8_t buffer[40];
+        memset(buffer, 0, PREAMBLE);
+        ssize_t wrlen = modbus_fill_write_ao(buffer + PREAMBLE + MODBUS_HEADER_LEN, addr, val);
+        ssize_t mblen = modbus_fill_header(buffer + PREAMBLE,  devid, FUNCTION_WRITE_AO, wrlen);
+        memset(buffer + PREAMBLE + mblen, 0, PREAMBLE);
+
+        /* send to UART */
+        uart_send(buffer, mblen + 2 * PREAMBLE);
+#undef PREAMBLE
     }
 #endif
+
     else if (input_pos >= 5 && !memcmp(input_buffer, "EXIT:", 5))
     {
         // Do nothing
