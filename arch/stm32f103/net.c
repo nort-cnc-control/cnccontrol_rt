@@ -89,13 +89,13 @@ static void handle_udp(const uint8_t *payload, size_t len)
 { 
     uint16_t port = udp_get_destination(payload, len);
     current_remote_port = udp_get_source(payload, len);
-    size_t payload_len;
-    payload = udp_get_payload(payload, len, &payload_len);
+    size_t udp_payload_len;
+    const uint8_t *udp_payload = udp_get_payload(payload, len, &udp_payload_len);
     switch (port)
     {
         case CONFIG_UDP_PORT:
         {
-            handle_input_packet(payload, payload_len);
+            handle_input_packet(udp_payload, udp_payload_len);
             break;
         }
         default:
@@ -115,12 +115,12 @@ static void handle_icmp(const uint8_t *payload, size_t len)
 
             uint16_t id = icmp_echo_get_identifier(payload, len);
             uint16_t sn = icmp_echo_get_sequence_number(payload, len);
-            size_t payload_len;
-            payload = icmp_echo_get_payload(payload, len, &payload_len);
+            size_t icmp_payload_len;
+            const uint8_t *icmp_payload = icmp_echo_get_payload(payload, len, &icmp_payload_len);
 
             /* Send ICMP ECHO REPLY response */
             //memset(response_buf, 0, sizeof(response_buf));
-            size_t echo_len = icmp_fill_echo(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN, id, sn, payload, payload_len);
+            size_t echo_len = icmp_fill_echo(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN, id, sn, icmp_payload, icmp_payload_len);
             size_t icmp_len = icmp_fill_header(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN, ICMP_TYPE_ECHO_REPLY, 0, echo_len);
             size_t ip_len = ip_fill_header(buffer + ETHERNET_HEADER_LEN, local_ip, current_remote_ip, IP_PROTOCOL_ICMP, 30, icmp_len);
             size_t eth_len = enc28j60_fill_header(buffer, local_mac, current_remote_mac, ETHERTYPE_IP, ip_len);
@@ -135,20 +135,20 @@ static void handle_icmp(const uint8_t *payload, size_t len)
 static void handle_ip(const uint8_t *payload, size_t len)
 {
     uint8_t protocol = ip_get_protocol(payload, len);
-    size_t payload_len;
     current_remote_ip = ip_get_source(payload, len);
 
-    payload = ip_get_payload(payload, len, &payload_len);
+    size_t ip_payload_len;
+    const uint8_t *ip_payload = ip_get_payload(payload, len, &ip_payload_len);
     switch (protocol)
     {
         case IP_PROTOCOL_UDP:
         {
-            handle_udp(payload, payload_len);
+            handle_udp(ip_payload, ip_payload_len);
             break;
         }
         case IP_PROTOCOL_ICMP:
         {
-            handle_icmp(payload, payload_len);
+            handle_icmp(ip_payload, ip_payload_len);
             return;
         }
         default:
@@ -219,19 +219,19 @@ static void handle_arp(const uint8_t *payload, size_t len)
 static void handle_ethernet(const uint8_t *payload, size_t len)
 {
     uint16_t ethertype = ethernet_get_ethertype(payload, len);
-    size_t payload_len;
 
     memcpy(current_remote_mac, ethernet_get_source(payload, len), 6);
 
-    payload = ethernet_get_payload(payload, len, &payload_len);
+    size_t ethernet_payload_len;
+    const uint8_t *ethernet_payload = ethernet_get_payload(payload, len, &ethernet_payload_len);
     switch (ethertype)
     {
 #ifdef CONFIG_IP
         case ETHERTYPE_IP:
-            handle_ip(payload, payload_len);
+            handle_ip(ethernet_payload, ethernet_payload_len);
             break;
         case ETHERTYPE_ARP:
-            handle_arp(payload, payload_len);
+            handle_arp(ethernet_payload, ethernet_payload_len);
             break;
 #endif
         default:

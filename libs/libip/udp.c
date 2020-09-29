@@ -21,7 +21,8 @@ uint16_t udp_get_destination(const uint8_t *data, size_t len)
 
 const uint8_t *udp_get_payload(const uint8_t *data, size_t len, size_t *plen)
 {
-    *plen = len - UDP_HEADER_LEN;
+    const struct udp_header_s *hdr = (const struct udp_header_s *)data;
+    *plen = (hdr->length_h << 8) | (hdr->length_l) - UDP_HEADER_LEN;
     return data + UDP_HEADER_LEN;
 }
 

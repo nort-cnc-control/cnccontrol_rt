@@ -27,7 +27,8 @@ uint8_t ip_get_protocol(const uint8_t *data, size_t len)
 
 const uint8_t *ip_get_payload(const uint8_t *data, size_t len, size_t *plen)
 {
-    *plen = len - IP_HEADER_LEN;
+    const struct ip_header_s *hdr = (const struct ip_header_s *)data;
+    *plen = (hdr->length_h << 8) | (hdr->length_l) - IP_HEADER_LEN;
     return data + IP_HEADER_LEN;
 }
 

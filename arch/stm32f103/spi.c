@@ -159,7 +159,7 @@ void spi_setup(void)
         ;
 
     spi_init_master(SPI2,
-                    SPI_CR1_BAUDRATE_FPCLK_DIV_2,
+                    SPI_CR1_BAUDRATE_FPCLK_DIV_8,
                     SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                     SPI_CR1_CPHA_CLK_TRANSITION_1,
                     SPI_CR1_DFF_8BIT,
