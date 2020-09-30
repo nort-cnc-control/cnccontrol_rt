@@ -1,8 +1,9 @@
 #define STM32F1
 
 #include "platform.h"
-#include "shell.h"
 #include "net.h"
+
+#include <shell.h>
 
 #ifdef CONFIG_SPI
 #include "spi.h"
@@ -120,7 +121,7 @@ void hardware_setup(void)
 
     net_setup(&state, shell_pick_message, shell_send_completed, packet_received);
 
-    shell_setup(NULL);
+    shell_setup(NULL, uart_send);
 
     gpio_set(GPIOC, GPIO13);
 

@@ -12,10 +12,8 @@
 #include "config.h"
 
 static volatile int i;
-void uart_send(const uint8_t *data, ssize_t len)
+void uart_send(const uint8_t *data, size_t len)
 {
-    if (len < 0)
-        len = strlen(data);
     gpio_clear(GPIOA, GPIO12);
     for (i = 0; i < 100000; i++)
         __asm__("nop");

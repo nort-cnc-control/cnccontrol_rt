@@ -1,5 +1,10 @@
 LIBS :=
+
 all: libs
+
+LIBS += build_libshell
+build_libshell:
+	$(MAKE) -C libshell/
 
 ifdef CONFIG_IP
 LIBS += build_libip
@@ -25,4 +30,6 @@ libs: $(LIBS)
 clean:
 	$(MAKE) -C libip/ clean
 	$(MAKE) -C libeth/ clean
+	$(MAKE) -C libmodbus/ clean
+	$(MAKE) -C libshell/ clean
 

@@ -20,7 +20,8 @@
 
 #include "platform.h"
 #include "net.h"
-#include "shell.h"
+
+#include <shell.h>
 
 #ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 static struct enc28j60_state_s *state;

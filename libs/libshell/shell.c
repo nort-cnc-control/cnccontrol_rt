@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "shell.h"
+#include <shell.h>
 
 #ifdef CONFIG_LIBCORE
 #include <output/output.h>
@@ -10,10 +10,6 @@
 
 #ifdef CONFIG_LIBMODBUS
 #include <modbus.h>
-#endif
-
-#ifdef CONFIG_UART
-#include <uart.h>
 #endif
 
 #define MNUM 8
@@ -27,6 +23,7 @@ static char input_buffer[MLEN];
 static int input_pos = 0;
 
 static void (*debug_send)(const uint8_t *data, ssize_t len);
+static void (*uart_send)(const uint8_t *data, size_t len);
 
 static void shell_pop_message(void)
 {
@@ -172,7 +169,8 @@ void shell_data_completed(void)
         memset(buffer + PREAMBLE + mblen, 0, PREAMBLE);
 
         /* send to UART */
-        uart_send(buffer, mblen + 2 * PREAMBLE);
+        if (uart_send)
+            uart_send(buffer, mblen + 2 * PREAMBLE);
 #undef PREAMBLE
     }
 #endif
@@ -189,8 +187,9 @@ void shell_data_completed(void)
     input_pos = 0;
 }
 
-void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t))
+void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t), void (*uart_send_fun)(const uint8_t *data, size_t len))
 {
+    uart_send = uart_send_fun;
     debug_send = debug_send_fun;
     output_set_write_fun(write_fun);
     output_control_set_fd(0);

@@ -8,7 +8,8 @@
 #include "steppers.h"
 #endif
 
-#include "shell.h"
+#include <shell.h>
+
 #include "platform.h"
 #include "net.h"
 

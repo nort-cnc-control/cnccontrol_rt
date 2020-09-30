@@ -4,9 +4,11 @@ mkfile_dir := $(dir $(mkfile_path))
 DEFS :=
 
 SRCS := main.c		\
-	shell.c		\
 	platform.c	\
 	net.c
+
+CC += -I$(ROOT)/libs/libshell/
+LIBS += $(ROOT)/libs/libshell/libshell.a
 
 ifdef CONFIG_UDP
 CC += -DCONFIG_UDP_PORT=$(CONFIG_UDP_PORT)

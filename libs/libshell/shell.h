@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t));
+void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t), void (*uart_send_fun)(const uint8_t *data, size_t len));
 
 /* Output methods */
 void shell_send_completed(void);
