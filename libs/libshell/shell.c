@@ -191,8 +191,10 @@ void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t), void (*uart_s
 {
     uart_send = uart_send_fun;
     debug_send = debug_send_fun;
+#ifdef CONFIG_LIBCORE
     output_set_write_fun(write_fun);
     output_control_set_fd(0);
     output_shell_set_fd(1);
+#endif
 }
 
