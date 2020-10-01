@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +18,7 @@
 #define UBRRH(x)  CONCAT3(UBRR, x, H)
 
 #define TXC(x)    CONCAT2(TXC, x)
+#define UDRE(x)   CONCAT2(UDRE, x)
 #define RXEN(x)   CONCAT2(RXEN, x)
 #define TXEN(x)   CONCAT2(TXEN, x)
 #define UCSZ2(x)  CONCAT2(UCSZ2, x)
@@ -36,8 +38,8 @@ void uart_send_modbus(const uint8_t *data, size_t len)
 
     while (len > 0)
     {
-        uint16_t d = *(data++);
-        while (UCSRA(MODBUS_UART_PORT) & TXC(MODBUS_UART_PORT) == 0)
+        uint8_t d = *(data++);
+        while (UCSRA(MODBUS_UART_PORT) & (1<<UDRE(MODBUS_UART_PORT)) == 0)
             ;
         UDR(MODBUS_UART_PORT) = d;
         len--;
@@ -54,15 +56,17 @@ void uart_send_control(const uint8_t *data, size_t len)
 {
     while (len > 0)
     {
-        uint16_t d = *(data++);
-        while (UCSRA(CONTROL_UART_PORT) & TXC(CONTROL_UART_PORT) == 0)
+        uint8_t d = *data;
+        while ((UCSRA(CONTROL_UART_PORT) & (1 << UDRE(CONTROL_UART_PORT))) == 0)
             ;
         UDR(CONTROL_UART_PORT) = d;
         len--;
+        data++;
     }
 }
 
-ISR(USART_RX_vect(CONTROL_UART_PORT))
+
+ISR(USART0_RX_vect)
 {
     uint8_t c = UDR(CONTROL_UART_PORT);
     if (c == '\n' || c == '\r')
@@ -84,7 +88,7 @@ void uart_setup(void)
 #ifdef CONFIG_LIBMODBUS
     UCSRA(MODBUS_UART_PORT) = 0;
     UCSRB(MODBUS_UART_PORT) = (1 << TXEN(MODBUS_UART_PORT));
-    UCSRC(MODBUS_UART_PORT) = (1 << UCSZ1(MODBUS_UART_PORT)) | (1 << UCSZ0(MODBUS_UART_PORT));
+//    UCSRC(MODBUS_UART_PORT) = (1 << UCSZ1(MODBUS_UART_PORT)) | (1 << UCSZ0(MODBUS_UART_PORT));
 
     ubrr = F_CPU / 16 / MODBUS_UART_BAUDRATE - 1;
     UBRRL(MODBUS_UART_PORT) = ubrr & 0xFF;
@@ -94,11 +98,12 @@ void uart_setup(void)
 #ifdef CONFIG_BOARD_MEGA2560_CONTROL_UART
     UCSRA(CONTROL_UART_PORT) = 0;
     UCSRB(CONTROL_UART_PORT) = (1 << TXEN(CONTROL_UART_PORT)) | (1 << RXEN(CONTROL_UART_PORT)) | (1 << RXCIE(CONTROL_UART_PORT));
-    UCSRC(CONTROL_UART_PORT) = (1 << UCSZ1(CONTROL_UART_PORT)) | (1 << UCSZ0(CONTROL_UART_PORT));  
+//    UCSRC(CONTROL_UART_PORT) = (1 << UCSZ1(CONTROL_UART_PORT)) | (1 << UCSZ0(CONTROL_UART_PORT));  
 
     ubrr = F_CPU / 16 / CONTROL_UART_BAUDRATE - 1;
     UBRRL(CONTROL_UART_PORT) = ubrr & 0xFF;
-    UBRRH(CONTROL_UART_PORT) = (ubrr >> 8) & 0xFF;
+    UBRRH(CONTROL_UART_PORT) = (ubrr >> 8) & 0XFF;
 #endif
+
 }
 

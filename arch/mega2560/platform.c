@@ -1,4 +1,7 @@
+#include <avr/io.h>
+#include <avr/interrupt.h>
 #include "platform.h"
+#include <stddef.h>
 
 #include <shell.h>
 
@@ -21,6 +24,7 @@ static void (*modbus_uart_send)(const uint8_t *data, size_t len) = NULL;
 
 void hardware_setup(void)
 {
+    sei();
 #ifdef CONFIG_UART
     uart_setup();
 #endif
@@ -38,13 +42,13 @@ void hardware_loop(void)
     if (uart_message_received)
     {
         uart_message_received = false;
-        shell_message_completed();
+        shell_data_completed();
     }
 
-    if (shell_has_pending_messages())
+    ssize_t len;
+    const uint8_t* data = shell_pick_message(&len);
+    if (data != NULL)
     {
-        ssize_t len;
-        const uint8_t* data = shell_pick_message(&len);
         uart_send_control(data, len);
         uart_send_control("\n\r", 2);
         shell_send_completed();

@@ -85,22 +85,22 @@
 
 /* Modbus UART */
 #define MODBUS_UART_PORT     2
-#define MODBUS_UART_BAUDRATE 9600
+#define MODBUS_UART_BAUDRATE 9600UL
 #define MODBUS_UART_RTS_PORT A
 #define MODBUS_UART_RTS_PIN  1
 
 /* Control UART */
 #define CONTROL_UART_PORT     0
-#define CONTROL_UART_BAUDRATE 115200
+#define CONTROL_UART_BAUDRATE 38400UL
 
-#define CONCAT2(a, b) a##b
-#define CONCAT3(a, b, c) a##b##c
+#define CONCAT2(a, b) (a##b)
+#define CONCAT3(a, b, c) (a##b##c)
 
 #define DDR(x)  CONCAT2(DDR, x)
 #define PORT(x) CONCAT2(PORT, x)
 #define PIN(x)  CONCAT2(PIN, x)
 
-#define gpio_get(port, pin) (PIN(port) & (1 << (pin)) != 0)
+#define gpio_get(port, pin) ((PIN(port) & (1 << (pin))) >> (pin))
 #define gpio_set(port, pin) (PORT(port) |= (1 << (pin)))
 #define gpio_clear(port, pin) (PORT(port) &= ~(1 << (pin)))
 

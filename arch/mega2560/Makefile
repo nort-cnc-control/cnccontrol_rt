@@ -18,6 +18,7 @@ LIBS += $(ROOT)/libs/libmodbus/libmodbus.a
 endif
 
 ifdef CONFIG_BOARD_MEGA2560_CONTROL_UART
+CC += -DCONFIG_BOARD_MEGA2560_CONTROL_UART
 endif
 
 ifdef CONFIG_UART
@@ -43,6 +44,9 @@ controller.bin: controller.elf
 
 controller.elf: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -lm -o $@
+
+flash: controller.bin
+	avrdude -v -patmega2560 -cwiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:$<
 
 clean:
 	rm -f $(OBJS) controller.bin controller.elf

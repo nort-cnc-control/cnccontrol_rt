@@ -63,6 +63,9 @@ TARGETS += build_libs
 build_board: $(TARGETS)
 	$(MAKE) -C arch/$(PLATFORM)
 
+flash:
+	$(MAKE) -C arch/$(PLATFORM) flash
+
 clean:
 	$(MAKE) -C core clean
 	$(MAKE) -C drivers clean

@@ -181,7 +181,7 @@ void shell_data_completed(void)
     }
     else
     {
-        // Error
+        shell_add_message("Unknown command", sizeof("Unknown command")-1);
     }
 
     input_pos = 0;

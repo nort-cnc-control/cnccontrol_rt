@@ -69,6 +69,9 @@ controller.bin: controller.elf
 controller.elf: libopencm3 $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) libopencm3/lib/libopencm3_stm32f1.a $(LIBS) -lm -o $@
 
+flash: controller.bin
+	openocd -f interface/stlink-v2.cfg -f target/stm32f1x.cfg -c "init; reset halt; flash write_image erase $< 0x08000000 bin; reset; exit"
+
 libopencm3:
 	$(MAKE) -C $(mkfile_dir)/libopencm3/
 

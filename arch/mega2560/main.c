@@ -1,3 +1,4 @@
+#include <avr/io.h>
 #include "config.h"
 
 #ifdef CONFIG_LIBCORE
