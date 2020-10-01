@@ -1,6 +1,7 @@
 *.o
 *.a
 *.bin
+*.swp
 *.elf
 .kdev4
 build

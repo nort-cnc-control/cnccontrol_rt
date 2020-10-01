@@ -1,5 +1,6 @@
 #pragma once
 #include <unistd.h>
+#include <defs.h>
 
 void output_control_set_fd(int fd);
 void output_shell_set_fd(int fd);

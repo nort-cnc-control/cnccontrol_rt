@@ -1,0 +1,45 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# CNCControl_RT Configuration
+#
+
+#
+# Compilation
+#
+CONFIG_TOOLCHAIN_PREFIX="avr-"
+# CONFIG_COMPILE_OPTIMIZATION_NONE is not set
+CONFIG_COMPILE_OPTIMIZATION_FOR_SIZE=y
+# CONFIG_COMPILE_DEBUG is not set
+# end of Compilation
+
+CONFIG_PLATFORM_MEGA2560=y
+# CONFIG_PLATFORM_STM32F103 is not set
+# CONFIG_PLATFORM_EMULATION is not set
+
+#
+# Board config
+#
+CONFIG_UART=y
+CONFIG_BOARD_MEGA2560_CONTROL_UART=y
+# end of Board config
+
+#
+# Drivers
+#
+# end of Drivers
+
+#
+# Communication
+#
+# end of Communication
+
+CONFIG_LIBCORE=y
+
+#
+# Core configuration
+#
+CONFIG_LIBMODBUS=y
+
+#
+# Modbus configuration
+#

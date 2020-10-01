@@ -82,7 +82,7 @@ void shell_send_completed(void)
 
 const uint8_t *shell_pick_message(ssize_t *len)
 {
-    if (mnum != 0)
+    if (mnum > 0)
     {
         *len = ((int)messages[mfirst][0]) << 8 | messages[mfirst][1];
         return messages[mfirst] + 2;

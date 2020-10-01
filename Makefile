@@ -13,6 +13,11 @@ ifdef CONFIG_PLATFORM_EMULATION
 PLATFORM := emulation
 endif
 
+ifdef CONFIG_PLATFORM_MEGA2560
+PLATFORM := mega2560
+CC += -mmcu=atmega2560
+endif
+
 ifdef CONFIG_PLATFORM_STM32F103
 PLATFORM := stm32f103
 CC += -fdata-sections -ffunction-sections -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd -msoft-float -mfloat-abi=soft
@@ -32,6 +37,8 @@ endif
 
 ROOT := $(shell pwd)
 export ROOT
+
+CC += -I$(ROOT)/arch/$(PLATFORM)/
 
 export CC
 

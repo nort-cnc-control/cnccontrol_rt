@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <defs.h>
+
 #include <err/err.h>
 #include <gcode/gcodes.h>
 #include <control/ioqueue/print_events.h>

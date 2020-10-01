@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "arch-defs.h"
+
 struct modbus_header_s
 {
     uint8_t address;

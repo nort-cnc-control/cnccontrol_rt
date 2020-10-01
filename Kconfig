@@ -28,6 +28,11 @@ choice
 	prompt "Platform select"
 	default PLATFORM_EMULATION
 
+config PLATFORM_MEGA2560
+	bool "mega250"
+	help
+		arduino mega2560 board
+
 config PLATFORM_STM32F103
 	bool "stm32f103"
 	help
@@ -91,6 +96,20 @@ if PLATFORM_STM32F103
 
 endif
 
+if PLATFORM_MEGA2560
+	choice
+		prompt "Control port"
+		default BOARD_MEGA2560_CONTROL_UART
+
+	config BOARD_MEGA2560_CONTROL_UART
+		bool "UART"
+		select UART
+		help
+			Send commands via UART
+
+	endchoice
+
+endif
 
 endmenu
 
@@ -146,6 +165,8 @@ menu "Communication"
 				Device control TCP port
 	endif
 
+	if UART
+	endif
 endmenu
 
 config LIBCORE
@@ -167,7 +188,9 @@ config LIBMODBUS
 	help
 		Support of modbus master
 
+
 if LIBMODBUS
 	menu "Modbus configuration"
+
 	endmenu
 endif

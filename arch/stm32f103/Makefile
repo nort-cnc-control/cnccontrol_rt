@@ -56,9 +56,6 @@ PWD := $(shell pwd)
 
 CC += -I$(PWD) -I$(PWD)/libopencm3/include
 
-%.o: %.c
-	$(CC) $< -o $@
-
 LDFLAGS := -T $(PWD)/stm32.ld -Wl,--gc-sections --static -nostartfiles -specs=nano.specs -specs=nosys.specs
 
 all : controller.elf controller.bin
