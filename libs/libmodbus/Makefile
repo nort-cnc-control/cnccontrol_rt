@@ -1,6 +1,7 @@
 SRCS := modbus.c
 
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 
 PWD := $(shell pwd)
 CC += -I$(PWD)
@@ -14,5 +15,5 @@ libmodbus.a: $(OBJS)
 	$(CC) $< -c -o $@
 
 clean:
-	rm -f $(OBJS) libmodbus.a
+	rm -f $(OBJS) libmodbus.a $(SUS)
 

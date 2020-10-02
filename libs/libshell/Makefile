@@ -1,6 +1,7 @@
 SRCS := shell.c
 
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 
 PWD := $(shell pwd)
 CC += -I$(PWD)
@@ -22,5 +23,5 @@ libshell.a: $(OBJS)
 	$(CC) $< -c -o $@
 
 clean:
-	rm -f $(OBJS) libshell.a
+	rm -f $(OBJS) libshell.a $(SUS)
 

@@ -1,5 +1,6 @@
 SRCS := ethernet.c
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 
 PWD := $(shell pwd)
 CC += -I$(PWD)
@@ -13,5 +14,5 @@ libeth.a: $(OBJS)
 	$(CC) $< -c -o $@
 
 clean:
-	rm -f $(OBJS) libeth.a
+	rm -f $(OBJS) libeth.a $(SUS)
 

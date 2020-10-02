@@ -15,6 +15,7 @@ SRCS :=	./output/output.c					\
 	./control/moves/moves_arc/arc.c
 
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 TARGET := libcore.a 
 
 
@@ -35,5 +36,5 @@ $(TARGET): $(OBJS)
 	$(AR) rsc $@ $^
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) $(SUS)
 

@@ -2,6 +2,9 @@ mainmenu "CNCControl_RT Configuration"
 
 menu "Compilation"
 
+config PROTECT_STACK
+	bool
+
 config TOOLCHAIN_PREFIX
 	string "cross toolchain prefix"
 	default ""
@@ -16,6 +19,20 @@ choice COMPILE_OPTIMIZATION
 	
 	config COMPILE_OPTIMIZATION_FOR_SIZE
 		bool "-Os"
+endchoice
+
+choice COMPILE_STACK_PROTECTION
+	prompt "Stack protection"
+
+	default COMPILE_STACK_PROTECTION_NONE
+
+	config COMPILE_STACK_PROTECTION_NONE
+		bool "-fno-stack-protector"
+
+	config COMPILE_STACK_PROTECTION_ALL
+		bool "-fstack-protector-all"
+		select PROTECT_STACK
+
 endchoice
 
 config COMPILE_DEBUG

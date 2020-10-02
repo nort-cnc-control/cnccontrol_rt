@@ -4,6 +4,7 @@ SRCS := arp.c	\
 	udp.c
 
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 
 PWD := $(shell pwd)
 CC += -I$(PWD)
@@ -17,5 +18,5 @@ libip.a: $(OBJS)
 	$(CC) $< -c -o $@
 
 clean:
-	rm -f $(OBJS) libip.a
+	rm -f $(OBJS) libip.a $(SUS)
 

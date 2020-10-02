@@ -60,9 +60,9 @@ static void clock_setup(void)
 #endif
 
     // Delay
-    static volatile int i;
+    int i;
     for (i = 0; i < 100000; i++)
-        ;
+        __asm__("nop");
 }
 
 static void gpio_setup(void)
@@ -136,9 +136,25 @@ void hardware_loop(void)
     net_send();
 }
 
+#ifdef CONFIG_PROTECT_STACK
+void __wrap___stack_chk_fail(void)
+{
+    static int i;
+    while (1)
+    {
+        for (i = 0; i < 0x40000; i++)
+            __asm__("nop");
+        gpio_set(GPIOC, GPIO13);
+        for (i = 0; i < 0x40000; i++)
+            __asm__("nop");
+        gpio_clear(GPIOC, GPIO13);
+    }
+}
+#endif
+
 void hard_fault_handler(void)
 {
-    int i;
+    static int i;
     while (1)
     {
         for (i = 0; i < 0x400000; i++)

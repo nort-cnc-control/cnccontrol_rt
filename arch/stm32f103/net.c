@@ -31,7 +31,7 @@ static struct enc28j60_state_s *state;
 static const uint8_t local_mac[6] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x02 };
 static uint8_t       current_remote_mac[6];
 static uint8_t       remote_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-static uint8_t       ethernet_packet_buffer[1518];
+static uint8_t       ethernet_packet_buffer[1518+100];
 #endif
 
 #ifdef CONFIG_IP

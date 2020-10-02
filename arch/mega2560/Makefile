@@ -27,6 +27,7 @@ SRCS += uart.c
 endif
 
 OBJS := $(SRCS:%.c=%.o)
+SUS := $(SRCS:%.c=%.su)
 
 PWD := $(shell pwd)
 
@@ -51,5 +52,5 @@ flash: controller.bin
 #	avrdude -v -patmega2560 -cusbasp -b9600 -D -Uflash:w:$<
 
 clean:
-	rm -f $(OBJS) controller.bin controller.elf
+	rm -f $(OBJS) controller.bin controller.elf $(SUS)
 

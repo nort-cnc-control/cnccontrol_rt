@@ -31,12 +31,26 @@ ifdef CONFIG_COMPILE_OPTIMIZATION_FOR_SIZE
 CC += -Os
 endif
 
+ifdef CONFIG_PROTECT_STACK
+CC += -Wl,--wrap=__stack_chk_fail
+endif
+
+ifdef CONFIG_COMPILE_STACK_PROTECTION_ALL
+CC += -fstack-protector-all
+endif
+
+ifdef CONFIG_COMPILE_STACK_PROTECTION_NONE
+CC += -fno-stack-protector
+endif
+
 ifdef CONFIG_COMPILE_DEBUG
 CC += -g -ggdb
 endif
 
 ROOT := $(shell pwd)
 export ROOT
+
+CC += -fstack-usage
 
 CC += -I$(ROOT)/arch/$(PLATFORM)/
 
