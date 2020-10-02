@@ -4,3 +4,6 @@
 [submodule "drivers/ethernet_enc28j60"]
 	path = drivers/ethernet_enc28j60
 	url = https://github.com/nort-cnc-control/ethernet_enc28j60
+[submodule "kbuild-standalone"]
+	path = kbuild-standalone
+	url = https://github.com/WangNan0/kbuild-standalone
