@@ -3,6 +3,7 @@
 *.bin
 *.swp
 *.elf
+*.su
 .kdev4
 build
 .vscode
