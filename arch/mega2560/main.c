@@ -20,9 +20,9 @@ static void init_steppers(void)
 
     steppers_definition sd = {
         .steps_per_unit = {
-            STEPS_PER_MM,
-            STEPS_PER_MM,
-            STEPS_PER_MM
+            STEPS_PER_MM_X,
+            STEPS_PER_MM_Y,
+            STEPS_PER_MM_Z,
         },
         .feed_base = FEED_BASE/60.0,
         .feed_max = FEED_MAX/60.0,

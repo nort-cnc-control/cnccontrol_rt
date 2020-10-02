@@ -141,7 +141,7 @@ ISR(TIMER1_COMPA_vect)
 {
     if (!going)
     {
-        TCCR1B &= ~(1 << CS12 | 1 << CS11 | CS10);
+        TCCR1B &= ~(1 << CS12 | 1 << CS11 | 1 << CS10);
         return;
     }
     
@@ -183,7 +183,7 @@ static void line_started(void)
 
 static void line_finished(void)
 {
-    TCCR1B &= ~(1 << CS12 | 1 << CS11 | CS10);
+    TCCR1B &= ~(1 << CS12 | 1 << CS11 | 1 << CS10);
     going = false;
     
     // disable LED
@@ -197,7 +197,7 @@ static void line_finished(void)
 static void line_error(void)
 {
     // temporary do same things as in finished case
-    TCCR1B &= ~(1 << CS12 | 1 << CS11 | CS10);
+    TCCR1B &= ~(1 << CS12 | 1 << CS11 | 1 << CS10);
     going = false;
     
     gpio_set(LED_PORT, LED_PIN);

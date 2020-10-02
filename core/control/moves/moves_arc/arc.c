@@ -300,7 +300,7 @@ static bool make_tick(void)
     }
 
     // Set current position
-    moves_common_set_position(current_state.position);
+//    moves_common_set_position(current_state.position);
 
     return true;
 }
@@ -308,7 +308,7 @@ static bool make_tick(void)
 
 // module API functions
 
-int arc_step_tick(void)
+int32_t arc_step_tick(void)
 {
     // Check for endstops
     if (current_plan->check_break && current_plan->check_break(current_state.dir, current_plan->check_break_data))
@@ -330,7 +330,7 @@ int arc_step_tick(void)
     double step_delay = step_len / current_state.acc.feed;
 //    printf("%lf\n", current_state.acc.feed);
     acceleration_process(&current_state.acc, step_delay);
-    return step_delay * 1000000;
+    return step_delay * 1000000L;
 }
 
 int arc_move_to(arc_plan *plan)

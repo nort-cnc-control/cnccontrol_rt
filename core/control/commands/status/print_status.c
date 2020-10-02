@@ -17,6 +17,7 @@ void print_endstops(int nid)
     int q = empty_slots();
     cnc_endstops stops = moves_get_endstops();
     snprintf(buf, sizeof(buf), "completed N:%i Q:%i EX:%i EY:%i EZ:%i EP:%i", nid, q, stops.stop_x, stops.stop_y, stops.stop_z, stops.probe);
+    buf[127] = 0;
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 
@@ -26,12 +27,8 @@ void print_position(int nid)
     send_started(nid);
     int q = empty_slots();
 
-    int32_t x, y, z;
-    x = position.pos[0];
-    y = position.pos[1];
-    z = position.pos[2];
-
-    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%i Y:%i Z:%i", nid, q, x, y, z);
+    snprintf(buf, sizeof(buf), "completed N:%i Q:%i X:%ld Y:%ld Z:%ld", nid, q, (long)position.pos[0], (long)position.pos[1], (long)position.pos[2]);
+    buf[127] = 0;
     output_control_write(buf, min(strlen(buf), sizeof(buf)));
 }
 

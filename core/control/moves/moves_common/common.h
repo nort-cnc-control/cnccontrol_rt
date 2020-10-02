@@ -13,6 +13,7 @@ typedef struct {
 
 typedef struct {
     int32_t pos[3];
+    int dir[3];
     double speed[3];
     step_flags flags[3];
 } cnc_position;
@@ -38,7 +39,7 @@ void moves_common_endstops_touched(void);
 void moves_common_line_finished(void);
 
 // State
-void moves_common_set_position(int32_t x[3]);
+void moves_common_set_position(const int32_t *x);
 
 extern cnc_position position;
 extern steppers_definition *moves_common_def;

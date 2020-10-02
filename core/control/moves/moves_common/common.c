@@ -72,12 +72,17 @@ uint32_t acceleration_steps(double feed0,
 // Movement functions
 void moves_common_set_dir(int i, bool dir)
 {
+    if (dir)
+        position.dir[i] = 1;
+    else
+        position.dir[i] = -1;
     if (moves_common_def->set_dir)
         moves_common_def->set_dir(i, dir);
 }
 
 void moves_common_make_step(int i)
 {
+    position.pos[i] += position.dir[i];
     if (moves_common_def->make_step)
         moves_common_def->make_step(i);
 }
@@ -101,7 +106,7 @@ void moves_common_line_finished(void)
 }
 
 // State
-void moves_common_set_position(int32_t x[3])
+void moves_common_set_position(const int32_t *x)
 {
     int i;
     for (i = 0; i < 3; i++)

@@ -46,7 +46,9 @@ controller.elf: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -lm -o $@
 
 flash: controller.bin
+#	avrdude -v -patmega2560 -carduino -P/dev/ttyACM0 -b115200 -D -Uflash:w:$<
 	avrdude -v -patmega2560 -cwiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:$<
+#	avrdude -v -patmega2560 -cusbasp -b9600 -D -Uflash:w:$<
 
 clean:
 	rm -f $(OBJS) controller.bin controller.elf

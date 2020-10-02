@@ -91,17 +91,17 @@ static bool make_step(void)
             current_state.steps[i] += current_state.dir[i];
         }
     }
-
+/*
     int32_t cx[3];
     for (i = 0; i < 3; i++)
     {
         cx[i] = current_state.start_pos[i] + current_state.steps[i];
     }
-    moves_common_set_position(cx);
+    moves_common_set_position(cx);*/
     return true;
 }
 
-int line_step_tick(void)
+int32_t line_step_tick(void)
 {
     int i;
     // Check for endstops
@@ -131,7 +131,7 @@ int line_step_tick(void)
     double average_delay = current_plan->len / current_plan->steps / current_state.acc.feed;
     acceleration_process(&current_state.acc, average_delay);
 
-    return average_delay * 1000000;
+    return average_delay * 1000000UL;
 }
 
 static void bresenham_plan(line_plan *plan)

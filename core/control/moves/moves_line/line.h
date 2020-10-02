@@ -30,5 +30,5 @@ void line_pre_calculate(line_plan *line);
 int line_move_to(line_plan *plan);
 
 // tick
-int line_step_tick(void);
+int32_t line_step_tick(void);
 
