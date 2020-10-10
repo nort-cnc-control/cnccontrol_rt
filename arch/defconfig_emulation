@@ -1,0 +1,49 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# CNCControl_RT Configuration
+#
+
+#
+# Compilation
+#
+CONFIG_TOOLCHAIN_PREFIX=""
+CONFIG_COMPILE_OPTIMIZATION_NONE=y
+# CONFIG_COMPILE_OPTIMIZATION_FOR_SIZE is not set
+CONFIG_COMPILE_STACK_PROTECTION_NONE=y
+# CONFIG_COMPILE_STACK_PROTECTION_ALL is not set
+CONFIG_COMPILE_DEBUG=y
+# end of Compilation
+
+# CONFIG_PLATFORM_MEGA2560 is not set
+# CONFIG_PLATFORM_STM32F103 is not set
+CONFIG_PLATFORM_EMULATION=y
+
+#
+# Board config
+#
+CONFIG_UART=y
+CONFIG_TCP=y
+CONFIG_BOARD_EMULATION_CONTROL_TCP=y
+# end of Board config
+
+#
+# Drivers
+#
+# end of Drivers
+
+#
+# Communication
+#
+CONFIG_TCP_PORT=8889
+# end of Communication
+
+CONFIG_LIBCORE=y
+
+#
+# Core configuration
+#
+CONFIG_LIBMODBUS=y
+
+#
+# Modbus configuration
+#
