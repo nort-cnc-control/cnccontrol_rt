@@ -31,7 +31,7 @@ bool run = false;
 
 static void set_dir(int coord, bool dir)
 {
-    if (dir == false)
+    if (dir == true)
         dsteps[coord] = 1;
     else
         dsteps[coord] = -1;
@@ -46,9 +46,9 @@ static void make_step(int coord)
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
-        .stop_x  = 0,
-        .stop_y  = 0,
-        .stop_z  = 0,
+        .stop_x  = (pos[0] <= 0),
+        .stop_y  = (pos[1] <= 0),
+        .stop_z  = (pos[2] <= 0),
         .probe = 0,
     };
 
@@ -225,7 +225,7 @@ void *receive(void *arg)
 
 static ssize_t write_fun(int fd, const void *data, ssize_t len)
 {
-//    printf("Send line: %.*s\n", len, (const char*)data);
+    printf("Send line: %.*s\n", (int)len, (const char*)data);
     if (fd == 0)
     {
         write(fd, data, len);
