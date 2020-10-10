@@ -13,7 +13,6 @@ static enum {
 void moves_break(void)
 {
     current_move_type = MOVE_NONE;
-    moves_common_reset();
 }
 
 void moves_init(steppers_definition *definition)
