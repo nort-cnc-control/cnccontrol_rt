@@ -13,8 +13,8 @@ SRCS += steppers.c
 endif
 
 ifdef CONFIG_LIBMODBUS
-CC += -I$(ROOT)/libs/libmodbus/ -DCONFIG_LIBMODBUS
-LIBS += $(ROOT)/libs/libmodbus/libmodbus.a
+CC += -I$(ROOT)/libmodbus/ -DCONFIG_LIBMODBUS
+LIBS += $(ROOT)/libmodbus/libmodbus.a
 endif
 
 ifdef CONFIG_BOARD_MEGA2560_CONTROL_UART

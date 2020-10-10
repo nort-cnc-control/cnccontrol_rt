@@ -18,18 +18,11 @@ build_libeth:
 	$(MAKE) -C libeth/
 endif
 
-ifdef CONFIG_LIBMODBUS
-LIBS += build_libmodbus
-build_libmodbus:
-	$(MAKE) -C libmodbus/
-endif
-
 libs: $(LIBS)
 	@echo "LIBS = $(LIBS)"
 
 clean:
 	$(MAKE) -C libip/ clean
 	$(MAKE) -C libeth/ clean
-	$(MAKE) -C libmodbus/ clean
 	$(MAKE) -C libshell/ clean
 

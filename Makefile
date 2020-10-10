@@ -51,7 +51,6 @@ ROOT := $(shell pwd)
 export ROOT
 
 CC += -fstack-usage
-
 CC += -I$(ROOT)/arch/$(PLATFORM)/
 
 export CC
@@ -64,6 +63,12 @@ ifdef CONFIG_LIBCORE
 build_libcore:
 	$(MAKE) -C core/
 TARGETS += build_libcore
+endif
+
+ifdef CONFIG_LIBMODBUS
+build_libmodbus:
+	$(MAKE) -C libmodbus/
+TARGETS += build_libmodbus
 endif
 
 build_drivers: drivers/
@@ -82,6 +87,7 @@ flash:
 
 clean:
 	$(MAKE) -C core clean
+	$(MAKE) -C libmodbus clean
 	$(MAKE) -C drivers clean
 	$(MAKE) -C libs clean
 	$(MAKE) -C arch/$(PLATFORM) clean
