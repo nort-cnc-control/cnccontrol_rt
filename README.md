@@ -1,23 +1,55 @@
 # Description
 
-This is firmware for my stm32 based controller, which executes realtime part of the code for CNC. It supports simplified G-Code commands, and expected to run in pair with control program (https://github.com/vladtcvs/cnccontrol).
+This is firmware for my stm32 based controller, which executes realtime part of the code for CNC. It supports simplified G-Code commands, and expected to run in pair with control program (https://github.com/nort-cnc-control/NoRTCNCControl).
+
+# Getting sources and building
+
+```
+git clone git@github.com:nort-cnc-control/cnccontrol_rt.git
+cd cnccontrol_rt
+git submodule init
+git submodule sync
+git submodule update
+cd kbuild-standalone
+mkdir build
+cd build
+make -C ../ -f Makefile.sample O=`pwd`
+cd kconfig
+export PATH=$PATH:`pwd`
+cd ../../../
+```
+Then select configuration by copying config from `arc/defconfig_*` to `.config`, then run
+
+```
+make menuconfig
+make
+```
+## Real hardware
+and `make flash` if you compile for real hardware (not emulation). avrdude for arduino or ocd for stm32 is required for `make flash`.
+
+## Emulation
+```
+cd arch/emulation
+./controller.elf
+```
 
 # Supported features
 
 ## Hardware
+- Board: stm32f103 'blue pill' and arduino mega2560 + ramps
 - Movements: 3-axis movements X, Y, Z.
 - Detectors: XYZ endstops, Probe
-- Communication: stm32 serial1 (PA9/PA10), 9600 baud/s, 8N1
+- Communication: ethernet through enc28j60 (stm32), serial port (arduino)
 
-## Commands
+
+## RT Commands
 
 ### Command format
 
 ```
-[CRC]Nn Gg....
+RT: Nn Gg....
 ```
 
-[CRC] - 1 byte, sum of other message bytes
 Line numbering (N) is mandatory.
 
 ```
@@ -48,6 +80,8 @@ Attention: cnccontrol_rt assumes that XYZ are right-handed basis. If it is wrong
 
 #### Get/set current state
 
+- M3   - start tool
+- M5   - stop tool
 - M114 - current coordinates
 - M119 - endstops and Z-probe status
 - M800 - unlock movements
@@ -64,8 +98,8 @@ Attention: cnccontrol_rt assumes that XYZ are right-handed basis. If it is wrong
 
 #### Using tool
 
-M3 Tttt - enable tool number ttt
-M5 - disable tool
+- M3 - enable tool
+- M5 - disable tool
 
 This section is for tools that required to start and stop while moving, for example lasers
 
@@ -74,42 +108,52 @@ This section is for tools that required to start and stop while moving, for exam
 ## Searching endstops (simplified)
 
 ```
-N0 G0 X-300 F50
-N1 M998
-N2 G0 Y-300 F50
-N3 M998
-N4 G0 Z-300 F50
-N5 M998
-N6 M997
+RT: N0 G0 X-30000 F50 T40
+RT: N1 M998
+RT: N2 G0 Y-30000 F50 T40
+RT: N3 M998
+RT: N4 G0 Z-30000 F50 T40
+RT: N5 M998
+RT: N6 M997
 ```
 
 ## Probing
 
 Example sequence for probing. (Axis Z directed to bottom)
 ```
-N0 M996
-N1 G0 Z200 F500
-N2 M998
-N3 G0 Z-1 F100
-N4 G0 Z2 F50
-N5 M998
-N6 M995
+RT: N0 M996
+RT: N1 G0 Z20000 F500 T40
+RT: N2 M998
+RT: N3 G0 Z-1000 F100 T40
+RT: N4 G0 Z2000 F50 T40
+RT: N5 M998
+RT: N6 M995
 ```
 
-# Default ports usage
+# Modbus commands
 
-- Serial - PA9/PA10
-- X-step - PA0
-- X-dir - PA1
-- Y-step - PA3
-- Y-dir - PA4
-- Z-step - PA6
-- Z-dir - PA7
-- X-endstop - PB14
-- Y-endstop-  PB13
-- Z-endstop - PB12
+It is also supported modbus master for control spindel, light, cooling, etc.
 
-- Probe - PA15
+```
+MB:XXXX:YYYY:ZZZZ
+```
+
+where XXXX - devic number, YYYY - port number and ZZZZ - value
+
+# Default ports usage for stm32f103 blue pill
+
+- X-step - PC14
+- X-dir - PC15
+- Y-step - PA0
+- Y-dir - PA1
+- Z-step - PA2
+- Z-dir - PA3
+- X-endstop - PB7
+- Y-endstop-  PB6
+- Z-endstop - PB5
+
+- Probe - Pb8
+- Tool - PB1
 
 # License
 
