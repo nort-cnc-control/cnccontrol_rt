@@ -195,6 +195,10 @@ config LIBCORE
 if LIBCORE
 	menu "Core configuration"
 
+	config QUEUE_SIZE
+		int "commands queue size"
+		default 10
+
 	endmenu
 endif
 

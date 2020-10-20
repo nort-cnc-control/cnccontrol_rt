@@ -10,7 +10,9 @@
 #include <control/planner/planner.h>
 #include <err/err.h>
 
+#ifndef QUEUE_SIZE
 #define QUEUE_SIZE 10
+#endif
 
 extern cnc_position position;
 

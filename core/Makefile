@@ -44,7 +44,11 @@ TESTS_SRCS :=	./unit_tests/test_lines.c			\
 		./control/moves/unit/test_line.c		\
 		./control/moves/unit/test_arc.c
 
-CC := $(CC) -I./
+ifdef CONFIG_QUEUE_SIZE
+CC += -DQUEUE_SIZE=${CONFIG_QUEUE_SIZE}
+endif
+
+CC += -I./
 
 all: $(TARGET)
 
