@@ -12,6 +12,11 @@ CC += -I$(ROOT)/core/
 LIBCORE := $(ROOT)/core/libcore.a
 endif
 
+ifdef CONFIG_PROTECT_STACK
+CC += -DCONFIG_PROTECT_STACK
+endif
+
+
 SRCS := main.c
 
 PWD = $(shell pwd)

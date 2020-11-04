@@ -58,6 +58,13 @@ static cnc_endstops get_stops(void)
 bool line_st;
 pthread_t tid_tick; /* идентификатор потока */
 
+#ifdef CONFIG_PROTECT_STACK
+void __wrap___stack_chk_fail(void)
+{
+    printf("Stack protection failed!\n");
+    exit(0);
+}
+#endif
 
 static void* make_tick(void *arg)
 {
@@ -279,17 +286,15 @@ int main(int argc, const char **argv)
         run = true;
         printf("Connect from client\n");
 
-
-        pthread_create(&tid_rcv, NULL, receive, &fd);
-        usleep(100000);
-
-        output_control_set_fd(fd);
+	output_control_set_fd(fd);
         output_shell_set_fd(0);
         output_set_write_fun(write_fun);
 
         test_init();
         init_steppers();
 
+        pthread_create(&tid_rcv, NULL, receive, &fd);
+        usleep(100000);
         output_control_write("Hello", -1);
 
         planner_lock();
