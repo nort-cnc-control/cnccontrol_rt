@@ -5,7 +5,6 @@ SRCS :=		./output/output.c					\
 		./control/moves/moves.c					\
 		./control/moves/moves_common/common.c			\
 		./control/moves/moves_common/acceleration.c		\
-		./control/moves/moves_arc/segment.c			\
 		./control/moves/moves_line/line.c			\
 		./control/ioqueue/print_events.c			\
 		./control/commands/gcode_handler/gcode_handler.c	\
@@ -19,7 +18,6 @@ HEADERS :=	./control/system.h					\
 		./control/moves/moves_common/steppers.h			\
 		./control/moves/moves_common/acceleration.h		\
 		./control/moves/moves_arc/arc.h				\
-		./control/moves/moves_arc/segment.h			\
 		./control/moves/moves.h					\
 		./control/moves/moves_line/line.h			\
 		./control/ioqueue/print_events.h			\
