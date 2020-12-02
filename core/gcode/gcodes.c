@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdbool.h>
 #include <err/err.h>
 #include <gcode/gcodes.h>
 
@@ -118,6 +118,22 @@ static int read_double(const unsigned char **str, const unsigned char *end, doub
     return -E_BADNUM;
 }
 
+static bool is_float(const unsigned char *str, const unsigned char *end)
+{
+    while (str < end)
+    {
+        if (*str >= '0' && *str <= '9')
+        {
+            str++;
+            continue;
+        }
+        if (*str == '.')
+            return true;
+        return false;
+    }
+    return false;
+}
+
 static int parse_element(const unsigned char **str, const unsigned char *end, gcode_cmd_t *cmd)
 {
     if (str == NULL || *str == NULL || *str >= end)
@@ -131,51 +147,20 @@ static int parse_element(const unsigned char **str, const unsigned char *end, gc
         return E_OK;
     }
 
-    if (!((**str >= 'A' && **str <= 'Z') || **str == '*'))
+    if (!(**str >= 'A' && **str <= 'Z'))
         return -E_INCORRECT;
-
-    switch ((*str)[0]) {
-    default:
-        cmd->type = **str;
-        (*str)++;
-        if (*str < end)
-        {
-            if (read_int(str, end, &(cmd->val_i)))
-                return -E_BADNUM;
-        }
-        else
-        {
+  
+    cmd->type = **str;
+    (*str)++;
+    if (is_float(*str, end))
+    {
+        if (read_double(str, end, &(cmd->val_f)))
             return -E_BADNUM;
-        }
-        break;
-    case 'A':
-    case 'B':
-    case 'P':
-    case 'L':
-    case 'F':
-    case 'T':
-        cmd->type = **str;
-        (*str)++;
-        if (*str < end)
-        {
-            if (**str == ' ' || **str == '\n' || **str == 0) {
-                return -E_BADNUM;
-            }
-            if (read_double(str, end, &(cmd->val_f)))
-                return -E_BADNUM;
-        }
-        else
-        {
+    }
+    else
+    {
+        if (read_int(str, end, &(cmd->val_i)))
             return -E_BADNUM;
-        }
-        break;
-    case '*':
-        cmd->type = '*';
-        (*str)++;
-        if (read_hex(str, end, &(cmd->val_i)))
-            return -E_BADNUM;
-
-        break;
     }
 
     return E_OK;
@@ -225,3 +210,4 @@ int parse_cmdline(const unsigned char *str, size_t len, gcode_frame_t *frame)
     frame->num  = i;
     return -E_OK;
 }
+
