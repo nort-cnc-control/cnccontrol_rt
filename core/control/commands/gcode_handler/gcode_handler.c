@@ -99,21 +99,32 @@ static int handle_g_command(gcode_frame_t *frame)
         case 3: {
             int i;
             double f = 0, feed0 = 0, feed1 = 0;
-            int32_t x[3] = {0, 0, 0};
-            double a = 0, b = 0;
+            int32_t x1[2] = {0, 0};
+            int32_t x2[2] = {0, 0};
+            int32_t h = 0;
+            double a = 0, b = 0, len = 0;
 
 	    double acc = 0;
             int plane = XY;
             for (i = 1; i < ncmds; i++) {
                 switch (cmds[i].type) {
                 case 'X':
-                    x[0] = cmds[i].val_i;
+                    x2[0] = cmds[i].val_i;
                     break;
                 case 'Y':
-                    x[1] = cmds[i].val_i;
+                    x2[1] = cmds[i].val_i;
                     break;
-                case 'Z':
-                    x[2] = cmds[i].val_i;
+                case 'R':
+                    x1[0] = cmds[i].val_i;
+                    break;
+                case 'S':
+                    x1[1] = cmds[i].val_i;
+                    break;
+                case 'H':
+                    h = cmds[i].val_i;
+                    break;
+                case 'D':
+                    len = cmds[i].val_f;
                     break;
                 case 'A':
                     a = cmds[i].val_f;
@@ -152,7 +163,7 @@ static int handle_g_command(gcode_frame_t *frame)
                 }
             }
             int cw = (cmds[0].val_i == 2);
-            int res = planner_arc_to(x, a, b, plane, cw, f, feed0, feed1, acc, nid);
+            int res = planner_arc_to(x1, x2, h, len, a, b, plane, cw, f, feed0, feed1, acc, nid);
             if (res >= 0)
             {
                 return -E_OK;

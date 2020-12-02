@@ -303,12 +303,13 @@ int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc
     return empty_slots();
 }
 
-static int _planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, int (*cbr)(int32_t *, void *), void *usr_data,
+static int _planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a, double b, arc_plane plane, int cw,
+			   int (*cbr)(int32_t *, void *), void *usr_data,
                            double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
 {
     action_plan *cur;
 
-    if (x[0] == 0 && x[1] == 0 && x[2] == 0)
+    if (x1[0] == x2[0] && x1[1] == x2[1])
         return 0;
 
     if (f0 < steppers_definitions.feed_base)
@@ -333,11 +334,15 @@ static int _planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, in
     else
     {
         cur->arc.check_break = break_on_endstops;
-        cur->arc.check_break_data = x;
+        cur->arc.check_break_data = NULL;
     }
-    cur->arc.x[0] = x[0];
-    cur->arc.x[1] = x[1];
-    cur->arc.x[2] = x[2];
+    cur->arc.H = H;
+    cur->arc.x1[0] = x1[0];
+    cur->arc.x1[1] = x1[1];
+    cur->arc.x2[0] = x2[0];
+    cur->arc.x2[1] = x2[1];
+    cur->arc.len = len;
+
     cur->arc.a = a;
     cur->arc.b = b;
     cur->arc.cw = cw;
@@ -356,7 +361,8 @@ static int _planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, in
 }
 
 
-int planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid)
+int planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a, double b, arc_plane plane, int cw,
+		   double feed, double f0, double f1, int32_t acc, int nid)
 {
     if (planner_is_locked())
     {
@@ -368,7 +374,7 @@ int planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, do
         return -E_NOMEM;
     }
 
-    int res = _planner_arc_to(x, a, b, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    int res = _planner_arc_to(x1, x2, H, len, a, b, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
     if (res)
     {
         ev_send_queued(nid);

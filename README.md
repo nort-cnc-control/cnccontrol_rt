@@ -67,10 +67,13 @@ L - finish feed, mm/sec, default=0
 T - acceleration, mm/sec^2, default=50
 ```
 
-#### Arc movement
+#### Helix movement
 ```
-G2/G3 XxxYyyZzz G17/G18/G19 Aaaa Baaa Ffff Tttt Pppp Llll
-X, Y, Z - relative coordinates, steps. If G17 selected, only X and Y are used, G18 only Y and Z, G19 only Z and X
+G2/G3 XxxYyyRrrSssHhhDdd G17/G18/G19 Aaaa Baaa Ffff Tttt Pppp Llll
+X, Y - end coordinates in system of center of helix, steps.
+R, S - start coordinates in system of center of helix, steps.
+H - height of helix, steps
+D - length of helix, mm
 A, B - axises of ellipse, steps
 G17/G18/G19 - selected plane
 F, T, P, L - same as for G0/G1

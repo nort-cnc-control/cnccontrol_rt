@@ -20,7 +20,9 @@ void init_planner(steppers_definition *pd,
 		  void (*arg_send_failed)(int nid));
 
 int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc, int nid);
-int planner_arc_to(int32_t x[3], double a, double b, arc_plane plane, int cw, double feed, double f0, double f1, int32_t acc, int nid);
+
+int planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a, double b, arc_plane plane, int cw,
+		   double feed, double f0, double f1, int32_t acc, int nid);
 
 int planner_tool(int id, bool on, int nid);
 

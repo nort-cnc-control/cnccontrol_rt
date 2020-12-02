@@ -5,36 +5,17 @@
 #include <err/err.h>
 
 typedef enum {
-    RIGHT = 0,
-    TOP,
-    LEFT,
-    BOTTOM,
-} arc_segment_id;
-
-typedef enum {
     XY = 0,
     YZ,
     ZX,
 } arc_plane;
 
 typedef struct {
-    int32_t x1, y1;
-    int32_t x2, y2;
-    arc_segment_id segment;
-} arc_segment_desc;
-
-typedef struct {
-    arc_segment_desc segments[5];
-    int num_segments;        // amount of arc segments
-    double a2;
-    double b2;
-} arc_geometry;
-
-
-typedef struct {
     // Specified data
     arc_plane plane;        // selected plane
-    int32_t x[3];           // delta
+    double x1[2];           // start point in local crds
+    double x2[2];           // end point in local crds
+    double H;               // height of helix
     double a, b;
     double feed;            // feed of moving
     double feed0;           // initial feed
@@ -49,8 +30,9 @@ typedef struct {
     uint32_t steps;        // total amount of steps
     uint32_t acc_steps;    // steps on acceleration
     uint32_t dec_steps;    // steps on deceleration
-
-    arc_geometry geometry;
+    double t_start, t_end;
+    double cost_start, sint_start;
+    double h;
 
     // flags
     struct {
