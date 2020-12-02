@@ -3,7 +3,8 @@ export
 
 PREFIX = $(patsubst "%",%,$(CONFIG_TOOLCHAIN_PREFIX))
 
-CC = $(PREFIX)gcc
+#CC = $(PREFIX)gcc
+CC = clang
 AR = $(PREFIX)ar
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
@@ -33,6 +34,7 @@ endif
 
 ifdef CONFIG_PROTECT_STACK
 CC += -Wl,--wrap=__stack_chk_fail
+CC += -fstack-usage
 endif
 
 ifdef CONFIG_COMPILE_STACK_PROTECTION_ALL
@@ -50,7 +52,6 @@ endif
 ROOT := $(shell pwd)
 export ROOT
 
-CC += -fstack-usage
 CC += -I$(ROOT)/arch/$(PLATFORM)/
 
 export CC

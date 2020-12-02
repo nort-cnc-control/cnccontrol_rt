@@ -76,6 +76,7 @@ static void* make_tick(void *arg)
             break;
         }
         usleep(delay_us);
+        print_pos();
     }
     return NULL;
 }
@@ -191,7 +192,7 @@ static int fd;
 void *receive(void *arg)
 {
     static char buf[1000];
-    size_t blen = 0;
+    ssize_t blen = 0;
 
     printf("Starting recv thread. fd = %i\n", fd);
     while (run)
@@ -212,7 +213,9 @@ void *receive(void *arg)
             {
                 pthread_mutex_lock(&mutex);
                 printf("Execute: %.*s\n", (int)(blen - 3), buf + 3);
-                execute_g_command((const unsigned char*)(buf + 3), blen - 3);
+                const unsigned char *cmd = buf + 3;
+                ssize_t cmdlen = blen - 3;
+                execute_g_command(cmd, cmdlen);
                 pthread_mutex_unlock(&mutex);
             }
             else if (blen >= 5 && !memcmp(buf, "EXIT:", 5))
