@@ -24,7 +24,15 @@ void arc_init(steppers_definition definition)
 
 static arc_plan *current_plan;
 
-static struct
+enum arc_move_state_e
+{
+    AMS_ARC = 0,
+    AMS_FIX,
+    AMS_COMPLETE,
+    AMS_END,
+};
+
+static struct arc_state_s
 {
     double t;
     double tv;
@@ -35,145 +43,226 @@ static struct
         int32_t x;
         int32_t y;
         int32_t z;
-    } plane;
+    } plane_current;
+
+    struct {
+        int32_t x;
+        int32_t y;
+        int32_t z;
+    } plane_target;
 
     struct {
         int32_t position[3];
-    } global;
+    } global_current;
 
-    int32_t position[3];
+    struct {
+        int32_t position[3];
+    } global_target;
+
+    int8_t steps[3];
+
+    enum arc_move_state_e move_state;
+
     int32_t dir[3];
     acceleration_state acc;
 } current_state;
 
-static void global_update_position(void)
+static void global_update_position(struct arc_state_s *state)
 {
     switch (current_plan->plane)
     {
         case XY: // XY
-            current_state.global.position[0] = current_state.plane.x;
-            current_state.global.position[1] = current_state.plane.y;
-            current_state.global.position[2] = current_state.plane.z;
+            state->global_current.position[0] = state->plane_current.x;
+            state->global_current.position[1] = state->plane_current.y;
+            state->global_current.position[2] = state->plane_current.z;
+
+            state->global_target.position[0]  = state->plane_target.x;
+            state->global_target.position[1]  = state->plane_target.y;
+            state->global_target.position[2]  = state->plane_target.z;
             break;
 
         case YZ: // YZ
-            current_state.global.position[0] = current_state.plane.z;
-            current_state.global.position[1] = current_state.plane.x;
-            current_state.global.position[2] = current_state.plane.y;
+            state->global_current.position[0] = state->plane_current.z;
+            state->global_current.position[1] = state->plane_current.x;
+            state->global_current.position[2] = state->plane_current.y;
+
+            state->global_target.position[0]  = state->plane_target.z;
+            state->global_target.position[1]  = state->plane_target.x;
+            state->global_target.position[2]  = state->plane_target.y; 
             break;
 
         case ZX: // ZX
-            current_state.global.position[0] = current_state.plane.y;
-            current_state.global.position[1] = current_state.plane.z;
-            current_state.global.position[2] = current_state.plane.x;
+            state->global_current.position[0] = state->plane_current.y;
+            state->global_current.position[1] = state->plane_current.z;
+            state->global_current.position[2] = state->plane_current.x;
+
+            state->global_target.position[0]  = state->plane_target.y;
+            state->global_target.position[1]  = state->plane_target.z;
+            state->global_target.position[2]  = state->plane_target.x; 
             break;
     }
 }
 
-static bool iterate(arc_plan *plan)
+static bool iterate_normal(arc_plan *plan, struct arc_state_s *state)
 {
-    double dxdt = -plan->a * current_state.sint;
-    double dydt = plan->b * current_state.cost;
-    double dzdt = plan->h;
+    float dxdt = -plan->a * state->sint;
+    float dydt = plan->b * state->cost;
+    float dzdt = plan->h;
 
-//    printf("-----\n");
-
-    double dtx;
-    if (dxdt != 0)
-        dtx = 0.5/fabs(dxdt);
-    else
-        dtx = INFINITY;
-
-    double dty;
-    if (dydt != 0)
-        dty = 0.5/fabs(dydt);
-    else
-        dty = INFINITY;
-
-    double dtz;
-    if (dzdt != 0)
-        dtz = 0.5/fabs(dzdt);
-    else
-        dtz = INFINITY;
-
-    double dt = fmin(fmin(fmin(dtx, dty), dtz), fabs(current_state.t - plan->t_end));
-    if (dt <= 0)
+    float maxddt = fmax(fmax(fabs(dxdt), fabs(dydt)), fabs(dzdt));
+    float dt = fmin(1/maxddt, fabs(state->t - plan->t_end));
+    if (dt < 1e-12)
         return false;
 
-    if (current_plan->cw)
+    if (plan->cw)
         dt = -dt;
 
-    current_state.t += dt;
-//    printf("%lf\n", current_state.t / pi);
-    current_state.tv += dt;
-    if (current_state.tv >= pi/COS_RESYNC_FRQ)
+    state->t += dt;
+    state->tv += dt;
+    if (state->tv >= pi/COS_RESYNC_FRQ)
     {
-//        printf("*** resync\n");
-        current_state.tv -= pi/COS_RESYNC_FRQ;
-        current_state.cost = cos(current_state.t);
-        current_state.sint = sin(current_state.t);
+        state->tv -= pi/COS_RESYNC_FRQ;
+        state->cost = cos(state->t);
+        state->sint = sin(state->t);
     }
     else if (current_state.tv < 0)
     {
-//        printf("*** resync\n");
-        current_state.tv += pi/COS_RESYNC_FRQ;
-        current_state.cost = cos(current_state.t);
-        current_state.sint = sin(current_state.t);
+        state->tv += pi/COS_RESYNC_FRQ;
+        state->cost = cos(state->t);
+        state->sint = sin(state->t);
     }
     else
     {
-        double cost = current_state.cost - dt * current_state.sint - dt*dt/2*current_state.cost;
-        double sint = current_state.sint + dt * current_state.cost - dt*dt/2*current_state.sint;
+        double cost = state->cost - dt * state->sint - dt*dt/2*state->cost;
+        double sint = state->sint + dt * state->cost - dt*dt/2*state->sint;
     
-        current_state.cost = cost;
-        current_state.sint = sint;
+        state->cost = cost;
+        state->sint = sint;
     }
 
-    current_state.plane.x = round(plan->a * current_state.cost);
-    current_state.plane.y = round(plan->b * current_state.sint);
-    current_state.plane.z = round(plan->h * (current_state.t - current_plan->t_start));
-//    printf("cos = %lf sin = %lf\n", current_state.cost, current_state.sint);
-//    printf("CS: %i %i %i\n", current_state.plane.x, current_state.plane.y, current_state.plane.z);
+    state->plane_target.x = round(plan->a * state->cost);
+    state->plane_target.y = round(plan->b * state->sint);
+    state->plane_target.z = round(plan->h * (state->t - plan->t_start));
     return true;
 }
 
-static bool make_tick(void)
+static int clip(int x)
+{
+    if (x < 0)
+        return -1;
+    if (x == 0)
+        return 0;
+    return 1;
+}
+
+static bool current_move_ready(struct arc_state_s *state)
 {
     int i;
-    int32_t pos[3];
     for (i = 0; i < 3; i++)
-        pos[i] = current_state.global.position[i];
-
-    while (true)
     {
-        if (!iterate(current_plan))
+        if (state->global_current.position[i] != state->global_target.position[i])
             return false;
-        global_update_position();
+    }
+    return true;
+}
 
-        // make steps
-        bool has_step = false;
-        for (i = 0; i < 3; i++)
-        {
-            int d = current_state.global.position[i] - pos[i];
-            if (d > 1 || d < -1)
+static bool iterate(arc_plan *plan, struct arc_state_s *state)
+{
+    int i;
+    bool arc_res = false;
+    switch (state->move_state)
+    {
+        case AMS_ARC:
+            arc_res = iterate_normal(plan, state);
+            global_update_position(state);
+            break;
+        case AMS_FIX:
+            break;
+        case AMS_COMPLETE:
+            break;
+        case AMS_END:
+//            printf("End: %i %i : %i %i : %i %i\n", (int)plan->x2[0], (int)plan->x2[1], (int)state->plane_current.x, (int)state->plane_current.y, (int)state->plane_target.x, (int)state->plane_target.y);
+            return false;
+    }
+
+    state->plane_current.x += clip(state->plane_target.x - state->plane_current.x);
+    state->plane_current.y += clip(state->plane_target.y - state->plane_current.y);
+    state->plane_current.z += clip(state->plane_target.z - state->plane_current.z);
+    for (i = 0; i < 3; i++)
+    {
+        state->steps[i] = clip(state->global_target.position[i] - state->global_current.position[i]);
+        state->global_current.position[i] += state->steps[i];
+    }
+
+    switch (state->move_state)
+    {
+        case AMS_ARC:
+            if (arc_res == false)
             {
-//                printf("*** 2 steps at once\n");
-                  // TODO: Raise error
+                state->plane_target.x = plan->x2[0];
+                state->plane_target.y = plan->x2[1];
+                state->plane_target.z = plan->H;
+                global_update_position(state);
+                if (current_move_ready(state))
+                {
+//                    printf("ARC -> END\n");
+                    state->move_state = AMS_END;
+                }
+                else
+                {
+//                    printf("ARC -> COMPLETE\n");
+                    state->move_state = AMS_COMPLETE;
+                }
             }
-            if (d != 0)
+            else
             {
-                moves_common_set_dir(i, d >= 0);
-                moves_common_make_step(i);
-                has_step = true;
+                if (!current_move_ready(state))
+                {
+//                    printf("ARC -> FIX\n");
+                    state->move_state = AMS_FIX;
+                }
             }
-
-            current_state.dir[i] = d;
-            current_state.position[i] += d;
-        }
-
-        if (has_step)
+            break;
+        case AMS_FIX:
+            if (current_move_ready(state))
+            {
+//                printf("FIX -> ARC\n");
+                state->move_state = AMS_ARC;
+            }
+            break;
+        case AMS_COMPLETE:
+            if (current_move_ready(state))
+            {
+//                printf("COMPLETE -> END\n");
+                state->move_state = AMS_END;
+            }
+            break;
+        case AMS_END:
             break;
     }
+    return true;
+}
+
+static bool make_tick(int *dx, int *dy, int *dz)
+{
+    int i;
+    if (!iterate(current_plan, &current_state))
+    	return false;
+
+    // make steps
+    for (i = 0; i < 3; i++)
+    {
+        int d = current_state.steps[i];
+        moves_common_set_dir(i, d >= 0);
+        current_state.dir[i] = d;
+        if (d != 0)
+        {
+            moves_common_make_step(i);
+        }
+    }
+    *dx = current_state.steps[0];
+    *dy = current_state.steps[1];
+    *dz = current_state.steps[2];
 
     return true;
 }
@@ -190,40 +279,45 @@ int32_t arc_step_tick(void)
         return -E_ENDSTOP;
     }
 
+    int dx, dy, dz;
     // Make step
-    if (!make_tick())
+    if (!make_tick(&dx, &dy, &dz))
     {
         moves_common_line_finished();
         return -E_NEXT;
     }
 
     // Calculate delay
-    double step_len = current_plan->len / current_plan->steps;
-    double step_delay = step_len / current_state.acc.feed;
-//    printf("%lf\n", current_state.acc.feed);
-    acceleration_process(&current_state.acc, step_delay);
+    float step_len = moves_common_step_len[dz+1][dy+1][dx+1];
+    float step_delay = step_len / current_state.acc.feed;
+    acceleration_process(&current_state.acc, step_delay, current_state.t);
     return step_delay * 1000000L;
 }
 
-static void arc_init_move(arc_plan *plan)
+static void arc_init_move(arc_plan *plan, struct arc_state_s *state)
 {
-    current_state.t = plan->t_start;
-    current_state.cost = cos(current_state.t);
-    current_state.sint = sin(current_state.t);
+    state->t    = plan->t_start;
+    state->cost = cos(state->t);
+    state->sint = sin(state->t);
 
-    current_state.tv = plan->t_start;
-    while (current_state.tv >= pi/COS_RESYNC_FRQ)
-        current_state.tv -= pi/COS_RESYNC_FRQ;
-    while (current_state.tv < 0)
-        current_state.tv += pi/COS_RESYNC_FRQ;
+    state->tv = plan->t_start;
+    while (state->tv >= pi/COS_RESYNC_FRQ)
+        state->tv -= pi/COS_RESYNC_FRQ;
+    while (state->tv < 0)
+        state->tv += pi/COS_RESYNC_FRQ;
 
-    current_state.plane.x = plan->a * current_state.cost;
-    current_state.plane.y = plan->b * current_state.sint;
-    current_state.plane.z = 0;
+    state->plane_current.x = plan->x1[0];
+    state->plane_current.y = plan->x1[1];
+    state->plane_current.z = 0;
 
-    global_update_position();
+    state->plane_target.x = plan->x1[0];
+    state->plane_target.y = plan->x1[1];
+    state->plane_target.z = 0;
 
+    global_update_position(state);
+    current_state.move_state = AMS_ARC;
 //    printf("=================\nstart %lf %lf\n", plan->t_start, plan->t_end);
+//    printf("Start: %i %i : %i %i : %i %i\n", (int)plan->x2[0], (int)plan->x2[1], (int)state->plane_current.x, (int)state->plane_current.y, (int)state->plane_target.x, (int)state->plane_target.y);
 }
 
 int arc_move_to(arc_plan *plan)
@@ -244,7 +338,7 @@ int arc_move_to(arc_plan *plan)
     current_state.acc.acc_steps = current_plan->acc_steps;
     current_state.acc.dec_steps = current_plan->dec_steps;
  
-    arc_init_move(plan);
+    arc_init_move(plan, &current_state);
 
     moves_common_line_started();
     return -E_OK;
@@ -319,9 +413,9 @@ void arc_pre_calculate(arc_plan *arc)
         arc->feed0 = arc->feed;
 
     /* calculate total steps */
-    arc_init_move(arc);
+    arc_init_move(arc, &current_state);
     arc->steps = 0;
-    while (iterate(arc))
+    while (iterate(arc, &current_state))
     {
         arc->steps++;
     }
