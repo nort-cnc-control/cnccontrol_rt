@@ -46,9 +46,9 @@ static void make_step(int coord)
 static cnc_endstops get_stops(void)
 {
     cnc_endstops stops = {
-        .stop_x  = (pos[0] <= 0),
-        .stop_y  = (pos[1] <= 0),
-        .stop_z  = (pos[2] <= 0),
+        .stop_x  = (pos[0] <= 0) && CONFIG_EMULATE_ENDSTOPS,
+        .stop_y  = (pos[1] <= 0) && CONFIG_EMULATE_ENDSTOPS,
+        .stop_z  = (pos[2] <= 0) && CONFIG_EMULATE_ENDSTOPS,
         .probe = 0,
     };
 

@@ -93,6 +93,10 @@ if PLATFORM_EMULATION
 			Send commands via TCP
 	endchoice
 
+	config EMULATE_ENDSTOPS
+		bool "Emulate endstops at 0, 0, 0"
+		default n
+
 endif
 
 if PLATFORM_STM32F103
