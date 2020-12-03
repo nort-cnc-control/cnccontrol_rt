@@ -352,8 +352,6 @@ static int _planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, 
     cur->arc.feed1 = f1;
     cur->arc.acceleration = acc;
     cur->arc.ready = 0;
-    cur->arc.acc_steps = -1;
-    cur->arc.dec_steps = -1;
 
     plan_last = (plan_last + 1) % QUEUE_SIZE;
     plan_len++;

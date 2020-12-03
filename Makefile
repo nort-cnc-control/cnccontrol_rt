@@ -3,8 +3,8 @@ export
 
 PREFIX = $(patsubst "%",%,$(CONFIG_TOOLCHAIN_PREFIX))
 
-#CC = $(PREFIX)gcc
-CC = clang
+CC = $(PREFIX)gcc
+#CC = clang
 AR = $(PREFIX)ar
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump

@@ -20,12 +20,6 @@ typedef struct {
 
 // Math functions
 double feed2delay(double feed, double step_len);
-double accelerate(double feed, double acc, double delay);
-uint32_t acceleration_steps(double feed0,
-                            double feed1,
-                            double acc,
-                            double average_step_len);
-
 
 void moves_common_init(steppers_definition *definition);
 void moves_common_reset(void);
@@ -37,6 +31,8 @@ void moves_common_make_step(int i);
 void moves_common_line_started(void);
 void moves_common_endstops_touched(void);
 void moves_common_line_finished(void);
+
+double moves_common_step_len(int8_t dx, int8_t dy, int8_t dz);
 
 // State
 void moves_common_set_position(const int32_t *x);

@@ -76,7 +76,7 @@ static void* make_tick(void *arg)
             break;
         }
         usleep(delay_us);
-        print_pos();
+//        print_pos();
     }
     return NULL;
 }
