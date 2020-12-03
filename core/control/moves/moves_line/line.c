@@ -53,10 +53,12 @@ int line_move_to(line_plan *plan)
     current_state.acc.target_feed = current_plan->feed;
     current_state.acc.end_feed = current_plan->feed1;
     current_state.acc.type = STATE_ACC;
-    current_state.acc.step = 0;
-    current_state.acc.total_steps = current_plan->steps;
-    current_state.acc.acc_steps = current_plan->acc_steps;
-    current_state.acc.dec_steps = current_plan->dec_steps;
+
+    current_state.acc.current_t = 0;
+    current_state.acc.start_t   = current_plan->steps;
+    current_state.acc.end_t     = current_plan->steps;
+    current_state.acc.acc_t     = current_plan->acc_steps;
+    current_state.acc.dec_t     = current_plan->dec_steps;
     current_state.is_moving = 1;
     for (i = 0; i < 3; i++)
     {
@@ -71,7 +73,7 @@ int line_move_to(line_plan *plan)
 static bool make_step(void)
 {
     int i;
-    if (current_state.acc.step >= current_state.acc.total_steps)
+    if (current_state.acc.current_t >= current_state.acc.end_t)
     {
         return false;
     }
@@ -105,7 +107,7 @@ int32_t line_step_tick(void)
 {
     int i;
     // Check for endstops
-    if (current_state.acc.step < current_state.acc.total_steps)
+    if (current_state.acc.current_t < current_state.acc.end_t)
     {
         if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
         {
@@ -129,7 +131,9 @@ int32_t line_step_tick(void)
 
     /* Calculating delay */
     double average_delay = current_plan->len / current_plan->steps / current_state.acc.feed;
-    acceleration_process(&current_state.acc, average_delay);
+    current_state.acc.current_t++;
+    acceleration_process(&current_state.acc, average_delay, current_state.acc.current_t);
+
 
     return average_delay * 1000000UL;
 }
@@ -182,8 +186,8 @@ void line_pre_calculate(line_plan *line)
         line->feed0 = line->feed;
 
     bresenham_plan(line);
-    line->acc_steps = acceleration_steps(line->feed0, line->feed, line->acceleration, line->len / line->steps);
-    line->dec_steps = acceleration_steps(line->feed1, line->feed, line->acceleration, line->len / line->steps);
+    line->acc_steps = acceleration(line->feed0, line->feed, line->acceleration, line->len, 0, line->steps);
+    line->dec_steps = acceleration(line->feed1, line->feed, line->acceleration, line->len, line->steps, 0);
 
     if (line->acc_steps + line->dec_steps > line->steps)
     {

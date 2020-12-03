@@ -111,7 +111,10 @@ static bool iterate_normal(arc_plan *plan, struct arc_state_s *state)
 
     float maxddt = fmax(fmax(fabs(dxdt), fabs(dydt)), fabs(dzdt));
     float dt = fmin(1/maxddt, fabs(state->t - plan->t_end));
-    if (dt < 1e-12)
+
+    if (plan->t_end > plan->t_start && state->t > plan->t_end - 1e-6)
+        return false;
+    if (plan->t_end < plan->t_start && state->t < plan->t_end + 1e-6)
         return false;
 
     if (plan->cw)
@@ -169,6 +172,14 @@ static bool current_move_ready(struct arc_state_s *state)
 static bool iterate(arc_plan *plan, struct arc_state_s *state)
 {
     int i;
+    if (state->plane_target.x == plan->x2[0] &&
+        state->plane_target.y == plan->x2[1] &&
+        state->plane_target.z == plan->H)
+    {
+        state->move_state = AMS_END;
+        return false;
+    }
+
     bool arc_res = false;
     switch (state->move_state)
     {
@@ -203,16 +214,8 @@ static bool iterate(arc_plan *plan, struct arc_state_s *state)
                 state->plane_target.y = plan->x2[1];
                 state->plane_target.z = plan->H;
                 global_update_position(state);
-                if (current_move_ready(state))
-                {
-//                    printf("ARC -> END\n");
-                    state->move_state = AMS_END;
-                }
-                else
-                {
-//                    printf("ARC -> COMPLETE\n");
-                    state->move_state = AMS_COMPLETE;
-                }
+//                printf("ARC -> COMPLETE\n");
+                state->move_state = AMS_COMPLETE;
             }
             else
             {
@@ -235,10 +238,11 @@ static bool iterate(arc_plan *plan, struct arc_state_s *state)
             {
 //                printf("COMPLETE -> END\n");
                 state->move_state = AMS_END;
+                return false;
             }
             break;
         case AMS_END:
-            break;
+            return false;
     }
     return true;
 }
@@ -288,8 +292,8 @@ int32_t arc_step_tick(void)
     }
 
     // Calculate delay
-    float step_len = moves_common_step_len[dz+1][dy+1][dx+1];
-    float step_delay = step_len / current_state.acc.feed;
+    double step_len = moves_common_step_len(dx, dy, dz);
+    double step_delay = step_len / current_state.acc.feed;
     acceleration_process(&current_state.acc, step_delay, current_state.t);
     return step_delay * 1000000L;
 }
@@ -333,10 +337,12 @@ int arc_move_to(arc_plan *plan)
     current_state.acc.target_feed = current_plan->feed;
     current_state.acc.end_feed = current_plan->feed1;
     current_state.acc.type = STATE_ACC;
-    current_state.acc.step = 0;
-    current_state.acc.total_steps = current_plan->steps;
-    current_state.acc.acc_steps = current_plan->acc_steps;
-    current_state.acc.dec_steps = current_plan->dec_steps;
+
+    current_state.acc.current_t = current_plan->t_start;
+    current_state.acc.start_t   = current_plan->t_start;
+    current_state.acc.end_t     = current_plan->t_end;
+    current_state.acc.acc_t     = current_plan->t_acc;
+    current_state.acc.dec_t     = current_plan->t_dec;
  
     arc_init_move(plan, &current_state);
 
@@ -412,17 +418,9 @@ void arc_pre_calculate(arc_plan *arc)
     else if (arc->feed0 > arc->feed)
         arc->feed0 = arc->feed;
 
-    /* calculate total steps */
-    arc_init_move(arc, &current_state);
-    arc->steps = 0;
-    while (iterate(arc, &current_state))
-    {
-        arc->steps++;
-    }
-
-    /* calculate acceleration and deceleration steps */
-    arc->acc_steps = acceleration_steps(arc->feed0, arc->feed, arc->acceleration, arc->len / arc->steps);
-    arc->dec_steps = acceleration_steps(arc->feed1, arc->feed, arc->acceleration, arc->len / arc->steps);
+    /* calculate acceleration and deceleration */
+    arc->t_acc = acceleration(arc->feed0, arc->feed, arc->acceleration, arc->len, arc->t_start, arc->t_end);
+    arc->t_dec = acceleration(arc->feed1, arc->feed, arc->acceleration, arc->len, arc->t_end, arc->t_start);
 
     arc->ready = 1;
 }

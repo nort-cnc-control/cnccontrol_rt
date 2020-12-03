@@ -27,9 +27,8 @@ typedef struct {
 
     // Pre-calculated data
     double len;            // arc length
-    uint32_t steps;        // total amount of steps
-    uint32_t acc_steps;    // steps on acceleration
-    uint32_t dec_steps;    // steps on deceleration
+    double t_acc;    // steps on acceleration
+    double t_dec;    // steps on deceleration
     double t_start, t_end;
     double cost_start, sint_start;
     double h;

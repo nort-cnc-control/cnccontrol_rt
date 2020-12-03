@@ -5,12 +5,24 @@
 
 #define SQR(a) ((a) * (a))
 
+static double moves_len[2][2][2] = {};
+
 cnc_position position;
 steppers_definition *moves_common_def;
 
 void moves_common_init(steppers_definition *definition)
 {
     moves_common_def = definition;
+    int x, y, z;
+    for (z = 0; z < 2; z++)
+    for (y = 0; y < 2; y++)
+    for (x = 0; x < 2; x++)
+    {
+        double sx = x/moves_common_def->steps_per_unit[0];
+        double sy = y/moves_common_def->steps_per_unit[1];
+        double sz = z/moves_common_def->steps_per_unit[2];
+        moves_len[z][y][x] = sqrt(sx*sx + sy*sy + sz*sz);
+    }
 }
 
 void moves_common_reset(void)
@@ -33,41 +45,6 @@ double feed2delay(double feed, double step_len)
     return step_len / feed;
 }
 
-// Find new feed when acceleration
-//
-// feed.  mm / sec
-// acc.   mm / sec^2
-// delay. sec
-//
-// Return: new feed in mm / min
-double accelerate(double feed, double acc, double delay)
-{
-    double df = acc * delay;
-    return feed + df;
-}
-
-// Find amount of acceleration steps from feed0 to feed1
-//
-// feed0. mm / sec
-// feed1. mm / sec
-// acc.   mm / sec^2
-// len.   mm
-uint32_t acceleration_steps(double feed0,
-                            double feed1,
-                            double acc,
-                            double step_len)
-{
-    double feed = feed0;
-    uint32_t steps = 0;
-    while (feed < feed1)
-    {
-        feed = accelerate(feed, acc, step_len / feed);
-        steps++;
-    }
-    if (steps > 0 && feed > feed1)
-        steps--;
-    return steps;
-}
 
 // Movement functions
 void moves_common_set_dir(int i, bool dir)
@@ -115,4 +92,12 @@ void moves_common_set_position(const int32_t *x)
     }
 }
 
+
+double moves_common_step_len(int8_t dx, int8_t dy, int8_t dz)
+{
+    dx = abs(dx);
+    dy = abs(dy);
+    dz = abs(dz);
+    return moves_len[dz][dy][dx];
+}
 
