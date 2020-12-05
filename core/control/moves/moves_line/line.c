@@ -55,7 +55,7 @@ int line_move_to(line_plan *plan)
     current_state.acc.type = STATE_ACC;
 
     current_state.acc.current_t = 0;
-    current_state.acc.start_t   = current_plan->steps;
+    current_state.acc.start_t   = 0;
     current_state.acc.end_t     = current_plan->steps;
     current_state.acc.acc_t     = current_plan->acc_steps;
     current_state.acc.dec_t     = current_plan->dec_steps;

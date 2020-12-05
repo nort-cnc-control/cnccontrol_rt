@@ -1,22 +1,29 @@
 #include <control/moves/moves_common/acceleration.h>
 #include <control/moves/moves_common/common.h>
+#include <math.h>
 
 void acceleration_process(acceleration_state *state, double step_delay, double t)
 {
+    double cur_dt = fabs(state->current_t - state->start_t);
+    double acc_dt = fabs(state->acc_t - state->start_t);
+    double dec_dt = fabs(state->dec_t - state->start_t);
+    double total_dt = fabs(state->end_t - state->start_t);
+
     state->current_t = t;
-    if (state->current_t >= state->end_t)
+    if (cur_dt >= total_dt)
     {
         state->type = STATE_STOP;
         return;
     }
 
+
     switch (state->type)
     {
     case STATE_ACC:
     {
-        if (state->current_t >= state->acc_t)
+        if (cur_dt >= acc_dt)
         {
-            if (state->current_t < state->dec_t)
+            if (cur_dt < dec_dt)
             {
                 state->type = STATE_GO;
                 state->feed = state->target_feed;
@@ -33,7 +40,7 @@ void acceleration_process(acceleration_state *state, double step_delay, double t
         break;
     }
     case STATE_GO:
-        if (state->current_t >= state->dec_t)
+        if (cur_dt >= dec_dt)
         {
             state->type = STATE_DEC;
         }
