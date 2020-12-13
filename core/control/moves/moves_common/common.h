@@ -12,6 +12,7 @@ typedef struct {
 } step_flags;
 
 typedef struct {
+    int32_t target_pos[3];
     int32_t pos[3];
     int dir[3];
     double speed[3];
@@ -27,6 +28,9 @@ void moves_common_reset(void);
 // Movement functions
 void moves_common_set_dir(int i, bool dir);
 void moves_common_make_step(int i);
+
+void moves_common_schedule_step(int i, int dir);
+bool moves_common_make_steps(double *len);
 
 void moves_common_line_started(void);
 void moves_common_endstops_touched(void);

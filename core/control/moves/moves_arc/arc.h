@@ -46,5 +46,8 @@ void arc_pre_calculate ( arc_plan *arc );
 
 int arc_move_to(arc_plan *plan);
 
-int32_t arc_step_tick(void);
+int arc_step_tick(void);
+double arc_movement_feed(void);
+double arc_acceleration_process(double len);
+bool arc_check_endstops(void);
 

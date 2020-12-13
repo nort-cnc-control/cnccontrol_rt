@@ -25,7 +25,6 @@ static struct
 int line_move_to(line_plan *plan)
 {
     int i;
-
     current_plan = plan;
 
     if (current_plan->len < 0)
@@ -41,7 +40,6 @@ int line_move_to(line_plan *plan)
             current_state.dir[i] = -1;
         else 
             current_state.dir[i] = 0;
-        moves_common_set_dir(i, current_plan->x[i] >= 0);
         current_state.steps[i] = 0;
     }
 
@@ -77,9 +75,9 @@ static bool make_step(void)
     {
         return false;
     }
+
     /* Bresenham */
-    moves_common_make_step(current_plan->maxi);
-    current_state.steps[current_plan->maxi] += current_state.dir[current_plan->maxi];
+    moves_common_schedule_step(current_plan->maxi, current_state.dir[current_plan->maxi]);
     
     for (i = 0; i < 3; i++)
     {
@@ -89,53 +87,45 @@ static bool make_step(void)
         if (current_state.err[i] * 2 >= (int32_t)current_plan->steps)
         {
             current_state.err[i] -= (int32_t)current_plan->steps;
-            moves_common_make_step(i);
-            current_state.steps[i] += current_state.dir[i];
+            moves_common_schedule_step(i, current_state.dir[i]);
         }
     }
-/*
-    int32_t cx[3];
-    for (i = 0; i < 3; i++)
-    {
-        cx[i] = current_state.start_pos[i] + current_state.steps[i];
-    }
-    moves_common_set_position(cx);*/
     return true;
 }
 
-int32_t line_step_tick(void)
+bool line_check_endstops(void)
 {
-    int i;
     // Check for endstops
-    if (current_state.acc.current_t < current_state.acc.end_t)
+    if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
     {
-        if (current_plan->check_break && current_plan->check_break(current_plan->x, current_plan->check_break_data))
-        {
-            current_state.is_moving = 0;
-            moves_common_endstops_touched();
-            return -E_ENDSTOP;
-        }
+        return true;
     }
+    return false;
+}
 
-    int32_t delta[3];
-    for (i = 0; i < 3; i++)
-        delta[i] = position.pos[i];
-
+int line_step_tick(void)
+{
     // Make step
     if (!make_step())
     {
-        current_state.is_moving = 0;
-        moves_common_line_finished();
         return -E_NEXT;
     }
 
     /* Calculating delay */
-    double average_delay = current_plan->len / current_plan->steps / current_state.acc.feed;
     current_state.acc.current_t++;
-    acceleration_process(&current_state.acc, average_delay, current_state.acc.current_t);
+    return -E_OK;
+}
 
+double line_movement_feed(void)
+{
+    return current_state.acc.feed;
+}
 
-    return average_delay * 1000000UL;
+double line_acceleration_process(double len)
+{
+    double dt = len / current_state.acc.feed;
+    acceleration_process(&current_state.acc, dt, current_state.acc.current_t);
+    return dt;
 }
 
 static void bresenham_plan(line_plan *plan)

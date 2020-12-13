@@ -29,7 +29,10 @@ void moves_common_reset(void)
 {
     int i;
     for (i = 0; i < 3; i++)
+    {
+        position.target_pos[i] = 0;
         position.pos[i] = 0;
+    }
 }
 
 // Find delay between ticks
@@ -57,11 +60,47 @@ void moves_common_set_dir(int i, bool dir)
         moves_common_def->set_dir(i, dir);
 }
 
+void moves_common_schedule_step(int i, int dir)
+{
+    position.target_pos[i] += dir;
+}
+
 void moves_common_make_step(int i)
 {
-    position.pos[i] += position.dir[i];
     if (moves_common_def->make_step)
         moves_common_def->make_step(i);
+}
+
+static int clip(int d)
+{
+    if (d < 0)
+        return -1;
+    if (d > 0)
+        return 1;
+    return 0;
+}
+
+bool moves_common_make_steps(double *len)
+{
+    int i;
+    bool ready = true;
+    int8_t delta[3];
+    for (i = 0; i < 3; i++)
+    {
+        delta[i] = position.target_pos[i] - position.pos[i];
+        int d = clip(delta[i]);
+        if (d != delta[i])
+            ready = false;
+        moves_common_set_dir(i, d >= 0);
+        if (d != 0)
+        {
+            moves_common_make_step(i);
+            position.pos[i] += d;
+        }
+    }
+    if (len != NULL)
+        *len = moves_common_step_len(delta[0], delta[1], delta[2]);
+    return ready;
 }
 
 void moves_common_line_started(void)
@@ -89,15 +128,16 @@ void moves_common_set_position(const int32_t *x)
     for (i = 0; i < 3; i++)
     {
         position.pos[i] = x[i];
+        position.target_pos[i] = x[i];
     }
 }
 
 
 double moves_common_step_len(int8_t dx, int8_t dy, int8_t dz)
 {
-    dx = abs(dx);
-    dy = abs(dy);
-    dz = abs(dz);
+    dx = (dx != 0);
+    dy = (dy != 0);
+    dz = (dz != 0);
     return moves_len[dz][dy][dx];
 }
 
