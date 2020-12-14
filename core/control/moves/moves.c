@@ -45,7 +45,7 @@ int moves_arc_to(arc_plan *plan)
     return arc_move_to(plan);
 }
 
-int32_t moves_step_tick(void)
+int moves_step_tick(void)
 {
     /* Check endstops */
     bool es;
