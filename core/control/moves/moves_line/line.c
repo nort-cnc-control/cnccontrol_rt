@@ -152,7 +152,7 @@ void line_pre_calculate(line_plan *line)
     double l = 0;
     for (j = 0; j < 3; j++)
     {
-        double d = line->x[j] / moves_common_def->steps_per_unit[j];
+        double d = line->x[j] / moves_common_def.steps_per_unit[j];
         l += d*d;
     }
     line->len = sqrt(l);
@@ -160,18 +160,18 @@ void line_pre_calculate(line_plan *line)
     if (line->len == 0)
         return;
 
-    if (line->feed < moves_common_def->feed_base)
-        line->feed = moves_common_def->feed_base;
-    else if (moves_common_def->feed_max > 0 && line->feed > moves_common_def->feed_max)
-        line->feed = moves_common_def->feed_max;
+    if (line->feed < moves_common_def.feed_base)
+        line->feed = moves_common_def.feed_base;
+    else if (moves_common_def.feed_max > 0 && line->feed > moves_common_def.feed_max)
+        line->feed = moves_common_def.feed_max;
 
-    if (line->feed1 < moves_common_def->feed_base)
-        line->feed1 = moves_common_def->feed_base;
+    if (line->feed1 < moves_common_def.feed_base)
+        line->feed1 = moves_common_def.feed_base;
     else if (line->feed1 > line->feed)
         line->feed1 = line->feed;
 
-    if (line->feed0 < moves_common_def->feed_base)
-        line->feed0 = moves_common_def->feed_base;
+    if (line->feed0 < moves_common_def.feed_base)
+        line->feed0 = moves_common_def.feed_base;
     else if (line->feed0 > line->feed)
         line->feed0 = line->feed;
 

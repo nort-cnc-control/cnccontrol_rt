@@ -6,7 +6,7 @@
 #include <control/moves/moves_line/line.h>
 #include <control/moves/moves_arc/arc.h>
 
-void moves_init(steppers_definition *definition);
+void moves_init(const steppers_definition *definition);
 void moves_reset(void);
 void moves_break(void);
 

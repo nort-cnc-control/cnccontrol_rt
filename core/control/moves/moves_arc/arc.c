@@ -13,13 +13,6 @@ const double pi = 3.1415926535;
 
 #define COS_RESYNC_FRQ 8
 
-static steppers_definition def;
-void arc_init(steppers_definition definition)
-{
-    def = definition;
-}
-
-
 // Running
 
 static arc_plan *current_plan;
@@ -234,19 +227,19 @@ void arc_pre_calculate(arc_plan *arc)
     switch (arc->plane)
     {
     case XY:
-        stpu_x = moves_common_def->steps_per_unit[0];
-        stpu_y = moves_common_def->steps_per_unit[1];
-        stpu_z = moves_common_def->steps_per_unit[2];
+        stpu_x = moves_common_def.steps_per_unit[0];
+        stpu_y = moves_common_def.steps_per_unit[1];
+        stpu_z = moves_common_def.steps_per_unit[2];
         break;
     case YZ:
-        stpu_x = moves_common_def->steps_per_unit[1];
-        stpu_y = moves_common_def->steps_per_unit[2];
-        stpu_z = moves_common_def->steps_per_unit[0];
+        stpu_x = moves_common_def.steps_per_unit[1];
+        stpu_y = moves_common_def.steps_per_unit[2];
+        stpu_z = moves_common_def.steps_per_unit[0];
         break;
     case ZX:
-        stpu_x = moves_common_def->steps_per_unit[2];
-        stpu_y = moves_common_def->steps_per_unit[0];
-        stpu_z = moves_common_def->steps_per_unit[1];
+        stpu_x = moves_common_def.steps_per_unit[2];
+        stpu_y = moves_common_def.steps_per_unit[0];
+        stpu_z = moves_common_def.steps_per_unit[1];
         break;
     }
 
@@ -268,18 +261,18 @@ void arc_pre_calculate(arc_plan *arc)
     arc->sint_start = sin(arc->t_start);
 
     /* check feeds */
-    if (arc->feed < moves_common_def->feed_base)
-        arc->feed = moves_common_def->feed_base;
-    else if (moves_common_def->feed_max > 0 && arc->feed > moves_common_def->feed_max)
-        arc->feed = moves_common_def->feed_max;
+    if (arc->feed < moves_common_def.feed_base)
+        arc->feed = moves_common_def.feed_base;
+    else if (moves_common_def.feed_max > 0 && arc->feed > moves_common_def.feed_max)
+        arc->feed = moves_common_def.feed_max;
 
-    if (arc->feed1 < moves_common_def->feed_base)
-        arc->feed1 = moves_common_def->feed_base;
+    if (arc->feed1 < moves_common_def.feed_base)
+        arc->feed1 = moves_common_def.feed_base;
     else if (arc->feed1 > arc->feed)
         arc->feed1 = arc->feed;
 
-    if (arc->feed0 < moves_common_def->feed_base)
-        arc->feed0 = moves_common_def->feed_base;
+    if (arc->feed0 < moves_common_def.feed_base)
+        arc->feed0 = moves_common_def.feed_base;
     else if (arc->feed0 > arc->feed)
         arc->feed0 = arc->feed;
 

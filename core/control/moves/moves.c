@@ -2,8 +2,6 @@
 #include <control/moves/moves_line/line.h>
 #include <control/moves/moves_arc/arc.h>
 
-static steppers_definition *def;
-
 static enum {
     MOVE_NONE = 0,
     MOVE_LINE,
@@ -17,9 +15,8 @@ void moves_break(void)
     current_move_type = MOVE_NONE;
 }
 
-void moves_init(steppers_definition *definition)
+void moves_init(const steppers_definition *definition)
 {
-    def = definition;
     current_move_type = MOVE_NONE;
     moves_common_init(definition);
     moves_common_reset();
@@ -117,6 +114,6 @@ int moves_step_tick(void)
 
 cnc_endstops moves_get_endstops(void)
 {
-    return def->get_endstops();
+    return moves_common_def.get_endstops();
 }
 

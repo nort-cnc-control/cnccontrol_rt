@@ -22,7 +22,7 @@ typedef struct {
 // Math functions
 double feed2delay(double feed, double step_len);
 
-void moves_common_init(steppers_definition *definition);
+void moves_common_init(const steppers_definition *definition);
 void moves_common_reset(void);
 
 // Movement functions
@@ -42,5 +42,6 @@ double moves_common_step_len(int8_t dx, int8_t dy, int8_t dz);
 void moves_common_set_position(const int32_t *x);
 
 extern cnc_position position;
-extern steppers_definition *moves_common_def;
+
+extern steppers_definition moves_common_def;
 
