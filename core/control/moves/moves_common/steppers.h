@@ -23,13 +23,9 @@ typedef struct
     double steps_per_unit[3]; // steps / mm
     double feed_base;        // mm / sec
     double feed_max;         // mm / sec
-    int32_t es_travel;
-    int32_t es_precise;
-    int32_t probe_travel;
-    int32_t probe_precise;
-    int32_t size[3];
     double acc_default;      // mm / sec^2
     double feed_default;     // mm / sec
+    bool   configured;
 } steppers_definition;
 
 

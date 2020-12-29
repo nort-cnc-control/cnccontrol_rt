@@ -1,31 +1,6 @@
 #pragma once
 
-#define SIZE_X 200.0
-#define SIZE_Y 200.0
-#define SIZE_Z 270.0
-
-#define FULL_STEPS 200
-#define MICRO_STEP 16
-
-#define MM_PER_ROUND_X 40.0
-#define MM_PER_ROUND_Y 40.0
-#define MM_PER_ROUND_Z 2.0
-
-#define FEED_MAX 1000
-#define FEED_ES_TRAVEL 800
-#define FEED_ES_PRECISE 30
-#define FEED_PROBE_TRAVEL 200
-#define FEED_PROBE_PRECISE 20
-#define FEED_BASE 5
-#define ACC 50
-
-#define STEPS_PER_ROUND ((FULL_STEPS) * (MICRO_STEP))
-#define STEPS_PER_MM_X ((STEPS_PER_ROUND) / (MM_PER_ROUND_X))
-#define STEPS_PER_MM_Y ((STEPS_PER_ROUND) / (MM_PER_ROUND_Y))
-#define STEPS_PER_MM_Z ((STEPS_PER_ROUND) / (MM_PER_ROUND_Z))
-
 #define SHELL_BAUDRATE 38400
-
 #define LOCK_ON_CRC_ERROR 0
 
 /* X configure */

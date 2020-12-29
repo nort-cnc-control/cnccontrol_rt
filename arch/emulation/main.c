@@ -11,8 +11,6 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #include <control/planner/planner.h>
 #include <control/control.h>
 #include <output/output.h>
@@ -40,7 +38,7 @@ static void set_dir(int coord, bool dir)
 static void make_step(int coord)
 {
     steps[coord] += dsteps[coord];
-    pos[coord] = steps[coord] / STEPS_PER_MM;
+    pos[coord] = steps[coord] / moves_common_def.steps_per_unit[coord];
 }
 
 static cnc_endstops get_stops(void)
@@ -153,25 +151,7 @@ void config_steppers(steppers_definition *sd, gpio_definition *gd)
 static void init_steppers(void)
 {
     gpio_definition gd;
-
-    steppers_definition sd = {
-        .steps_per_unit = {
-            STEPS_PER_MM,
-            STEPS_PER_MM,
-            STEPS_PER_MM
-        },
-        .feed_base = FEED_BASE / 60.0,
-        .feed_max = FEED_MAX / 60.0,
-        .es_travel = FEED_ES_TRAVEL / 60.0,
-        .probe_travel = FEED_PROBE_TRAVEL / 60.0,
-        .es_precise = FEED_ES_PRECISE / 60.0,
-        .probe_precise = FEED_PROBE_PRECISE / 60.0,
-        .size = {
-            SIZE_X,
-            SIZE_Y,
-            SIZE_Z,
-        },
-    };
+    steppers_definition sd = {};
     config_steppers(&sd, &gd);
     init_control(&sd, &gd);
 }

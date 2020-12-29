@@ -237,6 +237,45 @@ static int handle_g_command(gcode_frame_t *frame)
 
             return -E_OK;
 	}
+        case 100: {
+            int i;
+            steppers_definition def = moves_common_def;
+            for (i = 1; i < ncmds; i++) {
+                switch (cmds[i].type) {
+                case 'X':
+                    def.steps_per_unit[0] = cmds[i].val_f;
+                    break;
+                case 'Y':
+                    def.steps_per_unit[1] = cmds[i].val_f;
+                    break;
+                case 'Z':
+                    def.steps_per_unit[2] = cmds[i].val_f;
+                    break;
+                case 'F':
+                    def.feed_max = cmds[i].val_f;
+                    break;
+                case 'A':
+                    def.acc_default = cmds[i].val_f;
+                    break;
+                case 'B':
+                    def.feed_base = cmds[i].val_f;
+                    break;
+                }
+            }
+
+            if (def.steps_per_unit[0] > 0 &&
+                def.steps_per_unit[1] > 0 &&
+                def.steps_per_unit[2] > 0 &&
+                def.feed_max > 0 &&
+                def.feed_base > 0 &&
+                def.acc_default > 0)
+            {
+                def.configured = true;
+            }
+            moves_common_init(&def);
+            send_ok(nid);
+            return -E_OK;
+        }
         case 114:
             send_queued(nid);
             print_position(nid);

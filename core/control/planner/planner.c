@@ -470,6 +470,10 @@ void planner_lock(void)
 
 void planner_unlock(void)
 {
+    if (!moves_common_def.configured)
+    {
+        return;
+    }
     locked = 0;
 }
 
