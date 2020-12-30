@@ -55,9 +55,13 @@
 #define PROBE_PORT  K
 #define PROBE_PIN   1
 
-/* GPIO tool 0 */
+/* GPIO tool 0 - SER1*/
 #define TOOL0_PORT  B
 #define TOOL0_PIN   5
+
+/* GPIO tool 1 - PS ON */
+#define TOOL1_PORT  B
+#define TOOL1_PIN   6
 
 /* Indicator LED */
 #define LED_PORT    B

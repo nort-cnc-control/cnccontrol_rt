@@ -219,3 +219,10 @@ if LIBMODBUS
 
 	endmenu
 endif
+
+config ECHO
+	bool "Echo server for connection test"
+	default n
+	help
+		Send "ECHO:<data>" for test connection with board
+

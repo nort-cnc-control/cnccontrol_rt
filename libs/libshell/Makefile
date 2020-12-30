@@ -14,6 +14,10 @@ ifdef CONFIG_LIBMODBUS
 CC += -I$(ROOT)/libmodbus/ -DCONFIG_LIBMODBUS
 endif
 
+ifdef CONFIG_ECHO
+CC += -DCONFIG_ECHO
+endif
+
 all: libshell.a
 
 libshell.a: $(OBJS)

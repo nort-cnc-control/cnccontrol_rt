@@ -202,6 +202,10 @@ void *receive(void *arg)
             {
                 run = false;
             }
+            else if (blen >= 5 && !memcmp(buf, "ECHO:", 5))
+            {
+                output_control_write(buf, blen);
+            }
             blen = 0;
             memset(buf, 0, sizeof(buf));
         }

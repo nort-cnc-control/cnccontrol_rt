@@ -1,3 +1,5 @@
+PROGRAM_PORT="/dev/ttyACM0"
+
 DEFS :=
 
 SRCS := main.c		\
@@ -48,7 +50,7 @@ controller.elf: $(OBJS)
 
 flash: controller.bin
 #	avrdude -v -patmega2560 -carduino -P/dev/ttyACM0 -b115200 -D -Uflash:w:$<
-	avrdude -v -patmega2560 -cwiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:$<
+	avrdude -v -patmega2560 -cwiring -P"$(PROGRAM_PORT)" -b115200 -D -Uflash:w:$<
 #	avrdude -v -patmega2560 -cusbasp -b9600 -D -Uflash:w:$<
 
 clean:

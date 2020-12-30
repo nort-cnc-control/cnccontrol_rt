@@ -12,6 +12,8 @@
 #define FTIMER (F_CPU / PSC)
 #define TIMEOUT_TIMER_STEP 1000UL
 
+static void set_gpio(int id, int on);
+
 static bool going = false;
 
 static void steppers_timer_setup(void)
@@ -62,7 +64,12 @@ void steppers_setup(void)
     PORT(PROBE_PORT) |= 1 << PROBE_PIN;
 
     // GPIO Tool 0
+    set_gpio(0, false);
     DDR(TOOL0_PORT)  |= 1 << TOOL0_PIN; // SER1
+    
+    // GPIO Tool 1
+    set_gpio(1, false);
+    DDR(TOOL1_PORT)  |= 1 << TOOL1_PIN; // PS ON
 
     // Indication LED
     DDR(LED_PORT)    |= 1 << LED_PIN;
@@ -214,6 +221,12 @@ static void set_gpio(int id, int on)
             gpio_clear(TOOL0_PORT, TOOL0_PIN);
         else
             gpio_set(TOOL0_PORT, TOOL0_PIN);
+        break;
+    case 1:
+        if (on)
+            gpio_clear(TOOL1_PORT, TOOL1_PIN);
+        else
+            gpio_set(TOOL1_PORT, TOOL1_PIN);
         break;
     }
 }

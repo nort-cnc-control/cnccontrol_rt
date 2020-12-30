@@ -13,7 +13,7 @@
 #endif
 
 #define MNUM 8
-#define MLEN 120
+#define MLEN 140
 static char messages[MNUM][MLEN];
 static int mpos = 0;
 static int mfirst = 0;
@@ -174,11 +174,17 @@ void shell_data_completed(void)
 #undef PREAMBLE
     }
 #endif
-
     else if (input_pos >= 5 && !memcmp(input_buffer, "EXIT:", 5))
     {
         // Do nothing
     }
+#ifdef CONFIG_ECHO
+    else if (input_pos >= 5 && !memcmp(input_buffer, "ECHO:", 5))
+    {
+        // Send echo back
+        shell_add_message(input_buffer, input_pos);
+    }
+#endif
     else
     {
         shell_add_message("Unknown command", sizeof("Unknown command")-1);
