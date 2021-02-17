@@ -361,9 +361,9 @@ int execute_g_command(const unsigned char *command, ssize_t len)
         default:
         {
             planner_lock();
-            char buf[60];
-            snprintf(buf, 60, "parse error: %.*s", (int)len, command);
-            buf[59] = 0;
+            char buf[160];
+            snprintf(buf, sizeof(buf), "parse error: [%.*s]", (int)len, command);
+            buf[159] = 0;
             send_error(-1, buf);
             return rc;
         }
