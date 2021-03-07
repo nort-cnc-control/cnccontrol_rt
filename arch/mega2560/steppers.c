@@ -65,7 +65,7 @@ void steppers_setup(void)
 
     // GPIO Tool 0
     set_gpio(0, false);
-    DDR(TOOL0_PORT)  |= 1 << TOOL0_PIN; // SER1
+    DDR(TOOL0_PORT)  |= 1 << TOOL0_PIN; // TABLE HEATER / LASER
     
     // GPIO Tool 1
     set_gpio(1, false);
@@ -218,9 +218,9 @@ static void set_gpio(int id, int on)
     {
     case 0:
         if (on)
-            gpio_clear(TOOL0_PORT, TOOL0_PIN);
-        else
             gpio_set(TOOL0_PORT, TOOL0_PIN);
+        else
+            gpio_clear(TOOL0_PORT, TOOL0_PIN);
         break;
     case 1:
         if (on)

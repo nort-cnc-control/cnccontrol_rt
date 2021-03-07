@@ -55,8 +55,8 @@
 #define PROBE_PORT  K
 #define PROBE_PIN   1
 
-/* GPIO tool 0 - SER1*/
-#define TOOL0_PORT  B
+/* GPIO tool 0 - TABLE HEATER/LASER - Digital pin 8 */
+#define TOOL0_PORT  H
 #define TOOL0_PIN   5
 
 /* GPIO tool 1 - PS ON */
