@@ -65,6 +65,13 @@ void uart_send_control(const uint8_t *data, size_t len)
     }
 }
 
+void uart_rxie_enable(bool en)
+{
+    if (en)
+        UCSRB(CONTROL_UART_PORT) |= (1 << RXCIE(CONTROL_UART_PORT));
+    else
+        UCSRB(CONTROL_UART_PORT) &= ~(1 << RXCIE(CONTROL_UART_PORT));
+}
 
 ISR(USART0_RX_vect)
 {

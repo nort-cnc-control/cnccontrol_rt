@@ -9,6 +9,8 @@
 CONFIG_TOOLCHAIN_PREFIX="avr-"
 # CONFIG_COMPILE_OPTIMIZATION_NONE is not set
 CONFIG_COMPILE_OPTIMIZATION_FOR_SIZE=y
+CONFIG_COMPILE_STACK_PROTECTION_NONE=y
+# CONFIG_COMPILE_STACK_PROTECTION_ALL is not set
 # CONFIG_COMPILE_DEBUG is not set
 # end of Compilation
 
@@ -38,8 +40,8 @@ CONFIG_LIBCORE=y
 #
 # Core configuration
 #
-CONFIG_LIBMODBUS=y
+CONFIG_QUEUE_SIZE=10
+# end of Core configuration
 
-#
-# Modbus configuration
-#
+# CONFIG_LIBMODBUS is not set
+# CONFIG_ECHO is not set

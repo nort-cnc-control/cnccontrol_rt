@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <shell.h>
 
@@ -20,6 +21,7 @@ static int mfirst = 0;
 static int mnum = 0;
 
 static char input_buffer[MLEN];
+static char command_buffer[MLEN-3];
 static int input_pos = 0;
 
 static void (*debug_send)(const uint8_t *data, ssize_t len);
@@ -138,7 +140,8 @@ void shell_data_completed(void)
 #ifdef CONFIG_LIBCORE
     else if (input_pos >= 3 && !memcmp(input_buffer, "RT:", 3))
     {
-        execute_g_command(input_buffer + 3, input_pos - 3);
+        memcpy(command_buffer, input_buffer+3, input_pos-3);
+        execute_g_command(command_buffer, input_pos - 3);
     }
 #endif
 
@@ -187,7 +190,9 @@ void shell_data_completed(void)
 #endif
     else
     {
-        shell_add_message("Unknown command", sizeof("Unknown command")-1);
+        char buf[100];
+        int l = snprintf(buf, 100, "Unknown command: %.*s", input_pos, input_buffer);
+        shell_add_message(buf, l);
     }
 
     input_pos = 0;

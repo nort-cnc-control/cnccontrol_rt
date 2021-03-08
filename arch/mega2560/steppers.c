@@ -132,14 +132,16 @@ static void end_step(void)
 
 static void make_tick(void)
 {
-    int delay_us = moves_step_tick();
+    int32_t delay_us = moves_step_tick();
     if (delay_us < 0)
     {
         return;
     }
-    int delay = delay_us * FTIMER / 1000000UL;
+    unsigned long delay = delay_us * FTIMER / 1000000UL;
     if (delay < 5)
         delay = 5;
+    if (delay > 65535)
+        delay = 65535;
     OCR1A = delay;
     TCNT1 = 0;
 }

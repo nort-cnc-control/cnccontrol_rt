@@ -13,4 +13,6 @@ void uart_send_modbus(const uint8_t *buf, size_t len);
 #ifdef CONFIG_BOARD_MEGA2560_CONTROL_UART
 void uart_send_control(const uint8_t *buf, size_t len);
 extern bool uart_message_received;
+void uart_rxie_enable(bool en);
 #endif
+
