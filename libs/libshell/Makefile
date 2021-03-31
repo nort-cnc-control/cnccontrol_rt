@@ -18,6 +18,10 @@ ifdef CONFIG_ECHO
 CC += -DCONFIG_ECHO
 endif
 
+ifdef CONFIG_COPY_COMMAND
+CC += -DCONFIG_COPY_COMMAND
+endif
+
 all: libshell.a
 
 libshell.a: $(OBJS)

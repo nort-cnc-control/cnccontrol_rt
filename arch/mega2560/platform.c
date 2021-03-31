@@ -42,7 +42,9 @@ void hardware_loop(void)
     if (uart_message_received)
     {
         uart_message_received = false;
+        uart_rxie_enable(false);
         shell_data_completed();
+        uart_rxie_enable(true);
     }
 
     ssize_t len;

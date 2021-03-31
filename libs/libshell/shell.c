@@ -14,14 +14,16 @@
 #endif
 
 #define MNUM 8
-#define MLEN 140
-static char messages[MNUM][MLEN];
+static char messages[MNUM][SHELL_MLEN];
 static int mpos = 0;
 static int mfirst = 0;
 static int mnum = 0;
 
-static char input_buffer[MLEN];
-static char command_buffer[MLEN-3];
+static char input_buffer[SHELL_MLEN];
+
+#ifdef CONFIG_COPY_COMMAND
+static char command_buffer[SHELL_MLEN-3];
+#endif
 static int input_pos = 0;
 
 static void (*debug_send)(const uint8_t *data, ssize_t len);
@@ -42,8 +44,8 @@ bool shell_add_message(const char *msg, ssize_t len)
     if (len < 0)
         len = strlen(msg);
 
-    len = len < MLEN - 2 ? len : MLEN - 2;
-    memset(messages[mpos], 0, MLEN);
+    len = len < SHELL_MLEN - 2 ? len : SHELL_MLEN - 2;
+    memset(messages[mpos], 0, SHELL_MLEN);
     messages[mpos][0] = len >> 8;
     messages[mpos][1] = len;
     strncpy(messages[mpos]+2, msg, len);
@@ -115,7 +117,7 @@ bool shell_data_received(const char *data, ssize_t len)
     if (len < 0)
         len = strlen(data);
 
-    if (input_pos + len > MLEN)
+    if (input_pos + len > SHELL_MLEN)
     {
         input_pos = 0;
         return false;
@@ -140,8 +142,12 @@ void shell_data_completed(void)
 #ifdef CONFIG_LIBCORE
     else if (input_pos >= 3 && !memcmp(input_buffer, "RT:", 3))
     {
+#ifdef CONFIG_COPY_COMMAND
         memcpy(command_buffer, input_buffer+3, input_pos-3);
         execute_g_command(command_buffer, input_pos - 3);
+#else
+        execute_g_command(input_buffer+3, input_pos - 3);
+#endif
     }
 #endif
 
@@ -190,8 +196,8 @@ void shell_data_completed(void)
 #endif
     else
     {
-        char buf[100];
-        int l = snprintf(buf, 100, "Unknown command: %.*s", input_pos, input_buffer);
+        char buf[SHELL_MLEN-2];
+        int l = snprintf(buf, 100, "Unknown command: %i [%.*s]", input_pos, input_pos, input_buffer);
         shell_add_message(buf, l);
     }
 

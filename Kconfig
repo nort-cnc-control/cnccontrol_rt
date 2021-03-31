@@ -5,6 +5,10 @@ menu "Compilation"
 config PROTECT_STACK
 	bool
 
+config COPY_COMMAND
+	bool
+	default n
+
 config TOOLCHAIN_PREFIX
 	string "cross toolchain prefix"
 	default ""
@@ -46,9 +50,14 @@ choice
 	default PLATFORM_EMULATION
 
 config PLATFORM_MEGA2560
-	bool "mega250"
+	bool "mega2560"
 	help
 		arduino mega2560 board
+
+config PLATFORM_STM32F302
+	bool "stm32f302"
+	help
+		stm32f302 board
 
 config PLATFORM_STM32F103
 	bool "stm32f103"
@@ -81,6 +90,7 @@ config TCP
 
 config SPI
 	bool
+
 
 if PLATFORM_EMULATION
 
@@ -117,6 +127,25 @@ if PLATFORM_STM32F103
 
 endif
 
+if PLATFORM_STM32F302
+
+	choice
+		prompt "Control port"
+		default BOARD_STM32F302_CONTROL_UDP
+
+	config BOARD_STM32F302_CONTROL_UDP
+		bool "UDP"
+		select ETHERNET
+		select IP
+		select UDP
+		help
+			Send commands via UDP
+
+	endchoice
+
+endif
+
+
 if PLATFORM_MEGA2560
 	choice
 		prompt "Control port"
@@ -125,6 +154,7 @@ if PLATFORM_MEGA2560
 	config BOARD_MEGA2560_CONTROL_UART
 		bool "UART"
 		select UART
+		select COPY_COMMAND
 		help
 			Send commands via UART
 
@@ -204,6 +234,7 @@ if LIBCORE
 		default 10
 
 	endmenu
+
 endif
 
 config LIBMODBUS

@@ -24,6 +24,11 @@ PLATFORM := stm32f103
 CC += -fdata-sections -ffunction-sections -march=armv7-m -mthumb -mcpu=cortex-m3  -mfix-cortex-m3-ldrd -msoft-float -mfloat-abi=soft
 endif
 
+ifdef CONFIG_PLATFORM_STM32F302
+PLATFORM := stm32f302
+CC += -fdata-sections -ffunction-sections -march=armv7e-m+fp -mthumb -mcpu=cortex-m4 -mfloat-abi=hard
+endif
+
 ifdef CONFIG_COMPILE_OPTIMIZATION_NONE
 CC += -O0
 endif

@@ -361,17 +361,16 @@ int execute_g_command(const unsigned char *command, ssize_t len)
         default:
         {
             planner_lock();
-            char buf[160];
+            char buf[320] = {0};
             snprintf(buf, sizeof(buf), "parse error: %i [", (int)len);
             int i;
-            for (i = 0; i < len && strlen(buf) < 160-2; i++)
+            for (i = 0; i < len; i++)
             {
-                char cbuf[10];
-                sprintf(cbuf, "%02x ", command[i]);
+                char cbuf[10] = {0};
+                sprintf(cbuf, "%02x", command[i]);
                 strcat(buf, cbuf);
             }
             strcat(buf, "]");
-            buf[159] = 0;
             send_error(-1, buf);
             return rc;
         }
