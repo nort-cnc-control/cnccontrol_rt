@@ -67,6 +67,7 @@ static void net_setup(void)
 	uint8_t macaddr[6] = {(uint8_t)(mac[0]), (uint8_t)(mac[1]), (uint8_t)(mac[2]), (uint8_t)(mac[3]), (uint8_t)(mac[4]), (uint8_t)(mac[5])};
 	ifaceInitialise(macaddr);
 	libip_init(ipaddr, macaddr);
+	shell_setup(NULL, NULL);
 	ifaceStart();
 }
 
