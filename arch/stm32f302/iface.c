@@ -24,74 +24,74 @@
 
 /* SPI */
 
-#define SPI_RCC   RCC_SPI2
-#define SPI_ID    SPI2
-#define SPI_PORT  GPIOB
-#define SPI_NSS   GPIO12
-#define SPI_SCK   GPIO13
-#define SPI_MISO  GPIO14
-#define SPI_MOSI  GPIO15
+#define SPI_RCC RCC_SPI2
+#define SPI_ID SPI2
+#define SPI_PORT GPIOB
+#define SPI_NSS GPIO12
+#define SPI_SCK GPIO13
+#define SPI_MISO GPIO14
+#define SPI_MOSI GPIO15
 
 /* Ethernet */
 
 #define ETH_RST_PORT GPIOB
-#define ETH_RST_PIN  GPIO11
+#define ETH_RST_PIN GPIO11
 
 uint8_t spi_rw(uint8_t data)
 {
-    spi_send8(SPI_ID, data);
-    uint8_t c = spi_read8(SPI_ID);
-    return c;
+	spi_send8(SPI_ID, data);
+	uint8_t c = spi_read8(SPI_ID);
+	return c;
 }
 
 void spi_cs(bool enable)
 {
-    if (enable)
-    {
-        //spi_set_nss_low(SPI_ID);
-        gpio_clear(SPI_PORT, SPI_NSS);
-    }
-    else
-    {
-        //spi_set_nss_high(SPI_ID);
-        gpio_set(SPI_PORT, SPI_NSS);
-    }
+	if (enable)
+	{
+		//spi_set_nss_low(SPI_ID);
+		gpio_clear(SPI_PORT, SPI_NSS);
+	}
+	else
+	{
+		//spi_set_nss_high(SPI_ID);
+		gpio_set(SPI_PORT, SPI_NSS);
+	}
 }
 
 void spi_write_buf(const uint8_t *data, size_t len)
 {
-    while (len-- > 0)
-    {
-        spi_rw(*(data++));
-    }
+	while (len-- > 0)
+	{
+		spi_rw(*(data++));
+	}
 }
 
 void spi_read_buf(uint8_t *data, size_t len)
 {
-    while (len-- > 0)
-    {
+	while (len-- > 0)
+	{
 		*(data++) = spi_rw(0xFF);
 	}
 }
 
 void spi_setup(void)
 {
-    int i;
-    /* Enable SPI2 */
-    rcc_periph_clock_enable(SPI_RCC);
+	int i;
+	/* Enable SPI2 */
+	rcc_periph_clock_enable(SPI_RCC);
 
-    for (i = 0; i < 100000; i++)
-        asm("nop");
+	for (i = 0; i < 100000; i++)
+		asm("nop");
 
-    gpio_mode_setup(SPI_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLUP, SPI_MOSI | SPI_SCK | SPI_MISO);
-    gpio_set_af(SPI_PORT, GPIO_AF5, SPI_SCK | SPI_MISO | SPI_MOSI);
-    gpio_set_output_options(SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, SPI_SCK | SPI_MOSI);
+	gpio_mode_setup(SPI_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLUP, SPI_MOSI | SPI_SCK | SPI_MISO);
+	gpio_set_af(SPI_PORT, GPIO_AF5, SPI_SCK | SPI_MISO | SPI_MOSI);
+	gpio_set_output_options(SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, SPI_SCK | SPI_MOSI);
 
-    gpio_mode_setup(SPI_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLUP, SPI_NSS);
-    gpio_set_output_options(SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, SPI_NSS);
-    gpio_set(SPI_PORT, SPI_NSS);
+	gpio_mode_setup(SPI_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLUP, SPI_NSS);
+	gpio_set_output_options(SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, SPI_NSS);
+	gpio_set(SPI_PORT, SPI_NSS);
 
-    spi_set_master_mode(SPI_ID);
+	spi_set_master_mode(SPI_ID);
 	spi_set_baudrate_prescaler(SPI_ID, SPI_CR1_BR_FPCLK_DIV_64);
 	spi_set_clock_polarity_0(SPI_ID);
 	spi_set_clock_phase_0(SPI_ID);
@@ -114,10 +114,10 @@ static uint8_t eth_mac[6];
 
 static void eth_hard_reset(bool rst)
 {
-    if (rst)
-        gpio_clear(ETH_RST_PORT, ETH_RST_PIN);
-    else
-        gpio_set(ETH_RST_PORT, ETH_RST_PIN);
+	if (rst)
+		gpio_clear(ETH_RST_PORT, ETH_RST_PIN);
+	else
+		gpio_set(ETH_RST_PORT, ETH_RST_PIN);
 }
 
 void send_ethernet_frame(const uint8_t *payload, size_t payload_len)
@@ -131,52 +131,52 @@ void send_ethernet_frame(const uint8_t *payload, size_t payload_len)
 static uint8_t eth_buf[1524];
 static void netTask(void *arg)
 {
-    while (true)
-    {
-        if (!xSemaphoreTake(ethMutex, portMAX_DELAY))
+	while (true)
+	{
+		if (!xSemaphoreTake(ethMutex, portMAX_DELAY))
 			continue;
-        bool received = enc28j60_has_package(&eth_state);
-        xSemaphoreGive(ethMutex);
+		bool received = enc28j60_has_package(&eth_state);
+		xSemaphoreGive(ethMutex);
 
-        if (received)
-        {
-            uint32_t status, crc;
+		if (received)
+		{
+			uint32_t status, crc;
 
-            if (!xSemaphoreTake(ethMutex, portMAX_DELAY))
+			if (!xSemaphoreTake(ethMutex, portMAX_DELAY))
 				continue;
-            ssize_t len = enc28j60_read_packet(&eth_state, eth_buf, sizeof(eth_buf), &status, &crc);
-            xSemaphoreGive(ethMutex);
+			ssize_t len = enc28j60_read_packet(&eth_state, eth_buf, sizeof(eth_buf), &status, &crc);
+			xSemaphoreGive(ethMutex);
 
-            if (len > 0)
-            {
+			if (len > 0)
+			{
 				libip_handle_ethernet(eth_buf, len);
-            }
-        }
-    }
+			}
+		}
+	}
 }
 
 void ifaceInitialise(const uint8_t mac[6])
 {
 	memcpy(eth_mac, mac, 6);
-    /* Init SPI2 */
-    spi_setup();
+	/* Init SPI2 */
+	spi_setup();
 
-    /* Configure hard reset pin */
-    gpio_mode_setup(ETH_RST_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, ETH_RST_PIN);
-    gpio_set_output_options(ETH_RST_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_25MHZ, ETH_RST_PIN);
-    gpio_set(ETH_RST_PORT, ETH_RST_PIN);
+	/* Configure hard reset pin */
+	gpio_mode_setup(ETH_RST_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, ETH_RST_PIN);
+	gpio_set_output_options(ETH_RST_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_25MHZ, ETH_RST_PIN);
+	gpio_set(ETH_RST_PORT, ETH_RST_PIN);
 
 	/* Init enc28j60 module */
-    taskENTER_CRITICAL();
-    enc28j60_init(&eth_state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
-    bool res = enc28j60_configure(&eth_state, eth_mac, 4096, true);
-    taskEXIT_CRITICAL();
+	taskENTER_CRITICAL();
+	enc28j60_init(&eth_state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
+	bool res = enc28j60_configure(&eth_state, eth_mac, 4096, true);
+	taskEXIT_CRITICAL();
 
 	ethMutex = xSemaphoreCreateMutex();
 }
 
 void ifaceStart(void)
 {
-    /* Create task for enc28j60 polling and sending data */
-    xTaskCreate(netTask, "enc28j60", 2048, NULL, 0, NULL);
+	/* Create task for enc28j60 polling and sending data */
+	xTaskCreate(netTask, "enc28j60", 2048, NULL, 0, NULL);
 }

@@ -23,33 +23,33 @@
 #ifdef CONFIG_LIBCORE
 static void init_steppers(void)
 {
-    gpio_definition gd;
+	gpio_definition gd;
 
-    steppers_definition sd = {};
-    steppers_config(&sd, &gd);
-    init_control(&sd, &gd);
+	steppers_definition sd = {};
+	steppers_config(&sd, &gd);
+	init_control(&sd, &gd);
 }
 
 static void preCalculateTask(void *args)
 {
-    while (true)
-        planner_pre_calculate();
+	while (true)
+		planner_pre_calculate();
 }
 #endif
 
 static void heartBeatTask(void *args)
 {
-    while (true)
-    {
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        led_off();
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        led_on();
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        led_off();
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        led_on();
-    }
+	while (true)
+	{
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+		led_off();
+		vTaskDelay(200 / portTICK_PERIOD_MS);
+		led_on();
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+		led_off();
+		vTaskDelay(200 / portTICK_PERIOD_MS);
+		led_on();
+	}
 }
 
 static void net_setup(void)
@@ -57,9 +57,9 @@ static void net_setup(void)
 	uint8_t mac[6] = {0xC0, 0x00, 0x00, 0x00, 0x00, 0x05};
 	uint32_t ip[4] = {10, 55, 2, 2};
 	uint32_t ipaddr = (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | (ip[3]);
-    ifaceInitialise(mac);
+	ifaceInitialise(mac);
 	libip_init(ipaddr, mac);
-    ifaceStart();
+	ifaceStart();
 }
 
 static struct
@@ -84,9 +84,9 @@ void shellSendTask(void *args)
 	while (true)
 	{
 		ssize_t len;
-    	const uint8_t *data = shell_pick_message(&len);
-    	if (data == NULL)
-        	continue;
+		const uint8_t *data = shell_pick_message(&len);
+		if (data == NULL)
+			continue;
 
 		libip_send_udp_packet(data, len, remote.ip, CONFIG_UDP_PORT, remote.port);
 		shell_send_completed();
@@ -95,48 +95,50 @@ void shellSendTask(void *args)
 
 int main(void)
 {
-    hardware_setup();
+	hardware_setup();
 
 #ifdef CONFIG_LIBCORE
-    init_steppers();
-    planner_lock();
-    moves_reset();
+	init_steppers();
+	planner_lock();
+	moves_reset();
 #endif
 
-    net_setup();
+	net_setup();
 
-#ifdef CONFIG_LIBCORE 
-    xTaskCreate(preCalculateTask, "precalc", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
+#ifdef CONFIG_LIBCORE
+	xTaskCreate(preCalculateTask, "precalc", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
 #endif
-    
+
 	xTaskCreate(shellSendTask, "shell", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
-    xTaskCreate(heartBeatTask, "hb", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
-    vTaskStartScheduler();
+	xTaskCreate(heartBeatTask, "hb", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
+	vTaskStartScheduler();
 
-    while (true)
-        ;
+	while (true)
+		;
 
-    return 0;
+	return 0;
 }
 
 /*** ***********************/
 
 void vApplicationTickHook(void)
-{}
+{
+}
 
 void vApplicationStackOverflowHook(TaskHandle_t pxTask, char *pcTaskName)
 {
-    for (;;)
-        ;
+	for (;;)
+		;
 }
 
 void vApplicationMallocFailedHook(void)
 {
-    for (;;)
-        ;
+	for (;;)
+		;
 }
 
 void vApplicationIdleHook(void)
-{}
+{
+}
 
 /*** ***********************/
