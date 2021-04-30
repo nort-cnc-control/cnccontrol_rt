@@ -8,6 +8,7 @@
 #include "steppers.h"
 #endif
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -54,11 +55,15 @@ static void heartBeatTask(void *args)
 
 static void net_setup(void)
 {
-	uint8_t mac[6] = {0xC0, 0x00, 0x00, 0x00, 0x00, 0x05};
-	uint32_t ip[4] = {10, 55, 2, 2};
+	unsigned mac[6];
+	unsigned ip[4];
+	sscanf(CONFIG_IP_IPADDR, "\"%u.%u.%u.%u\"", &ip[0], &ip[1], &ip[2], &ip[3]);
+	sscanf(CONFIG_ETHERNET_MAC_ADDR, "\"%x:%x:%x:%x:%x:%x\"", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+
 	uint32_t ipaddr = (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | (ip[3]);
-	ifaceInitialise(mac);
-	libip_init(ipaddr, mac);
+	uint8_t macaddr[6] = {(uint8_t)(mac[0]), (uint8_t)(mac[1]), (uint8_t)(mac[2]), (uint8_t)(mac[3]), (uint8_t)(mac[4]), (uint8_t)(mac[5])};
+	ifaceInitialise(macaddr);
+	libip_init(ipaddr, macaddr);
 	ifaceStart();
 }
 

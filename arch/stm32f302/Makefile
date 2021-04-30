@@ -27,6 +27,8 @@ CC += -I$(FREERTOS_PATH)/portable/GCC/ARM_CM4F
 # ---------- FreeRTOS section ------------
 
 ifdef CONFIG_IP
+CC += -DCONFIG_ETHERNET_MAC_ADDR=\"$(CONFIG_ETHERNET_MAC_ADDR)\"
+CC += -DCONFIG_IP_IPADDR=\"$(CONFIG_IP_IPADDR)\"
 CC += -I$(ROOT)/libs/libip -DCONFIG_IP
 LIBS += $(ROOT)/libs/libip/libip.a
 endif
