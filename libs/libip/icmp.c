@@ -33,16 +33,21 @@ const uint8_t *icmp_echo_get_payload(const uint8_t *data, size_t len, size_t *pa
     return data + ICMP_HEADER_LEN + ICMP_ECHO_LEN;
 }
 
-size_t icmp_fill_echo(uint8_t *buf, uint16_t identifier, uint16_t sequence_number, const uint8_t *data, size_t len)
+size_t icmp_fill_echo_payload(uint8_t *buf, const uint8_t *payload, size_t len)
 {
-    struct icmp_echo_s *hdr = (struct icmp_echo_s *)(buf + ICMP_HEADER_LEN);
+	if (len > 0)
+        memmove(buf + ICMP_ECHO_LEN, payload, len); 
+	return len;
+}
+
+size_t icmp_fill_echo_header(uint8_t *buf, uint16_t identifier, uint16_t sequence_number, size_t payload_len)
+{
+    struct icmp_echo_s *hdr = (struct icmp_echo_s *)buf;
     hdr->identifier_h = identifier >> 8;
     hdr->identifier_l = identifier;
     hdr->sequence_number_h = sequence_number >> 8;
     hdr->sequence_number_l = sequence_number;
-    if (len > 0)
-        memmove(buf + ICMP_HEADER_LEN + ICMP_ECHO_LEN, data, len); 
-    return sizeof(struct icmp_echo_s) + len;
+    return sizeof(struct icmp_echo_s) + payload_len;
 }
 
 static uint16_t checksum(const uint8_t *buf, size_t len)
@@ -79,4 +84,3 @@ size_t icmp_fill_header(uint8_t *buf, uint8_t type, uint8_t code, size_t len)
     hdr->checksum_l = chs;
     return ICMP_HEADER_LEN + len;
 }
-

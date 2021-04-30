@@ -8,10 +8,14 @@
 #include "steppers.h"
 #endif
 
+#include <stdbool.h>
+#include <unistd.h>
+
 #include <shell.h>
+#include <iface.h>
+#include <net.h>
 
 #include "platform.h"
-#include "net.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -26,14 +30,14 @@ static void init_steppers(void)
     init_control(&sd, &gd);
 }
 
-void preCalculateTask(void *args)
+static void preCalculateTask(void *args)
 {
     while (true)
         planner_pre_calculate();
 }
 #endif
 
-void heartBeatTask(void *args)
+static void heartBeatTask(void *args)
 {
     while (true)
     {
@@ -48,10 +52,45 @@ void heartBeatTask(void *args)
     }
 }
 
-void networkTask(void *args)
+static void net_setup(void)
 {
-    while (true)
-        network_loop();
+	uint8_t mac[6] = {0xC0, 0x00, 0x00, 0x00, 0x00, 0x05};
+	uint32_t ip[4] = {10, 55, 2, 2};
+	uint32_t ipaddr = (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | (ip[3]);
+    ifaceInitialise(mac);
+	libip_init(ipaddr, mac);
+    ifaceStart();
+}
+
+static struct
+{
+	uint32_t ip;
+	uint16_t port;
+} remote;
+
+void udp_packet_handler(uint32_t remote_ip, uint16_t dport, uint16_t sport, const uint8_t *payload, size_t len)
+{
+	if (dport == CONFIG_UDP_PORT)
+	{
+		remote.ip = remote_ip;
+		remote.port = sport;
+		shell_data_received(payload, len);
+		shell_data_completed();
+	}
+}
+
+void shellSendTask(void *args)
+{
+	while (true)
+	{
+		ssize_t len;
+    	const uint8_t *data = shell_pick_message(&len);
+    	if (data == NULL)
+        	continue;
+
+		libip_send_udp_packet(data, len, remote.ip, CONFIG_UDP_PORT, remote.port);
+		shell_send_completed();
+	}
 }
 
 int main(void)
@@ -64,21 +103,14 @@ int main(void)
     moves_reset();
 #endif
 
-    while (!net_ready())
-    {
-        net_receive();
-    }
+    net_setup();
 
-
-    shell_add_message("Hello", -1);
-
-    xTaskCreate(networkTask, "network", 4096, NULL, 0, NULL);
 #ifdef CONFIG_LIBCORE 
     xTaskCreate(preCalculateTask, "precalc", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
 #endif
     
+	xTaskCreate(shellSendTask, "shell", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
     xTaskCreate(heartBeatTask, "hb", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
-
     vTaskStartScheduler();
 
     while (true)
@@ -86,6 +118,8 @@ int main(void)
 
     return 0;
 }
+
+/*** ***********************/
 
 void vApplicationTickHook(void)
 {}
@@ -105,3 +139,4 @@ void vApplicationMallocFailedHook(void)
 void vApplicationIdleHook(void)
 {}
 
+/*** ***********************/

@@ -1,7 +1,7 @@
 #define STM32F3
 
 #include "platform.h"
-#include "net.h"
+#include "iface.h"
 
 #include <shell.h>
 
@@ -26,11 +26,6 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
 
-
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
-static struct enc28j60_state_s state;
-#endif
-
 /* RCC */
 static void clock_setup(void)
 {
@@ -50,14 +45,6 @@ static void clock_setup(void)
     /* Enable TIM3 clock for connection timeouts */
     rcc_periph_clock_enable(RCC_TIM3);
 
-#ifdef CONFIG_SPI
-    /* Enable SPI2 */
-    rcc_periph_clock_enable(RCC_SPI2);
-
-    /* Enable DMA1 */
-    rcc_periph_clock_enable(RCC_DMA1);
-#endif
-
     // Delay
     int i;
     for (i = 0; i < 100000; i++)
@@ -70,32 +57,18 @@ static void gpio_setup(void)
     gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_OTYPE_PP, GPIO13);
 }
 
-static void packet_received(const char *data, size_t len)
-{
-    shell_data_received(data, len);
-    shell_data_completed();
-}
-
 static void eth_hard_reset(bool rst)
 {
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
     if (rst)
         gpio_clear(GPIOB, GPIO11);
     else
         gpio_set(GPIOB, GPIO11);
-#endif
 }
 
 void hardware_setup(void)
 {
-//    SCB_VTOR = (uint32_t) 0x08000000;
-
     clock_setup();
     gpio_setup();
-
-#ifdef CONFIG_SPI
-    spi_setup();
-#endif
 
 #ifdef CONFIG_UART
     uart_setup(9600);
@@ -105,37 +78,11 @@ void hardware_setup(void)
     steppers_setup();
 #endif
 
-    
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
-    /* enc28j60 INT pin */
-    gpio_mode_setup(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, GPIO10);
-    gpio_set(GPIOB, GPIO10);
-
-    /* enc28j60 RST pin */
-    gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_OTYPE_PP, GPIO11);
-    gpio_set(GPIOB, GPIO11);
-
-    enc28j60_init(&state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
-    net_setup(&state, shell_pick_message, shell_send_completed, packet_received);
-#endif
-
-#ifdef CONFIG_UART
-    shell_setup(NULL, uart_send);
-#else
-    shell_setup(NULL, NULL);
-#endif
-
     gpio_set(GPIOC, GPIO13);
 
     int i;
     for (i = 0; i < 0x400000; i++)
-	__asm__("nop");
-}
-
-void network_loop(void)
-{
-    net_receive();
-    net_send();
+	    __asm__("nop");
 }
 
 #ifdef CONFIG_PROTECT_STACK
@@ -159,17 +106,40 @@ void led_on(void)
     gpio_set(GPIOC, GPIO13);
 }
 
-
 void led_off(void)
 {
     gpio_clear(GPIOC, GPIO13);
 }
 
+struct fault_state_s
+{
+        uint32_t r0;
+        uint32_t r1;
+        uint32_t r2;
+        uint32_t r3;
+        uint32_t r12;
+        uint32_t lr;
+        uint32_t pc;
+        uint32_t psr;
+};
+
 void hard_fault_handler(void)
 {
-    static int i;
+    struct fault_state_s *stack_ptr;
+
+    asm(
+        "TST lr, #4 \n" //Тестируем 3ий бит указателя стека(побитовое И)
+        "ITE EQ \n"   //Значение указателя стека имеет бит 3?
+        "MRSEQ %[ptr], MSP  \n"  //Да, сохраняем основной указатель стека
+        "MRSNE %[ptr], PSP  \n"  //Нет, сохраняем указатель стека процесса
+        : [ptr] "=r" (stack_ptr)
+    );
+
+    uint8_t *prev_stack = (uint8_t *)stack_ptr - sizeof(struct fault_state_s);
+
     while (1)
     {
+        static int i;
         for (i = 0; i < 0x400000; i++)
             __asm__("nop");
         gpio_set(GPIOC, GPIO13);
@@ -178,4 +148,3 @@ void hard_fault_handler(void)
         gpio_clear(GPIOC, GPIO13);
     }
 }
-

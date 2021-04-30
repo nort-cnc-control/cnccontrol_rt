@@ -88,6 +88,8 @@ size_t ip_fill_header(uint8_t *buf, uint32_t source, uint32_t destination, uint8
     hdr->hchecksum_h = chs >> 8;
     hdr->hchecksum_l = chs;
 
+	hdr->offset_h = 0;
+	hdr->offset_l = 0;
     return len + IP_HEADER_LEN;
 }
 

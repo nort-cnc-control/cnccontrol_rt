@@ -19,4 +19,3 @@ bool shell_add_message(const char *msg, ssize_t len);
 /* Input methods */
 bool shell_data_received(const char *data, ssize_t len);
 void shell_data_completed(void);
-

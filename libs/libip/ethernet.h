@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#define ETHERNET_MTU  1524
+
 #define ETHERTYPE_IP  0x0800
 #define ETHERTYPE_ARP 0x0806
 

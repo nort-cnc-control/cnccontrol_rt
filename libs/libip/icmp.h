@@ -36,6 +36,7 @@ uint16_t icmp_echo_get_identifier(const uint8_t *data, size_t len);
 uint16_t icmp_echo_get_sequence_number(const uint8_t *data, size_t len);
 const uint8_t *icmp_echo_get_payload(const uint8_t *data, size_t len, size_t *payload_len);
 
-size_t icmp_fill_echo(uint8_t *buf, uint16_t identifier, uint16_t sequence_number, const uint8_t *data, size_t len);
+size_t icmp_fill_echo_payload(uint8_t *buf, const uint8_t *payload, size_t len);
+size_t icmp_fill_echo_header(uint8_t *buf, uint16_t identifier, uint16_t sequence_number, size_t payload_len);
 size_t icmp_fill_header(uint8_t *buf, uint8_t type, uint8_t code, size_t len);
 

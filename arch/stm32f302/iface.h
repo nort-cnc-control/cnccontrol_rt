@@ -11,3 +11,5 @@ void spi_read_buf(uint8_t *data, size_t len);
 
 void spi_setup(void);
 
+void ifaceInitialise(const uint8_t mac[6]);
+void ifaceStart(void);

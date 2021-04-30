@@ -6,19 +6,19 @@ LD := $(CC)
 DEFS :=
 
 SRCS := main.c		\
-	platform.c	\
-	net.c
+		platform.c	\
+		iface.c
 
-CC += -I$(ROOT)/libs/libshell/
+CC   += -I$(ROOT)/libs/libshell/
 LIBS += $(ROOT)/libs/libshell/libshell.a
 
 # ---------- FreeRTOS section -----------
 FREERTOS_PATH :=        $(ROOT)/libs/FreeRTOS-Kernel
-FREERTOS_SRC  :=        $(FREERTOS_PATH)/list.c                                         \
-			$(FREERTOS_PATH)/queue.c                                        \
-                        $(FREERTOS_PATH)/tasks.c                                        \
-                        $(FREERTOS_PATH)/timers.c                                       \
-                        $(FREERTOS_PATH)/event_groups.c                         	\
+FREERTOS_SRC  :=        $(FREERTOS_PATH)/list.c                                 \
+						$(FREERTOS_PATH)/queue.c                                \
+                        $(FREERTOS_PATH)/tasks.c                        		\
+						$(FREERTOS_PATH)/timers.c                               \
+                        $(FREERTOS_PATH)/event_groups.c                         \
                         $(FREERTOS_PATH)/portable/MemMang/heap_4.c      		\
                         $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/port.c
 SRCS += $(FREERTOS_SRC)
@@ -26,12 +26,17 @@ CC += -I$(FREERTOS_PATH)/include
 CC += -I$(FREERTOS_PATH)/portable/GCC/ARM_CM4F
 # ---------- FreeRTOS section ------------
 
-ifdef CONFIG_PROTECT_STACK
-CC += -DCONFIG_PROTECT_STACK
+ifdef CONFIG_IP
+CC += -I$(ROOT)/libs/libip -DCONFIG_IP
+LIBS += $(ROOT)/libs/libip/libip.a
 endif
 
 ifdef CONFIG_UDP
-CC += -DCONFIG_UDP_PORT=$(CONFIG_UDP_PORT)
+CC += -DCONFIG_UDP -DCONFIG_UDP_PORT=$(CONFIG_UDP_PORT)
+endif
+
+ifdef CONFIG_PROTECT_STACK
+CC += -DCONFIG_PROTECT_STACK
 endif
 
 ifdef CONFIG_LIBCORE
@@ -41,33 +46,14 @@ SRCS += steppers.c
 endif
 
 ifdef CONFIG_LIBMODBUS
+SRCS += uart.c
 CC += -I$(ROOT)/libmodbus/ -DCONFIG_LIBMODBUS
 LIBS += $(ROOT)/libmodbus/libmodbus.a
-endif
-
-ifdef CONFIG_UART
-CC += -DCONFIG_UART
-SRCS += uart.c
 endif
 
 ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
 CC += -I$(ROOT)/drivers/ethernet_enc28j60/include -DCONFIG_ETHERNET_DEVICE_ENC28J60
 LIBS += $(ROOT)/drivers/ethernet_enc28j60/libenc28j60.a
-endif
-
-ifdef CONFIG_ETHERNET
-CC += -I$(ROOT)/libs/libeth -DCONFIG_ETHERNET
-LIBS += $(ROOT)/libs/libeth/libeth.a
-endif
-
-ifdef CONFIG_IP
-CC += -I$(ROOT)/libs/libip -DCONFIG_IP
-LIBS += $(ROOT)/libs/libip/libip.a
-endif
-
-ifdef CONFIG_SPI
-CC += -DCONFIG_SPI
-SRCS += spi.c
 endif
 
 OBJS := $(SRCS:%.c=%.o)
@@ -98,4 +84,3 @@ libopencm3:
 
 clean:
 	rm -f $(OBJS) controller.bin controller.elf $(SUS)
-

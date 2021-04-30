@@ -7,3 +7,6 @@
 [submodule "kbuild-standalone"]
 	path = kbuild-standalone
 	url = https://github.com/WangNan0/kbuild-standalone
+[submodule "libs/FreeRTOS-Plus-TCP"]
+	path = libs/FreeRTOS-Plus-TCP
+	url = https://github.com/FreeRTOS/FreeRTOS-Plus-TCP

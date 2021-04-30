@@ -1,7 +1,9 @@
 SRCS := arp.c	\
-	icmp.c	\
-	ip.c	\
-	udp.c
+	icmp.c		\
+	ip.c		\
+	udp.c		\
+	ethernet.c	\
+	net.c
 
 OBJS := $(SRCS:%.c=%.o)
 SUS := $(SRCS:%.c=%.su)
@@ -19,4 +21,3 @@ libip.a: $(OBJS)
 
 clean:
 	rm -f $(OBJS) libip.a $(SUS)
-
