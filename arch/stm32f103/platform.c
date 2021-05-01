@@ -26,11 +26,6 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/scb.h>
 
-
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
-static struct enc28j60_state_s state;
-#endif
-
 /* RCC */
 static void clock_setup(void)
 {
@@ -72,22 +67,6 @@ static void gpio_setup(void)
                   GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 }
 
-static void packet_received(const char *data, size_t len)
-{
-    shell_data_received(data, len);
-    shell_data_completed();
-}
-
-static void eth_hard_reset(bool rst)
-{
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
-    if (rst)
-        gpio_clear(GPIOB, GPIO11);
-    else
-        gpio_set(GPIOB, GPIO11);
-#endif
-}
-
 void hardware_setup(void)
 {
     SCB_VTOR = (uint32_t) 0x08000000;
@@ -106,20 +85,6 @@ void hardware_setup(void)
 #ifdef CONFIG_LIBCORE
     steppers_setup();
 #endif
-
-#ifdef CONFIG_ETHERNET_DEVICE_ENC28J60
-    /* enc28j60 INT pin */
-    gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO10);
-    gpio_set(GPIOB, GPIO10);
-
-    /* enc28j60 RST pin */
-    gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO11);
-    gpio_set(GPIOB, GPIO11);
-
-    enc28j60_init(&state, eth_hard_reset, spi_rw, spi_cs, spi_write_buf, spi_read_buf);
-#endif
-
-    net_setup(&state, shell_pick_message, shell_send_completed, packet_received);
 
     shell_setup(NULL, uart_send);
 

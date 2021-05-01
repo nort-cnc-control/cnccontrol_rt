@@ -6,8 +6,8 @@ LD := $(CC)
 DEFS :=
 
 SRCS := main.c		\
-	platform.c	\
-	net.c
+		platform.c	\
+		iface.c
 
 CC += -I$(ROOT)/libs/libshell/
 LIBS += $(ROOT)/libs/libshell/libshell.a
@@ -41,20 +41,13 @@ CC += -I$(ROOT)/drivers/ethernet_enc28j60/include -DCONFIG_ETHERNET_DEVICE_ENC28
 LIBS += $(ROOT)/drivers/ethernet_enc28j60/libenc28j60.a
 endif
 
-ifdef CONFIG_ETHERNET
-CC += -I$(ROOT)/libs/libeth -DCONFIG_ETHERNET
-LIBS += $(ROOT)/libs/libeth/libeth.a
-endif
-
 ifdef CONFIG_IP
+CC += -DCONFIG_ETHERNET_MAC_ADDR=\"$(CONFIG_ETHERNET_MAC_ADDR)\"
+CC += -DCONFIG_IP_IPADDR=\"$(CONFIG_IP_IPADDR)\"
 CC += -I$(ROOT)/libs/libip -DCONFIG_IP
 LIBS += $(ROOT)/libs/libip/libip.a
 endif
 
-ifdef CONFIG_SPI
-CC += -DCONFIG_SPI
-SRCS += spi.c
-endif
 
 OBJS := $(SRCS:%.c=%.o)
 SUS := $(SRCS:%.c=%.su)
