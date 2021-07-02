@@ -13,3 +13,6 @@
 [submodule "libs/FreeRTOS-Kernel"]
 	path = libs/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "libs/libip"]
+	path = libs/libip
+	url = git@github.com:nort-cnc-control/libip.git
