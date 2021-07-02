@@ -6,8 +6,8 @@ LD := $(CC)
 DEFS :=
 
 SRCS := main.c		\
-		platform.c	\
-		iface.c
+	platform.c	\
+	iface.c
 
 CC   += -I$(ROOT)/libs/libshell/
 LIBS += $(ROOT)/libs/libshell/libshell.a
@@ -15,25 +15,33 @@ LIBS += $(ROOT)/libs/libshell/libshell.a
 # ---------- FreeRTOS section -----------
 FREERTOS_PATH :=        $(ROOT)/libs/FreeRTOS-Kernel
 FREERTOS_SRC  :=        $(FREERTOS_PATH)/list.c                                 \
-						$(FREERTOS_PATH)/queue.c                                \
-                        $(FREERTOS_PATH)/tasks.c                        		\
-						$(FREERTOS_PATH)/timers.c                               \
+			$(FREERTOS_PATH)/queue.c                                \
+                        $(FREERTOS_PATH)/tasks.c                       		\
+			$(FREERTOS_PATH)/timers.c                               \
                         $(FREERTOS_PATH)/event_groups.c                         \
-                        $(FREERTOS_PATH)/portable/MemMang/heap_4.c      		\
+                        $(FREERTOS_PATH)/portable/MemMang/heap_4.c     		\
                         $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/port.c
 SRCS += $(FREERTOS_SRC)
 CC += -I$(FREERTOS_PATH)/include
 CC += -I$(FREERTOS_PATH)/portable/GCC/ARM_CM4F
 # ---------- FreeRTOS section ------------
 
-ifdef CONFIG_IP
-CC += -DCONFIG_ETHERNET_MAC_ADDR=\"$(CONFIG_ETHERNET_MAC_ADDR)\"
-CC += -DCONFIG_IP_IPADDR=\"$(CONFIG_IP_IPADDR)\"
-CC += -I$(ROOT)/libs/libip -DCONFIG_IP
-LIBS += $(ROOT)/libs/libip/libip.a
-endif
-
 ifdef CONFIG_UDP
+FREERTOS_PLUS_TCP_PATH :=       $(ROOT)/libs/FreeRTOS-Plus-TCP
+FREERTOS_PLUS_TCP_SRC  :=       $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_ARP.c                        \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_DHCP.c                       \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_DNS.c                        \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_IP.c                         \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_Sockets.c            \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_Stream_Buffer.c      \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_TCP_IP.c                     \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_TCP_WIN.c            \
+                                $(FREERTOS_PLUS_TCP_PATH)/FreeRTOS_UDP_IP.c                     \
+                                $(FREERTOS_PLUS_TCP_PATH)/portable/BufferManagement/BufferAllocation_2.c
+
+CC += -I$(FREERTOS_PLUS_TCP_PATH)/include
+CC += -I$(FREERTOS_PLUS_TCP_PATH)/portable/Compiler/GCC
+
 CC += -DCONFIG_UDP -DCONFIG_UDP_PORT=$(CONFIG_UDP_PORT)
 endif
 

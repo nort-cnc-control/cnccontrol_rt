@@ -17,7 +17,12 @@
 #include <task.h>
 #include <semphr.h>
 
-#include <net.h>
+#include <FreeRTOS_IP.h>
+#include <FreeRTOS_IP_Private.h>
+#include <FreeRTOS_TCP_IP.h>
+#include <FreeRTOS_UDP_IP.h>
+#include <NetworkBufferManagement.h>
+
 
 #define SPI_ENABLE_DMA false
 #define SPI_DMA_MINIMAL 16
@@ -110,7 +115,7 @@ void spi_setup(void)
 /* Network */
 static xSemaphoreHandle ethMutex = NULL;
 static struct enc28j60_state_s eth_state;
-static uint8_t eth_mac[6];
+uint8_t eth_mac[6] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x02 };
 
 static void eth_hard_reset(bool rst)
 {
@@ -120,12 +125,24 @@ static void eth_hard_reset(bool rst)
 		gpio_set(ETH_RST_PORT, ETH_RST_PIN);
 }
 
-void send_ethernet_frame(const uint8_t *payload, size_t payload_len)
+BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t* const pxNetworkBuffer,
+                                   BaseType_t xReleaseAfterSend)
 {
-	if (!xSemaphoreTake(ethMutex, portMAX_DELAY))
-		return;
-	enc28j60_send_data(&eth_state, payload, payload_len);
-	xSemaphoreGive(ethMutex);
+	BaseType_t result = pdFAIL;
+
+	if (xSemaphoreTake(ethMutex, portMAX_DELAY) == pdTRUE)
+	{
+		enc28j60_send_data(&eth_state, pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
+		xSemaphoreGive(ethMutex);
+		iptraceNETWORK_INTERFACE_TRANSMIT();
+		result = pdPASS;
+	}
+
+	if(xReleaseAfterSend != pdFALSE)
+	{
+		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+	}
+	return result;
 }
 
 static uint8_t eth_buf[1524];
@@ -149,15 +166,43 @@ static void netTask(void *arg)
 
 			if (len > 0)
 			{
-				libip_handle_ethernet(eth_buf, len);
+				// Send data to stack
+				NetworkBufferDescriptor_t *pxBufferDescriptor = pxGetNetworkBufferWithDescriptor(len, portMAX_DELAY);
+				if (pxBufferDescriptor == NULL)
+				{
+					iptraceETHERNET_RX_EVENT_LOST();
+					continue;
+				}
+
+				memcpy(pxBufferDescriptor->pucEthernetBuffer, eth_buf, len);
+				pxBufferDescriptor->xDataLength = len;
+				if(eConsiderFrameForProcessing(pxBufferDescriptor->pucEthernetBuffer) == eProcessBuffer)
+				{
+					IPStackEvent_t xRxEvent;
+					xRxEvent.eEventType = eNetworkRxEvent;
+					xRxEvent.pvData = (void *) pxBufferDescriptor;
+
+					if (xSendEventStructToIPTask(&xRxEvent, 0) == pdFALSE)
+					{
+						iptraceETHERNET_RX_EVENT_LOST();
+						vReleaseNetworkBufferAndDescriptor(pxBufferDescriptor);
+					}
+					else
+					{
+						iptraceNETWORK_INTERFACE_RECEIVE();
+					}
+				}
+				else
+				{
+					vReleaseNetworkBufferAndDescriptor(pxBufferDescriptor);
+				}
 			}
 		}
 	}
 }
 
-void ifaceInitialise(const uint8_t mac[6])
+BaseType_t xNetworkInterfaceInitialise(void)
 {
-	memcpy(eth_mac, mac, 6);
 	/* Init SPI2 */
 	spi_setup();
 
@@ -173,10 +218,6 @@ void ifaceInitialise(const uint8_t mac[6])
 	taskEXIT_CRITICAL();
 
 	ethMutex = xSemaphoreCreateMutex();
-}
-
-void ifaceStart(void)
-{
-	/* Create task for enc28j60 polling and sending data */
 	xTaskCreate(netTask, "enc28j60", 2048, NULL, 0, NULL);
 }
+

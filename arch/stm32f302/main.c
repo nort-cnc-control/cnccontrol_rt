@@ -14,7 +14,12 @@
 
 #include <shell.h>
 #include <iface.h>
-#include <net.h>
+
+#include <FreeRTOS_IP.h>
+#include <FreeRTOS_Sockets.h>
+#include <FreeRTOS_TCP_IP.h>
+#include <FreeRTOS_UDP_IP.h>
+
 
 #include "platform.h"
 
@@ -53,22 +58,22 @@ static void heartBeatTask(void *args)
 	}
 }
 
+static uint32_t ip;
+static uint32_t netmask;
+static uint32_t gateway;
+static uint32_t dns;
+static uint32_t broadcast;
+
 static void net_setup(void)
 {
-	const char *ipstr = CONFIG_IP_IPADDR;
-	const char *macstr = CONFIG_ETHERNET_MAC_ADDR;
+	const uint8_t ucIPAddress[ ipIP_ADDRESS_LENGTH_BYTES ]        = {10,55,1,120};
+	const uint8_t ucNetMask[ ipIP_ADDRESS_LENGTH_BYTES ]          = {255,255,255,0};
+	const uint8_t ucGatewayAddress[ ipIP_ADDRESS_LENGTH_BYTES ]   = {10,55,1,1};
+	const uint8_t ucDNSServerAddress[ ipIP_ADDRESS_LENGTH_BYTES ] = {10,55,1,1};
+	const uint8_t ucMACAddress[ ipMAC_ADDRESS_LENGTH_BYTES ]      = {0x0C, 0x00, 0x00, 0x00, 0x00, 0x02};
+	memcpy(eth_mac, ucMACAddress, ipMAC_ADDRESS_LENGTH_BYTES);
 
-	unsigned mac[6];
-	unsigned ip[4];
-	sscanf(ipstr, "%u.%u.%u.%u", &ip[0], &ip[1], &ip[2], &ip[3]);
-	sscanf(macstr, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-
-	uint32_t ipaddr = (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | (ip[3]);
-	uint8_t macaddr[6] = {(uint8_t)(mac[0]), (uint8_t)(mac[1]), (uint8_t)(mac[2]), (uint8_t)(mac[3]), (uint8_t)(mac[4]), (uint8_t)(mac[5])};
-	ifaceInitialise(macaddr);
-	libip_init(ipaddr, macaddr);
-	shell_setup(NULL, NULL);
-	ifaceStart();
+	FreeRTOS_IPInit(ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress);
 }
 
 static struct
@@ -96,8 +101,9 @@ void shellSendTask(void *args)
 		const uint8_t *data = shell_pick_message(&len);
 		if (data == NULL)
 			continue;
+		// send data
 
-		libip_send_udp_packet(data, len, remote.ip, CONFIG_UDP_PORT, remote.port);
+		// mark data as sended
 		shell_send_completed();
 	}
 }
@@ -150,4 +156,26 @@ void vApplicationIdleHook(void)
 {
 }
 
+const char *pcApplicationHostnameHook( void )
+{
+    return "cnccontrol_rt";
+}
+
+
+void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
+{
+	static bool started = false;
+	if( eNetworkEvent == eNetworkUp )
+	{
+		FreeRTOS_GetAddressConfiguration(&ip, &netmask, &gateway, &dns);
+		broadcast = ip | ~netmask;
+		if (!started)
+		{
+			started = true;
+			xTaskCreate(shellSendTask, "shell", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
+		}
+	}
+}
+
 /*** ***********************/
+

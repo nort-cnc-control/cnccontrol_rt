@@ -13,3 +13,7 @@ void spi_setup(void);
 
 void ifaceInitialise(const uint8_t mac[6]);
 void ifaceStart(void);
+
+
+extern uint8_t eth_mac[6];
+
