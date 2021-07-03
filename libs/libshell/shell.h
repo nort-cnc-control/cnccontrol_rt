@@ -6,7 +6,10 @@
 
 #include "arch-defs.h"
 
-#define SHELL_MLEN 320
+#define SHELL_RING_LEN 16
+#define SHELL_MSG_LEN 320
+
+extern uint32_t shell_fails;
 
 void shell_setup(void (*debug_send_fun)(const uint8_t *, ssize_t), void (*uart_send_fun)(const uint8_t *data, size_t len));
 

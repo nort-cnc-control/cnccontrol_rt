@@ -13,16 +13,17 @@
 #include <modbus.h>
 #endif
 
-#define MNUM 8
-static char messages[MNUM][SHELL_MLEN];
+uint32_t shell_fails = 0;
+
+static char messages[SHELL_RING_LEN][SHELL_MSG_LEN];
 static int mpos = 0;
 static int mfirst = 0;
 static int mnum = 0;
 
-static char input_buffer[SHELL_MLEN];
+static char input_buffer[SHELL_MSG_LEN];
 
 #ifdef CONFIG_COPY_COMMAND
-static char command_buffer[SHELL_MLEN-3];
+static char command_buffer[SHELL_MSG_LEN-3];
 #endif
 static int input_pos = 0;
 
@@ -34,22 +35,25 @@ static void shell_pop_message(void)
     if (mnum == 0)
         return;
     mnum--;
-    mfirst = (mfirst + 1) % MNUM;
+    mfirst = (mfirst + 1) % SHELL_RING_LEN;
 }
 
 bool shell_add_message(const char *msg, ssize_t len)
 {
-    if (mnum == MNUM)
+    if (mnum == SHELL_RING_LEN)
+    {
+        shell_fails++;
         return false;
+    }
     if (len < 0)
         len = strlen(msg);
 
-    len = len < SHELL_MLEN - 2 ? len : SHELL_MLEN - 2;
-    memset(messages[mpos], 0, SHELL_MLEN);
+    len = len < SHELL_MSG_LEN - 2 ? len : SHELL_MSG_LEN - 2;
+    memset(messages[mpos], 0, SHELL_MSG_LEN);
     messages[mpos][0] = len >> 8;
     messages[mpos][1] = len;
     strncpy(messages[mpos]+2, msg, len);
-    mpos = (mpos + 1) % MNUM;
+    mpos = (mpos + 1) % SHELL_RING_LEN;
     mnum++;
     return true;
 }
@@ -97,7 +101,7 @@ const uint8_t *shell_pick_message(ssize_t *len)
 
 int shell_empty_slots(void)
 {
-    return MNUM - mnum;
+    return SHELL_RING_LEN - mnum;
 }
 
 static int hex2dig(char c)
@@ -117,7 +121,7 @@ bool shell_data_received(const char *data, ssize_t len)
     if (len < 0)
         len = strlen(data);
 
-    if (input_pos + len > SHELL_MLEN)
+    if (input_pos + len > SHELL_MSG_LEN)
     {
         input_pos = 0;
         return false;
@@ -196,7 +200,7 @@ void shell_data_completed(void)
 #endif
     else
     {
-        char buf[SHELL_MLEN-2];
+        char buf[SHELL_MSG_LEN-2];
         int l = snprintf(buf, 100, "Unknown command: %i [%.*s]", input_pos, input_pos, input_buffer);
         shell_add_message(buf, l);
     }
