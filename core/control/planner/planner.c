@@ -253,6 +253,11 @@ void init_planner(steppers_definition *def,
     tools_init(&gpio_definitions);
 }
 
+int active_slots(void)
+{
+    return active_plan_len;
+}
+
 int used_slots(void)
 {
     return plan_len;
@@ -347,7 +352,7 @@ int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc
     if (res)
     {
         ev_send_queued(nid);
-        if (used_slots() == 1) {
+        if (active_slots() == 1) {
             get_cmd();
         }
     }
@@ -435,7 +440,7 @@ int planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a
     if (res)
     {
         ev_send_queued(nid);
-        if (used_slots() == 1) {
+        if (active_slots() == 1) {
             get_cmd();
         }
     }
@@ -474,14 +479,14 @@ int planner_tool(int id, bool on, int nid)
     active_plan_len++;
 
     ev_send_queued(nid);
-    if (used_slots() == 1) {
-        get_cmd();
-    }
-
     last_nid = nid;
 
     cur->state = STATE_QUEUED;
     cur->state_changed = false;
+
+    if (active_slots() == 1) {
+        get_cmd();
+    }
     return empty_slots();
 }
 
@@ -495,7 +500,7 @@ void enable_break_on_probe(bool en)
 void planner_pre_calculate(void)
 {
     int i;
-    for (i = 0; i < used_slots(); i++)
+    for (i = 0; i < active_slots(); i++)
     {
         int pos = (plan_cur + i) % QUEUE_SIZE;
         action_plan *p = &plan[pos];
