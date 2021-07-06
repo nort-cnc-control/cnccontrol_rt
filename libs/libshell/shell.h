@@ -6,8 +6,6 @@
 
 #include "arch-defs.h"
 
-#define SHELL_RING_LEN 16
-#define SHELL_MSG_LEN 320
 
 extern uint32_t shell_fails;
 

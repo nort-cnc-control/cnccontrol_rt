@@ -218,6 +218,18 @@ menu "Communication"
 
 	if UART
 	endif
+
+	config SHELL_RING_LEN
+		int "Shell ring length"
+		default 8
+		help
+			Amount of places in output ring buffer
+
+	config SHELL_MSG_LEN
+		int "Shell msg length"
+		default 100
+		help
+			Max length of output messages
 endmenu
 
 config LIBCORE
