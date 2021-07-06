@@ -16,6 +16,7 @@
 
 extern cnc_position position;
 
+static int last_nid;
 static volatile int search_begin;
 
 static volatile bool locked = true;
@@ -31,10 +32,19 @@ typedef enum {
     ACTION_TOOL,
 } action_type;
 
+typedef enum {
+    STATE_NONE = 0,
+    STATE_QUEUED,
+    STATE_PREPARED,
+    STATE_STARTED,
+    STATE_FINISHED,
+    STATE_FAILED,
+} action_state;
+
 typedef struct {
     int nid;
-    int notify_start;
-    int notify_end;
+    action_state state;
+    bool state_changed;
     action_type type;
     union {
         line_plan line;
@@ -44,8 +54,11 @@ typedef struct {
 } action_plan;
 
 static action_plan plan[QUEUE_SIZE];
+static int plan_first = 0;
 static int plan_cur = 0;
 static int plan_last = 0;
+
+static int active_plan_len = 0;
 static int plan_len = 0;
 
 static bool break_on_probe = false;
@@ -57,38 +70,74 @@ static void (*ev_send_queued)(int nid);
 static void (*ev_send_dropped)(int nid);
 static void (*ev_send_failed)(int nid);
 
-static void pop_cmd(void)
+static void next_cmd(void)
 {
-    memset(&plan[plan_cur], 0, sizeof(action_plan));
-    if (plan_len > 0)
+    if (active_plan_len > 0)
     {
         plan_cur = (plan_cur + 1) % QUEUE_SIZE;
+	active_plan_len--;
+    }
+}
+
+static void pop_cmd(void)
+{
+    if (plan_len > 0)
+    {
+        memset(&plan[plan_first], 0, sizeof(action_plan));
+        plan[plan_first].state = STATE_NONE;
+
+        plan_first = (plan_first + 1) % QUEUE_SIZE;
         plan_len--;
     }
 }
 
+void planner_report_states(void)
+{
+    int id;
+    for (id = 0; id < QUEUE_SIZE; id++)
+    {
+        action_plan *p = &plan[id];
+	if (p->state == STATE_NONE)
+            continue;
+        if (!p->state_changed)
+            continue;
+	switch (p->state)
+        {
+        case STATE_STARTED:
+            ev_send_started(p->nid);
+            break;
+        case STATE_FAILED:
+            ev_send_failed(p->nid);
+            pop_cmd();
+            break;
+        case STATE_FINISHED:
+            ev_send_completed(p->nid);
+            pop_cmd();
+            break;
+        }
+        p->state_changed = false;
+    }
+}
 
 static void get_cmd(void)
 {
-    if (plan_len == 0)
+    if (active_plan_len == 0)
     {
     	return;
     }
 
     action_plan *cp = &plan[plan_cur];
     int res;
-    
-    if (cp->notify_start)
-        ev_send_started(cp->nid);
+
+    cp->state = STATE_STARTED;
+    cp->state_changed = true;
 
     switch (cp->type) {
     case ACTION_LINE:
         res = moves_line_to(&(cp->line));
         if (res == -E_NEXT)
         {
-            if (cp->notify_end)
-                ev_send_completed(cp->nid);
-            pop_cmd();
+            next_cmd();
             get_cmd();
         }
         break;
@@ -96,9 +145,7 @@ static void get_cmd(void)
         res = moves_arc_to(&(cp->arc));
         if (res == -E_NEXT)
         {
-            if (cp->notify_end)
-                ev_send_completed(cp->nid);
-            pop_cmd();
+            next_cmd();
             get_cmd();
         }
         break;
@@ -106,14 +153,12 @@ static void get_cmd(void)
         res = tool_action(&(cp->tool));
         if (res == -E_NEXT)
         {
-            if (cp->notify_end)
-                ev_send_completed(cp->nid);
-            pop_cmd();
+            next_cmd();
             get_cmd();
         }
         break;
     case ACTION_NONE:
-        pop_cmd();
+        next_cmd();
         get_cmd();
         break;
     }
@@ -133,16 +178,14 @@ static void line_started(void)
 static void line_finished(void)
 {
     action_plan *cp = &plan[plan_cur];
-    if (cp->notify_end)
-    {
-        ev_send_completed_with_pos(cp->nid, position.pos);
-    }
+    cp->state = STATE_FINISHED;
+    cp->state_changed = true;
     line_finished_cb();
-    pop_cmd();
+    next_cmd();
 
     if (locked)
         return;
-    
+
     get_cmd();
 }
 
@@ -156,9 +199,10 @@ static void endstops_touched(void)
     {
         action_plan *cp = &plan[plan_cur];
 	_planner_lock();
+	cp->state = STATE_FAILED;
+	cp->state_changed = true;
         line_error_cb();
-        ev_send_failed(cp->nid);
-        pop_cmd();
+        next_cmd();
     }
 }
 
@@ -182,6 +226,7 @@ void init_planner(steppers_definition *def,
     ev_send_failed = arg_send_failed;
     plan_cur = plan_last = 0;
     plan_len = 0;
+    active_plan_len = 0;
     search_begin = 0;
     finish_action = NULL;
 
@@ -207,7 +252,7 @@ int used_slots(void)
 
 int empty_slots(void)
 {
-    return QUEUE_SIZE - used_slots();
+    return QUEUE_SIZE - used_slots() - 1;
 }
 
 static int break_on_endstops(int32_t *dx, void *user_data)
@@ -229,7 +274,7 @@ static int break_on_endstops(int32_t *dx, void *user_data)
 }
 
 static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *usr_data,
-                            double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
+                            double feed, double f0, double f1, int32_t acc, int nid)
 {
     action_plan *cur;
 
@@ -248,8 +293,6 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *u
     cur = &plan[plan_last];
     cur->type = ACTION_LINE;
     cur->nid = nid;
-    cur->notify_end = ne;
-    cur->notify_start = ns;
     if (cbr != NULL)
     {
         cur->line.check_break = cbr;
@@ -273,6 +316,10 @@ static int _planner_line_to(int32_t x[3], int (*cbr)(int32_t *, void *), void *u
 
     plan_last = (plan_last + 1) % QUEUE_SIZE;
     plan_len++;
+    active_plan_len++;
+
+    cur->state = STATE_QUEUED;
+    cur->state_changed = false;
     return 1;
 }
 
@@ -288,7 +335,7 @@ int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc
         return -E_NOMEM;
     }
 
-    int res = _planner_line_to(x, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    int res = _planner_line_to(x, NULL, NULL, feed, f0, f1, acc, nid);
     if (res)
     {
         ev_send_queued(nid);
@@ -300,12 +347,14 @@ int planner_line_to(int32_t x[3], double feed, double f0, double f1, int32_t acc
     {
         ev_send_dropped(nid);
     }
+    
+    last_nid = nid;
     return empty_slots();
 }
 
 static int _planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a, double b, arc_plane plane, int cw,
 			   int (*cbr)(int32_t *, void *), void *usr_data,
-                           double feed, double f0, double f1, int32_t acc, int nid, int ns, int ne)
+                           double feed, double f0, double f1, int32_t acc, int nid)
 {
     action_plan *cur;
 
@@ -324,8 +373,6 @@ static int _planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, 
     cur = &plan[plan_last];
     cur->type = ACTION_ARC;
     cur->nid = nid;
-    cur->notify_end = ne;
-    cur->notify_start = ns;
     if (cbr != NULL)
     {
         cur->arc.check_break = cbr;
@@ -355,6 +402,10 @@ static int _planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, 
 
     plan_last = (plan_last + 1) % QUEUE_SIZE;
     plan_len++;
+    active_plan_len++;
+
+    cur->state = STATE_QUEUED;
+    cur->state_changed = false;
     return 1;
 }
 
@@ -372,7 +423,7 @@ int planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a
         return -E_NOMEM;
     }
 
-    int res = _planner_arc_to(x1, x2, H, len, a, b, plane, cw, NULL, NULL, feed, f0, f1, acc, nid, 1, 1);
+    int res = _planner_arc_to(x1, x2, H, len, a, b, plane, cw, NULL, NULL, feed, f0, f1, acc, nid);
     if (res)
     {
         ev_send_queued(nid);
@@ -384,6 +435,8 @@ int planner_arc_to(int32_t x1[2], int32_t x2[2], int32_t H, double len, double a
     {
         ev_send_dropped(nid);
     }
+    
+    last_nid = nid;
     return empty_slots();
 }
 
@@ -404,19 +457,20 @@ int planner_tool(int id, bool on, int nid)
     cur = &plan[plan_last];
     cur->type = ACTION_TOOL;
     cur->nid = nid;
-    cur->notify_end = 1;
-    cur->notify_start = 1;
 
     cur->tool.on = on;
     cur->tool.id = id;
 
     plan_last = (plan_last + 1) % QUEUE_SIZE;
     plan_len++;
+    active_plan_len++;
 
     ev_send_queued(nid);
     if (used_slots() == 1) {
         get_cmd();
-    } 
+    }
+
+    last_nid = nid;
     return empty_slots();
 }
 
@@ -437,15 +491,19 @@ void planner_pre_calculate(void)
         switch(p->type)
         {
             case ACTION_LINE:
-                if (p->line.len < 0)
+                if (p->state == STATE_QUEUED)
                 {
                     line_pre_calculate(&(p->line));
+		    p->state = STATE_PREPARED;
+		    p->state_changed = true;
                 }
                 break;
             case ACTION_ARC:
-                if (p->arc.ready == 0)
+                if (p->state == STATE_QUEUED)
                 {
                     arc_pre_calculate(&(p->arc));
+		    p->state = STATE_PREPARED;
+		    p->state_changed = true;
                 }
                 break;
             default:
@@ -459,6 +517,7 @@ static void _planner_lock(void)
     locked = 1;
     plan_cur = plan_last = 0;
     plan_len = 0;
+    active_plan_len = 0;
     moves_break();
 }
 

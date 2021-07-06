@@ -38,3 +38,5 @@ int planner_is_locked(void);
 
 void planner_fail_on_endstops(bool fail);
 
+void planner_report_states(void);
+

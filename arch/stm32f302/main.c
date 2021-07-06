@@ -20,6 +20,9 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <semphr.h>
+
+static xSemaphoreHandle shellMutex = NULL;
 
 #ifdef CONFIG_LIBCORE
 static void init_steppers(void)
@@ -34,7 +37,13 @@ static void init_steppers(void)
 static void preCalculateTask(void *args)
 {
 	while (true)
+	{
+		xSemaphoreTake(shellMutex, portMAX_DELAY);
+		planner_report_states();
+		xSemaphoreGive(shellMutex);
+
 		planner_pre_calculate();
+	}
 }
 #endif
 
@@ -67,24 +76,35 @@ static void net_setup(void)
 	uint8_t macaddr[6] = {(uint8_t)(mac[0]), (uint8_t)(mac[1]), (uint8_t)(mac[2]), (uint8_t)(mac[3]), (uint8_t)(mac[4]), (uint8_t)(mac[5])};
 	ifaceInitialise(macaddr);
 	libip_init(ipaddr, macaddr);
-	shell_setup(NULL, NULL);
+	shell_setup(NULL, NULL/*, create_mutex, take_mutex, release_mutex*/);
 	ifaceStart();
 }
 
+enum rudp_state_e 
+{
+	CLOSED = 0,
+	OPENED,
+};
+
 static struct
 {
-	uint32_t ip;
-	uint16_t port;
-} remote;
+	enum rudp_state_e state;
+	uint32_t remote_ip;
+	uint16_t remote_port;
+} connection;
 
 void udp_packet_handler(uint32_t remote_ip, uint16_t dport, uint16_t sport, const uint8_t *payload, size_t len)
 {
 	if (dport == CONFIG_UDP_PORT)
 	{
-		remote.ip = remote_ip;
-		remote.port = sport;
+		connection.state = OPENED;
+		connection.remote_ip = remote_ip;
+		connection.remote_port = sport;
+
+		xSemaphoreTake(shellMutex, portMAX_DELAY);
 		shell_data_received(payload, len);
 		shell_data_completed();
+		xSemaphoreGive(shellMutex);
 	}
 }
 
@@ -92,13 +112,19 @@ void shellSendTask(void *args)
 {
 	while (true)
 	{
-		ssize_t len;
-		const uint8_t *data = shell_pick_message(&len);
-		if (data == NULL)
-			continue;
-
-		libip_send_udp_packet(data, len, remote.ip, CONFIG_UDP_PORT, remote.port);
-		shell_send_completed();
+		xSemaphoreTake(shellMutex, portMAX_DELAY);
+		do
+		{
+			ssize_t len;
+			const uint8_t *data = shell_pick_message(&len);
+			if (data == NULL)
+			{
+				break;
+			}
+			libip_send_udp_packet(data, len, connection.remote_ip, CONFIG_UDP_PORT, connection.remote_port);
+			shell_send_completed();
+		} while(0);
+		xSemaphoreGive(shellMutex);
 	}
 }
 
@@ -117,6 +143,8 @@ int main(void)
 #ifdef CONFIG_LIBCORE
 	xTaskCreate(preCalculateTask, "precalc", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
 #endif
+
+	shellMutex = xSemaphoreCreateMutex();
 
 	xTaskCreate(shellSendTask, "shell", configMINIMAL_STACK_SIZE, NULL, 0, NULL);
 	xTaskCreate(heartBeatTask, "hb", configMINIMAL_STACK_SIZE, NULL, 0, NULL);

@@ -1,3 +1,7 @@
+FREERTOS_PATH := $(ROOT)/libs/FreeRTOS-Kernel
+CC += -I$(FREERTOS_PATH)/include
+CC += -I$(FREERTOS_PATH)/portable/GCC/ARM_CM4F
+
 SRCS := shell.c
 
 OBJS := $(SRCS:%.c=%.o)

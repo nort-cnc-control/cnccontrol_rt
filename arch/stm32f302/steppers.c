@@ -38,6 +38,8 @@ static void steppers_timer_setup(void)
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
     timer_enable_irq(TIM2, TIM_DIER_CC1IE);
+
+    nvic_set_priority(NVIC_TIM2_IRQ, 6 * 16);
 }
 
 void steppers_timer_irq_enable(bool en)

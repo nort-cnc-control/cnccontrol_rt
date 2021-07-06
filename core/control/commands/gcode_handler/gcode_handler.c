@@ -36,6 +36,7 @@ static int handle_g_command(gcode_frame_t *frame)
         send_ok(nid);
         return -E_OK;
     }
+
     // parse command line
     switch (cmds[0].type) {
     case 'G':
