@@ -43,6 +43,7 @@ int main(void)
     {
 #ifdef CONFIG_LIBCORE
         planner_pre_calculate();
+        planner_report_states();
 #endif
 	hardware_loop();
     }

@@ -137,6 +137,8 @@ static void get_cmd(void)
         res = moves_line_to(&(cp->line));
         if (res == -E_NEXT)
         {
+            cp->state = STATE_FINISHED;
+            cp->state_changed = true;
             next_cmd();
             get_cmd();
         }
@@ -145,6 +147,8 @@ static void get_cmd(void)
         res = moves_arc_to(&(cp->arc));
         if (res == -E_NEXT)
         {
+            cp->state = STATE_FINISHED;
+            cp->state_changed = true;
             next_cmd();
             get_cmd();
         }
@@ -153,11 +157,15 @@ static void get_cmd(void)
         res = tool_action(&(cp->tool));
         if (res == -E_NEXT)
         {
+            cp->state = STATE_FINISHED;
+            cp->state_changed = true;
             next_cmd();
             get_cmd();
         }
         break;
     case ACTION_NONE:
+        cp->state = STATE_FINISHED;
+        cp->state_changed = true;
         next_cmd();
         get_cmd();
         break;
@@ -471,6 +479,9 @@ int planner_tool(int id, bool on, int nid)
     }
 
     last_nid = nid;
+
+    cur->state = STATE_QUEUED;
+    cur->state_changed = false;
     return empty_slots();
 }
 
