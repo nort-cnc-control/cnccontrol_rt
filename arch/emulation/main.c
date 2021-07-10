@@ -292,6 +292,7 @@ int main(int argc, const char **argv)
             pthread_mutex_lock(&mutex);
             planner_pre_calculate();
             pthread_mutex_unlock(&mutex);
+            planner_report_states();
             usleep(1000);
         }
 
