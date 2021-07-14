@@ -238,6 +238,18 @@ static int handle_g_command(gcode_frame_t *frame)
 
             return -E_OK;
 	}
+        case 80: {
+            if (moves_common_def.enable_step)
+                moves_common_def.enable_step(true);
+            send_ok(nid);
+            return -E_OK;
+        }
+        case 81: {
+            if (moves_common_def.enable_step)
+                moves_common_def.enable_step(false);
+            send_ok(nid);
+            return -E_OK;
+        }
         case 100: {
             int i;
             steppers_definition def = moves_common_def;

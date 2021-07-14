@@ -78,6 +78,22 @@ void steppers_setup(void)
 
 static volatile int moving;
 
+static void enable_steppers(bool en)
+{
+    if (en)
+    {
+        PORT(X_EN_PORT) &= ~(1<<X_EN_PIN);
+        PORT(Y_EN_PORT) &= ~(1<<Y_EN_PIN);
+        PORT(Z_EN_PORT) &= ~(1<<Z_EN_PIN);
+    }
+    else
+    {
+        PORT(X_EN_PORT) |= (1<<X_EN_PIN);
+        PORT(Y_EN_PORT) |= (1<<Y_EN_PIN);
+        PORT(Z_EN_PORT) |= (1<<Z_EN_PIN);
+    }
+}
+
 static void set_dir(int i, bool dir)
 {
     if (dir) {
@@ -257,6 +273,7 @@ void steppers_config(steppers_definition *sd, gpio_definition *gd)
     sd->reboot         = reboot;
     sd->set_dir        = set_dir;
     sd->make_step      = make_step;
+    sd->enable_step    = enable_steppers;
     sd->get_endstops   = get_stops;
     sd->line_started   = line_started;
     sd->line_finished  = line_finished;

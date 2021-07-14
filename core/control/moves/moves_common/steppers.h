@@ -15,6 +15,7 @@ typedef struct
     void (*reboot)(void);
     void (*set_dir)(int i, bool dir);
     void (*make_step)(int i);
+    void (*enable_step)(bool en);
     void (*line_started)(void);
     void (*line_finished)(void);
     void (*line_error)(void);
